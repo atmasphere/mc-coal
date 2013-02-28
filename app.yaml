@@ -1,4 +1,4 @@
-application: mc_coal
+application: mc-coal
 version: 1
 runtime: python27
 threadsafe: true
