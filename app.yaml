@@ -1,0 +1,13 @@
+application: mc_coal
+version: 1
+runtime: python27
+threadsafe: true
+api_version: 1
+
+handlers:
+- url: /.*
+  script: mc_coal.app
+
+libraries:
+- name: webapp2
+  version: latest

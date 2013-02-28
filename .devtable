@@ -1,0 +1,22 @@
+profile = DevTable.Profile(
+	Analyze = [python],
+	Build = [appengine_debug],
+	Debug = [appengine_debug, appengine_prod],
+	Deploy = [appengine_prod]
+)
+
+python = Python.Analyzer(
+	Files = Glob('*.py')
+)
+
+appengine_debug = Google.AppEngine.Mimic(
+  Files = ProjectFiles(),
+  AuthorizationProfile = 'GoogleAppEngine',
+  Title = 'Debug Version'
+)
+
+appengine_prod = Google.AppEngine(
+  Files = ProjectFiles(),
+  AuthorizationProfile = 'GoogleAppEngine',
+  Title = 'Production Version'
+)
