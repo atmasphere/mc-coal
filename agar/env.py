@@ -15,7 +15,8 @@ if have_appserver:
     appid = get_application_id()
 else:
     try:
-        project_dirname = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        project_dirname = os.path.dirname(os.path.dirname(__file__))
+        print project_dirname
         project_dir = os.path.abspath(project_dirname)
         from google.appengine.tools import dev_appserver
         appconfig, matcher, from_cache = dev_appserver.LoadAppConfig(project_dir, {})
