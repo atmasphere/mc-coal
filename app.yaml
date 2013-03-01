@@ -6,7 +6,7 @@ api_version: 1
 
 handlers:
 - url: /.*
-  script: mc_coal.app
+  script: main.application
 
 libraries:
 - name: webapp2
