@@ -2,7 +2,7 @@ import os
 import sys
 dev_appserver = None
 sdk_path = ""
-for d in os.environ["PATH"].split(":"):
+for d in os.environ["PATH"].split(":") + ['.']:
     print d
     dev_appserver_path = os.path.join(d, "dev_appserver.py")
     if os.path.isfile(dev_appserver_path):
