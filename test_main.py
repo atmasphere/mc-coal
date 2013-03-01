@@ -9,8 +9,8 @@ for d in os.environ["PATH"].split(":"):
         import dev_appserver
         dev_appserver.fix_sys_path()
 
-from base_test import BaseTest
-from web_test import WebTest
+from agar.test.base_test import BaseTest
+from agar.test.web_test import WebTest
 
 import main
 
