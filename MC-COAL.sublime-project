@@ -1,8 +1,11 @@
 {
-	"folders":
-	[
-		{
-			"path": "/Users/gumptionthomas/Dropbox/Development/MC-COAL"
-		}
-	]
+    "folders":
+    [
+        {
+            "path": ".",
+            "name": "MC-COAL",
+            "folder_exclude_patterns": [".hgcheck", ".idea"],
+            "file_exclude_patterns": ["MC-COAL.sublime-workspace"]
+        }
+    ]
 }
