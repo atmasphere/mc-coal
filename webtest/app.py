@@ -1086,6 +1086,8 @@ class TestApp(object):
         if 'Cookie' in req.headers:
             req_cookies = [i.strip() for i in req.headers['Cookie'].split(';')]
             req_cookies = [i.split('=') for i in req_cookies]
+            for i in range(0, len(req_cookies)):
+                req_cookies[i][1] = req_cookies[i][1].replace('%3D', '=')
             cookies.extend(req_cookies)
         if cookies:
             cookie_header = ''.join([

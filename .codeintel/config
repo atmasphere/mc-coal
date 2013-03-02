@@ -1,0 +1,9 @@
+{
+    "Python": {
+        "python": '/usr/bin/python',
+        "pythonExtraPaths": [
+            '/usr/local/google_appengine/lib/webapp2',
+            '/usr/local/google_appengine/lib/webapp2_extras'
+        ]
+    }
+}

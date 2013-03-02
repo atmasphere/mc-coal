@@ -12,13 +12,134 @@ for d in os.environ["PATH"].split(":"):
 from agar.test.base_test import BaseTest
 from agar.test.web_test import WebTest
 
+from models import User
+
 import main
 
+TEST_USER_EMAIL = 'test@example.com'
 
-class MainTest(BaseTest, WebTest):
 
+class MainBaseTest(BaseTest, WebTest):
     APPLICATION = main.application
+    URL = None
 
+    def log_in_user(self, email=TEST_USER_EMAIL, is_admin=False):
+        super(MainBaseTest, self).log_in_user(email, is_admin=is_admin)
+        response = self.get('/login_callback')
+        cookies = response.headers.get('Set-Cookie')
+        self.auth_cookie = cookies[0:cookies.find(';')]
+        self.assertRedirects(response, to='/')
+        self.current_user = User.lookup(email=email)
+
+    def log_in_admin(self, email=TEST_USER_EMAIL):
+        self.log_in_user(email, is_admin=True)
+
+    def log_out_user(self):
+        response = self.get('/logout')
+        self.assertRedirects(response)
+        self.auth_cookie = None
+        try:
+            del os.environ['USER_EMAIL']
+        except KeyError:
+            pass
+        try:
+            del os.environ['USER_ID']
+        except KeyError:
+            pass
+        try:
+            del os.environ['USER_IS_ADMIN']
+        except KeyError:
+            pass
+        response = self.get('/logout')
+        self.auth_cookie = None
+        self.assertRedirects(response)
+
+    def assertLoggedIn(self, response):
+        # self.assertIn('Sign Out', response.body)
+        pass
+
+    def assertNotLoggedIn(self, response):
+        self.assertIn('Login', response.body)
+
+    def setUp(self):
+        super(MainBaseTest, self).setUp()
+
+    def get(self, url, params=None, headers=None):
+        self.app.reset()
+        extra_environ = None
+        if getattr(self, 'auth_cookie', None):
+            extra_environ = {'HTTP_COOKIE': self.auth_cookie.replace('=', '%3D').replace('%3D', '=', 1)}
+        return self.app.get(url, params=params, headers=headers, extra_environ=extra_environ, status="*", expect_errors=True)
+
+    def test_get_with_slash(self):
+        if self.URL:
+            url = self.URL
+            if url != '/':
+                url += '/'
+                response = self.get(url)
+                self.assertRedirects(response, to=self.URL, code=301)
+
+
+class AuthTest(MainBaseTest):
+    def test_get_auth(self):
+        if self.URL:
+            self.log_in_user()
+            response = self.get(self.URL)
+            self.assertOK(response)
+            self.assertLoggedIn(response)
+
+    def test_get_no_auth(self):
+        if self.URL:
+            response = self.get(self.URL)
+            self.assertRedirects(response)
+
+    def test_get_user_no_auth_cookie(self):
+        if self.URL:
+            super(AuthTest, self).log_in_user(TEST_USER_EMAIL)
+            response = self.get(self.URL)
+            self.assertRedirects(response)
+
+    def test_logout(self):
+        if self.URL:
+            self.log_in_user()
+            response = self.get(self.URL)
+            self.assertOK(response)
+            self.assertLoggedIn(response)
+            self.log_out_user()
+            response = self.get(self.URL)
+            self.assertRedirects(response)
+
+    def test_login_again(self):
+        if self.URL:
+            self.log_in_user()
+            response = self.get(self.URL)
+            self.assertOK(response)
+            self.assertLoggedIn(response)
+            self.log_out_user()
+            response = self.get(self.URL)
+            self.assertRedirects(response)
+            self.log_in_user()
+            response = self.get(self.URL)
+            self.assertOK(response)
+            self.assertLoggedIn(response)
+
+    def test_login_two_users(self):
+        if self.URL:
+            self.log_in_user()
+            response = self.get(self.URL)
+            self.assertOK(response)
+            self.assertLoggedIn(response)
+            self.log_out_user()
+            response = self.get(self.URL)
+            self.assertRedirects(response)
+            self.log_in_user('test2@example.com')
+            response = self.get(self.URL)
+            self.assertOK(response)
+            self.assertLoggedIn(response)
+
+
+class MainTest(AuthTest):
     def test_hello_world(self):
+        self.log_in_user()
         response = self.get("/")
         self.assertOK(response)
