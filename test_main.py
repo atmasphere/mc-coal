@@ -93,12 +93,6 @@ class AuthTest(MainBaseTest):
             response = self.get(self.URL)
             self.assertRedirects(response)
 
-    def test_get_user_no_auth_cookie(self):
-        if self.URL:
-            super(AuthTest, self).log_in_user(TEST_USER_EMAIL)
-            response = self.get(self.URL)
-            self.assertRedirects(response)
-
     def test_logout(self):
         if self.URL:
             self.log_in_user()
@@ -132,14 +126,16 @@ class AuthTest(MainBaseTest):
             self.log_out_user()
             response = self.get(self.URL)
             self.assertRedirects(response)
-            self.log_in_user('test2@example.com')
+            self.log_in_user('admin@example.com')
             response = self.get(self.URL)
             self.assertOK(response)
             self.assertLoggedIn(response)
 
 
 class MainTest(AuthTest):
-    def test_hello_world(self):
+    URL = '/'
+
+    def test_get(self):
         self.log_in_user()
         response = self.get("/")
         self.assertOK(response)

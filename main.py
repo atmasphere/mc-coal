@@ -108,6 +108,12 @@ class UserAwareHandler(JinjaHandler):
     def logged_in(self):
         return self.auth.get_user_by_session() is not None
 
+    def logout(self, redirect_url=None):
+        redirect_url = redirect_url or '/'
+        self.auth.unset_session()
+        logout_url = users.create_logout_url(redirect_url)
+        self.redirect(logout_url)
+
     def dispatch(self):
         try:
             super(UserAwareHandler, self).dispatch()
