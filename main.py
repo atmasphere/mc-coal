@@ -73,8 +73,27 @@ def authenticate(handler, required=True, admin=False):
         user = None
     else:
         user = handler.auth.store.user_model.get_by_id(user_dict['user_id'])
-    if user is not None and not user.email in [x['email'] for x in config.USER_WHITELIST]:
-        user = None
+    if user is not None:
+        allowed = None
+        for wlu in config.USER_WHITELIST:
+            if user.email == wlu['email']:
+                allowed = wlu
+                update = False
+                if not user.active:
+                    user.active = True
+                    update = True
+                if user.admin != allowed['admin']:
+                    user.admin = allowed['admin']
+                    update = True
+                if user.username != allowed['username']:
+                    user.username = allowed['username']
+                    update = True
+                if update:
+                    user.put()
+        if not allowed:
+            user.active = False
+            user.put()
+            user = None
     if required and not user:
         handler.redirect(get_login_url(handler), abort=True)
     if admin and not user.admin:

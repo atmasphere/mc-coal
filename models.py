@@ -5,10 +5,11 @@ import webapp2_extras.appengine.auth.models as auth_models
 
 
 class User(auth_models.User):
-    active = ndb.BooleanProperty()
-    admin = ndb.BooleanProperty()
+    active = ndb.BooleanProperty(default=False)
+    admin = ndb.BooleanProperty(default=False)
     email = ndb.StringProperty()
     nickname = ndb.StringProperty()
+    username = ndb.StringProperty()
 
     @classmethod
     def get_gae_user_auth_id(cls, gae_user_id=None, gae_user=None):
