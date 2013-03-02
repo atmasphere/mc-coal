@@ -16,7 +16,7 @@ from models import User
 
 import main
 
-TEST_USER_EMAIL = 'test@example.com'
+TEST_USER_EMAIL = main.config.USER_WHITELIST[0]['email']
 
 
 class MainBaseTest(BaseTest, WebTest):
@@ -113,20 +113,6 @@ class AuthTest(MainBaseTest):
             response = self.get(self.URL)
             self.assertRedirects(response)
             self.log_in_user()
-            response = self.get(self.URL)
-            self.assertOK(response)
-            self.assertLoggedIn(response)
-
-    def test_login_two_users(self):
-        if self.URL:
-            self.log_in_user()
-            response = self.get(self.URL)
-            self.assertOK(response)
-            self.assertLoggedIn(response)
-            self.log_out_user()
-            response = self.get(self.URL)
-            self.assertRedirects(response)
-            self.log_in_user('admin@example.com')
             response = self.get(self.URL)
             self.assertOK(response)
             self.assertLoggedIn(response)
