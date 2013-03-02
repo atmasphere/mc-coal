@@ -11,7 +11,6 @@ from webapp2_extras.routes import RedirectRoute
 from agar.auth import authentication_required
 from agar.config import Config
 from agar.env import on_production_server
-from agar.sessions import Webapp2ExtrasSessionsConfig
 
 from models import User
 
@@ -21,6 +20,7 @@ class COALConfig(Config):
 
     USER_WHITELIST = []
     API_PASSWORD = ''
+    SECRET_KEY = ''
 
 config = COALConfig.get_config()
 
@@ -186,7 +186,7 @@ application = webapp2.WSGIApplication(
         ('/.*', MainHandler),
     ],
     config={
-        'webapp2_extras.sessions': Webapp2ExtrasSessionsConfig.get_config_as_dict(),
+        'webapp2_extras.sessions': {'secret_key': config.SECRET_KEY},
         'webapp2_extras.auth': {'user_model': 'models.User'}
     },
     debug=not on_production_server

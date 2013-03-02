@@ -1,7 +1,4 @@
-"""
-The configuration file used by :py:mod:`agar.config` implementations and other libraries using the
-`google.appengine.api.lib_config`_ configuration library. Configuration overrides go in this file.
-"""
+# COAL Configuration
 
 COAL_USER_WHITELIST = [
     {
@@ -16,9 +13,6 @@ COAL_USER_WHITELIST = [
     }
 ]
 
-COAL_API_PASSWORD = 'thespire'
+COAL_API_PASSWORD = 'a_password'
 
-#########################
-# WEBAPP2_EXTRAS SETTINGS
-#########################
-webapp2_extras_sessions_secret_key = 'a_secret_string'
+SECRET_KEY = 'a_secret_string'
