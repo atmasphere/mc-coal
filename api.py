@@ -1,5 +1,7 @@
+import datetime
 from functools import wraps
 import logging
+import re
 
 import webapp2
 
@@ -97,7 +99,58 @@ class PingHandler(JsonRequestHandler):
     @validate_params(form_class=PingForm)
     def post(self):
         response = {'server_name': self.request.form.server_name.data}
-        self.json_response(response, status_code=201)
+        self.json_response(response, status_code=200)
+
+
+def handle_logged_in(line):
+    if 'logged in' in line:
+        match = re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\].+\((\w.+), (\w.+), (\w.+)\)", line)
+        dts = "{0} {1}".format(match.group(1), match.group(2))
+        dt = datetime.datetime.strptime(dts, "%Y-%m-%d %H:%M:%S")
+        log_level = match.group(3)
+        user = match.group(4)
+        ip = match.group(5)
+        port = match.group(6)
+        location = (match.group(7), match.group(8), match.group(9))
+        print
+        print "LOG IN EVENT"
+        print "DATE: {0}".format(dt)
+        print "LOG LEVEL: {0}".format(log_level)
+        print "USER: {0}".format(user)
+        print "IP: {0}".format(ip)
+        print "PORT: {0}".format(port)
+        print "LOCATION: {0}".format(location)
+
+
+def handle_lost_connection(line):
+    if 'lost connection' in line:
+        match = re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)", line)
+        dts = "{0} {1}".format(match.group(1), match.group(2))
+        dt = datetime.datetime.strptime(dts, "%Y-%m-%d %H:%M:%S")
+        log_level = match.group(3)
+        user = match.group(4)
+        print
+        print "LOG OUT EVENT"
+        print "DATE: {0}".format(dt)
+        print "LOG LEVEL: {0}".format(log_level)
+        print "USER: {0}".format(user)
+
+
+def handle_public_chat(line):
+    match = re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
+    if match:
+        dts = "{0} {1}".format(match.group(1), match.group(2))
+        dt = datetime.datetime.strptime(dts, "%Y-%m-%d %H:%M:%S")
+        log_level = match.group(3)
+        user = match.group(4)
+        chat = match.group(5)
+        print
+        print "CHAT EVENT"
+        print "DATE: {0}".format(dt)
+        print "LOG LEVEL: {0}".format(log_level)
+        print "USER: {0}".format(user)
+        print "CHAT: {0}".format(chat)
+
 
 application = webapp2.WSGIApplication(
     [

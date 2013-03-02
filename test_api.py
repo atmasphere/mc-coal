@@ -45,7 +45,7 @@ class PingTest(ApiTest):
 
     def test_post(self):
         response = self.post(self.get_secure_url(), params={'server_name': 'test'})
-        self.assertCreated(response)
+        self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
         self.assertEqual('test', body['server_name'])
