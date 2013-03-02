@@ -1,0 +1,11 @@
+{
+    "folders":
+    [
+        {
+            "path": ".",
+            "name": "mc-coal",
+            "folder_exclude_patterns": [".hgcheck", ".idea"],
+            "file_exclude_patterns": ["mc-coal.sublime-workspace"]
+        }
+    ]
+}
