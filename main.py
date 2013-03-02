@@ -1,9 +1,10 @@
 import logging
 import jinja2
 import urllib2
-import webapp2
 
 from google.appengine.api import users
+
+import webapp2
 
 from webapp2_extras import auth, sessions
 from webapp2_extras.routes import RedirectRoute

@@ -15,4 +15,4 @@ COAL_USER_WHITELIST = [
 
 COAL_API_PASSWORD = 'a_password'
 
-SECRET_KEY = 'a_secret_string'
+COAL_SECRET_KEY = 'a_secret_string'
