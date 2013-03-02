@@ -7,11 +7,11 @@ MineCraft Community Online Activity Log
 
 drone.io settings
 -----------------
-* Environment Variables
+Environment Variables
 
     PATH=$PATH:/tmp/google_appengine/
 
-* Commands
+Commands
 
     GAE=1.7.5
     wget -q -O /tmp/gae.zip http://googleappengine.googlecode.com/files/google_appengine_${GAE}.zip
