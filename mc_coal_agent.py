@@ -60,6 +60,10 @@ def is_moved_wrongly_warning(line):
     return re.search(r"([\w-]+) ([\w:]+) \[WARNING\] (.+) moved wrongly!", line)
 
 
+def is_overloaded_warning(line):
+    return re.search(r"([\w-]+) ([\w:]+) \[WARNING\] Can't keep up! Did the system time change, or is the server overloaded\?", line)
+
+
 def is_chat(line):
     return re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
 
@@ -67,6 +71,9 @@ def is_chat(line):
 def post_line(host, line, password, zone, skip_chat):
     logger = logging.getLogger('log_line')
     if is_moved_wrongly_warning(line):
+        logger.debug("Not reporting '{0}'".format(line))
+        return
+    if is_overloaded_warning(line):
         logger.debug("Not reporting '{0}'".format(line))
         return
     if skip_chat and is_chat(line):
@@ -104,7 +111,7 @@ def line_reader(logfile):
         if not line:
             logfile.seek(where)
         else:
-            yield line.strip()
+            yield unicode(line.strip(), errors='ignore')
 
 
 def tail(host, filename, password, zone, parse_history, skip_chat, last_line):
@@ -123,13 +130,18 @@ def tail(host, filename, password, zone, parse_history, skip_chat, last_line):
             parsed_last_line = True
         for line in line_reader(logfile):
             if parsed_last_line:
-                post_line(host, line, password, zone)
+                post_line(host, line, password, zone, skip_chat)
+                if skip_chat:
+                    where = logfile.tell()
+                    if where >= st_size:
+                        skip_chat = False
             elif line == last_line:
                 parsed_last_line = True
             else:
                 where = logfile.tell()
                 if where >= st_size:
                     parsed_last_line = True
+                    skip_chat = False
 
 
 def get_application_host():
