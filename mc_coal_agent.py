@@ -1,8 +1,10 @@
 import argparse
 import httplib
+import json
 import logging
 import os
 import pytz
+import re
 import sys
 import time
 import urllib
@@ -27,6 +29,10 @@ class NoPasswordException(AgentException):
     pass
 
 
+class NoPingException(AgentException):
+    pass
+
+
 def ping_host(host, password):
     logger = logging.getLogger('ping')
     try:
@@ -39,41 +45,48 @@ def ping_host(host, password):
         conn.request("POST", "/api/ping?p={0}".format(password), params, headers)
         response = conn.getresponse()
         if response.status == 200:
-            return True
+            body = json.loads(response.read())
+            last_line = body['last_line']
+            return last_line
         else:
             logger.error("UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
             logger.debug("{0}".format(response.read()))
     except Exception, e:
         logger.error("{0}".format(str(e)))
-    return False
+    raise NoPingException()
+
+
+def is_moved_wrongly_warning(line):
+    return re.search(r"([\w-]+) ([\w:]+) \[WARNING\] (.+) moved wrongly!", line)
 
 
 def post_line(host, line, password, zone):
     logger = logging.getLogger('log_line')
-    headers = {
-        "Content-type": "application/x-www-form-urlencoded",
-        "Accept": "text/plain"
-    }
-    params = urllib.urlencode({'line': line, 'zone': zone})
-    tries = 10
-    while tries >= 0:
-        tries = tries - 1
-        try:
-            conn = httplib.HTTPConnection(host)
-            conn.request("POST", "/api/log_line?p={0}".format(password), params, headers)
-            response = conn.getresponse()
-            if response.status == 201:
-                break
-            else:
-                logger.error("UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
-                logger.debug("{0}".format(response.read()))
-        except Exception, e:
-            logger.error("{0}".format(str(e)))
-        timeout = 10 if tries > 4 else 60
-        logger.info("SLEEPING FOR {0} SECONDS".format(timeout))
-        time.sleep(timeout)
-    if tries < 0:
-        logger.error("FAILED TO SEND LOG_LINE: '{0}'".format(line))
+    if not is_moved_wrongly_warning(line):
+        headers = {
+            "Content-type": "application/x-www-form-urlencoded",
+            "Accept": "text/plain"
+        }
+        params = urllib.urlencode({'line': line, 'zone': zone})
+        tries = 0
+        while True:
+            tries = tries - 1
+            try:
+                conn = httplib.HTTPConnection(host)
+                conn.request("POST", "/api/log_line?p={0}".format(password), params, headers)
+                response = conn.getresponse()
+                if response.status == 201 or response.status == 200:
+                    break
+                else:
+                    logger.error("UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
+                    logger.debug("{0}".format(response.read()))
+            except Exception, e:
+                logger.error("{0}".format(str(e)))
+            timeout = 10 if tries < 10 else 30
+            logger.info("SLEEPING FOR {0} SECONDS".format(timeout))
+            time.sleep(timeout)
+    else:
+        logger.debug("Not logging '{0}'".format(line))
 
 
 def line_reader(logfile):
@@ -83,16 +96,29 @@ def line_reader(logfile):
         if not line:
             logfile.seek(where)
         else:
-            yield line
+            yield line.strip()
 
 
-def tail(host, filename, password, zone):
+def tail(host, filename, password, zone, parse_history, last_line):
     with open(filename, 'r') as logfile:
-        st_results = os.stat(filename)
-        st_size = st_results[6]
-        logfile.seek(st_size)
+        if parse_history:
+            parsed_last_line = False if last_line is not None else True
+        else:
+            st_results = os.stat(filename)
+            st_size = st_results[6]
+            logfile.seek(st_size)
+            parsed_last_line = True
         for line in line_reader(logfile):
-            post_line(host, line, password, zone)
+            if parsed_last_line:
+                post_line(host, line, password, zone)
+            elif line == last_line:
+                parsed_last_line = True
+            else:
+                st_results = os.stat(filename)
+                st_size = st_results[6]
+                where = logfile.tell()
+                if where == st_size:
+                    parsed_last_line = True
 
 
 def get_application_host():
@@ -162,28 +188,34 @@ def main(argv):
         help="Log DEBUG info to the console"
     )
     parser.add_argument(
-        '--agent-logfile',
+        '--agent_logfile',
         default=DEFAULT_AGENT_LOGFILE,
         help="The MC COAL agent log filename (default: '{0}'). Set to blank (i.e. '--agent-logfile=') to supress file logging.".format(DEFAULT_AGENT_LOGFILE)
     )
     coal_host = get_application_host()
     parser.add_argument(
-        '--coal-host',
+        '--coal_host',
         default=coal_host,
         help="The MC COAL server host name (default: {0})".format("'{0}'".format(coal_host) if coal_host else '<No default found in app.yaml>')
     )
     parser.add_argument(
-        '--coal-password',
+        '--coal_password',
         help="The MC COAL server API password. The default value is pulled from 'appengine_config.py'"
     )
     parser.add_argument(
-        '--mc-logfile',
+        '--mc_logfile',
         default=DEFAULT_MC_LOGFILE,
         help="The Minecraft server log filename (default: '{0}')".format(DEFAULT_MC_LOGFILE)
     )
+    parser.add_argument(
+        '--parse_mc_history',
+        action='store_true',
+        help="Set this flag to parse and report the Minecraft server log from the beginning of the file. Otherwise it simply starts monitoring at the end of the log for new entries."
+    )
+
     mc_timezone = get_local_zone()
     parser.add_argument(
-        '--mc-timezone',
+        '--mc_timezone',
         default=mc_timezone,
         help="The Minecraft server timezone name (default: {0})".format("'{0}'".format(mc_timezone) if mc_timezone else '<No default local timezone>')
     )
@@ -198,13 +230,14 @@ def main(argv):
         if not coal_password:
             raise NoPasswordException()
         mc_logfile = args.mc_logfile
+        parse_mc_history = args.parse_mc_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
-        if ping_host(coal_host, coal_password):
-            logger.info("Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
-            tail(coal_host, mc_logfile, coal_password, tz.zone)
-        else:
-            logger.error("Unable to ping '{0}'".format(coal_host))
+        last_line = ping_host(coal_host, coal_password)
+        logger.info("Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
+        tail(coal_host, mc_logfile, coal_password, tz.zone, parse_mc_history, last_line)
+    except NoPingException:
+        logger.error("Unable to ping '{0}'".format(coal_host))
     except pytz.UnknownTimeZoneError:
         logger.error("Invalid timezone: '{0}'".format(mc_timezone))
     except NoHostException:

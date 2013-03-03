@@ -1,5 +1,6 @@
 import logging
 import jinja2
+import os
 import urllib2
 
 from google.appengine.api import users
@@ -38,6 +39,7 @@ class JinjaHandler(webapp2.RequestHandler):
         j = jinja2.Jinja2(app)
         j.environment.filters.update(self._filters)
         j.environment.globals.update(self._globals)
+        j.environment.loader = jinja2.FileSystemLoader(os.path.dirname(__file__))
         return j
 
     def get_template_args(self, template_args=None):
@@ -45,10 +47,8 @@ class JinjaHandler(webapp2.RequestHandler):
 
     def render_template(self, filename, context={}):
         context = self.get_template_args(context)
-
         if not on_production_server:
             logging.info("Template values: {0}".format(context))
-
         self.response.write(self.jinja2.render_template(filename, **context))
 
 
