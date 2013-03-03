@@ -157,7 +157,7 @@ def handle_logged_in(line, tz):
         existing_connect_line = ConnectLine.get_line(line)
         if existing_connect_line is not None:
             return existing_connect_line, False
-        match = re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\].+\((\w.+), (\w.+), (\w.+)\)", line)
+        match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\].+\((\w.+), (\w.+), (\w.+)\)", line)
         if match:
             dts = "{0} {1}".format(match.group(1), match.group(2))
             naive_utc_dt = dts_to_naive_utc(dts, tz)
@@ -190,7 +190,7 @@ def handle_lost_connection(line, tz):
         existing_disconnect_line = DisconnectLine.get_line(line)
         if existing_disconnect_line is not None:
             return existing_disconnect_line, False
-        match = re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)", line)
+        match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)", line)
         if match:
             dts = "{0} {1}".format(match.group(1), match.group(2))
             naive_utc_dt = dts_to_naive_utc(dts, tz)
@@ -209,7 +209,7 @@ def handle_lost_connection(line, tz):
 
 
 def handle_chat(line, tz):
-    match = re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
     if match:
         existing_disconnect_line = ChatLine.get_line(line)
         if existing_disconnect_line is not None:
@@ -233,7 +233,7 @@ def handle_chat(line, tz):
 
 
 def handle_overloaded_log(line, tz):
-    match = re.search(r"([\w-]+) ([\w:]+) \[WARNING\] Can't keep up! Did the system time change, or is the server overloaded\?", line)
+    match = re.search(ur"([\w-]+) ([\w:]+) \[WARNING\] Can't keep up! Did the system time change, or is the server overloaded\?", line)
     if match:
         existing_disconnect_line = OverloadedLine.get_line(line)
         if existing_disconnect_line is not None:
@@ -252,7 +252,7 @@ def handle_overloaded_log(line, tz):
 
 
 def handle_timestamp_log(line, tz):
-    match = re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] (.+)", line)
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (.+)", line)
     if match:
         existing_disconnect_line = TimeStampLogLine.get_line(line)
         if existing_disconnect_line is not None:

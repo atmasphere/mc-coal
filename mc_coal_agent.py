@@ -57,27 +57,27 @@ def ping_host(host, password):
 
 
 def is_moved_wrongly_warning(line):
-    return re.search(r"([\w-]+) ([\w:]+) \[WARNING\] (.+) moved wrongly!", line)
+    return re.search(ur"([\w-]+) ([\w:]+) \[WARNING\] (.+) moved wrongly!", line)
 
 
 def is_overloaded_warning(line):
-    return re.search(r"([\w-]+) ([\w:]+) \[WARNING\] Can't keep up! Did the system time change, or is the server overloaded\?", line)
+    return re.search(ur"([\w-]+) ([\w:]+) \[WARNING\] Can't keep up! Did the system time change, or is the server overloaded\?", line)
 
 
 def is_chat(line):
-    return re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
+    return re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
 
 
 def post_line(host, line, password, zone, skip_chat):
     logger = logging.getLogger('log_line')
     if is_moved_wrongly_warning(line):
-        logger.debug("Not reporting '{0}'".format(line))
+        logger.debug(u"SKIPPING '{0}'".format(line))
         return
     if is_overloaded_warning(line):
-        logger.debug("Not reporting '{0}'".format(line))
+        logger.debug(u"SKIPPING '{0}'".format(line))
         return
     if skip_chat and is_chat(line):
-        logger.debug("Not reporting '{0}'".format(line))
+        logger.debug(u"SKIPPING '{0}'".format(line))
         return
     headers = {
         "Content-type": "application/x-www-form-urlencoded",
@@ -92,26 +92,28 @@ def post_line(host, line, password, zone, skip_chat):
             conn.request("POST", "/api/log_line?p={0}".format(password), params, headers)
             response = conn.getresponse()
             if response.status == 201 or response.status == 200:
-                logger.debug("Reported '{0}'".format(line))
+                logger.debug(u"REPORTED '{0}'".format(line))
                 break
             else:
-                logger.error("UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
-                logger.debug("{0}".format(response.read()))
+                logger.error(u"UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
+                logger.debug(u"{0}".format(response.read()))
         except Exception, e:
-            logger.error("{0}".format(str(e)))
+            logger.error(u"{0}".format(str(e)))
         timeout = 10 if tries < 10 else 30
-        logger.info("SLEEPING FOR {0} SECONDS".format(timeout))
+        logger.info(u"SLEEPING FOR {0} SECONDS...".format(timeout))
         time.sleep(timeout)
 
 
 def line_reader(logfile):
     while True:
         where = logfile.tell()
-        line = logfile.readline()
+        raw_line = logfile.readline()
+        line = raw_line.decode('ISO-8859-2', errors='ignore')
+        line = line.strip()
         if not line:
             logfile.seek(where)
         else:
-            yield unicode(line.strip(), errors='ignore')
+            yield line
 
 
 def tail(host, filename, password, zone, parse_history, skip_chat, last_line):
@@ -120,27 +122,27 @@ def tail(host, filename, password, zone, parse_history, skip_chat, last_line):
         st_results = os.stat(filename)
         st_size = st_results[6]
         if parse_history:
-            parsed_last_line = False if last_line is not None else True
+            read_last_line = False if last_line is not None else True
             if last_line is not None:
-                logger.debug("Skipping ahead to line '{0}'".format(last_line))
+                logger.debug(u"Skipping ahead to line '{0}'".format(last_line))
         else:
             st_results = os.stat(filename)
             st_size = st_results[6]
             logfile.seek(st_size)
-            parsed_last_line = True
+            read_last_line = True
         for line in line_reader(logfile):
-            if parsed_last_line:
+            if read_last_line:
                 post_line(host, line, password, zone, skip_chat)
                 if skip_chat:
                     where = logfile.tell()
                     if where >= st_size:
                         skip_chat = False
             elif line == last_line:
-                parsed_last_line = True
+                read_last_line = True
             else:
                 where = logfile.tell()
                 if where >= st_size:
-                    parsed_last_line = True
+                    read_last_line = True
                     skip_chat = False
 
 
@@ -233,7 +235,7 @@ def main(argv):
     parser.add_argument(
         '--parse_mc_history',
         action='store_true',
-        help="Set this flag to parse and report the Minecraft server log from the beginning of the file. Otherwise it simply starts monitoring at the end of the log for new entries."
+        help="Set this flag to parse and report on the Minecraft server log from the beginning rather than just new entries."
     )
     parser.add_argument(
         '--skip_chat_history',
