@@ -77,6 +77,10 @@ class TimeStampLogLine(LogLine):
         return cls.query().order(-ndb.StringProperty('timestamp')).get()
 
 
+class OverloadedLine(TimeStampLogLine):
+    pass
+
+
 class ConnectionEventLine(TimeStampLogLine):
     username = ndb.StringProperty(required=True)
 

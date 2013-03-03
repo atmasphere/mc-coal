@@ -60,33 +60,41 @@ def is_moved_wrongly_warning(line):
     return re.search(r"([\w-]+) ([\w:]+) \[WARNING\] (.+) moved wrongly!", line)
 
 
-def post_line(host, line, password, zone):
+def is_chat(line):
+    return re.search(r"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
+
+
+def post_line(host, line, password, zone, skip_chat):
     logger = logging.getLogger('log_line')
-    if not is_moved_wrongly_warning(line):
-        headers = {
-            "Content-type": "application/x-www-form-urlencoded",
-            "Accept": "text/plain"
-        }
-        params = urllib.urlencode({'line': line, 'zone': zone})
-        tries = 0
-        while True:
-            tries = tries - 1
-            try:
-                conn = httplib.HTTPConnection(host)
-                conn.request("POST", "/api/log_line?p={0}".format(password), params, headers)
-                response = conn.getresponse()
-                if response.status == 201 or response.status == 200:
-                    break
-                else:
-                    logger.error("UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
-                    logger.debug("{0}".format(response.read()))
-            except Exception, e:
-                logger.error("{0}".format(str(e)))
-            timeout = 10 if tries < 10 else 30
-            logger.info("SLEEPING FOR {0} SECONDS".format(timeout))
-            time.sleep(timeout)
-    else:
-        logger.debug("Not logging '{0}'".format(line))
+    if is_moved_wrongly_warning(line):
+        logger.debug("Not reporting '{0}'".format(line))
+        return
+    if skip_chat and is_chat(line):
+        logger.debug("Not reporting '{0}'".format(line))
+        return
+    headers = {
+        "Content-type": "application/x-www-form-urlencoded",
+        "Accept": "text/plain"
+    }
+    params = urllib.urlencode({'line': line, 'zone': zone})
+    tries = 0
+    while True:
+        tries = tries - 1
+        try:
+            conn = httplib.HTTPConnection(host)
+            conn.request("POST", "/api/log_line?p={0}".format(password), params, headers)
+            response = conn.getresponse()
+            if response.status == 201 or response.status == 200:
+                logger.debug("Reported '{0}'".format(line))
+                break
+            else:
+                logger.error("UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
+                logger.debug("{0}".format(response.read()))
+        except Exception, e:
+            logger.error("{0}".format(str(e)))
+        timeout = 10 if tries < 10 else 30
+        logger.info("SLEEPING FOR {0} SECONDS".format(timeout))
+        time.sleep(timeout)
 
 
 def line_reader(logfile):
@@ -99,10 +107,15 @@ def line_reader(logfile):
             yield line.strip()
 
 
-def tail(host, filename, password, zone, parse_history, last_line):
+def tail(host, filename, password, zone, parse_history, skip_chat, last_line):
+    logger = logging.getLogger('main')
     with open(filename, 'r') as logfile:
+        st_results = os.stat(filename)
+        st_size = st_results[6]
         if parse_history:
             parsed_last_line = False if last_line is not None else True
+            if last_line is not None:
+                logger.debug("Skipping ahead to line '{0}'".format(last_line))
         else:
             st_results = os.stat(filename)
             st_size = st_results[6]
@@ -114,10 +127,8 @@ def tail(host, filename, password, zone, parse_history, last_line):
             elif line == last_line:
                 parsed_last_line = True
             else:
-                st_results = os.stat(filename)
-                st_size = st_results[6]
                 where = logfile.tell()
-                if where == st_size:
+                if where >= st_size:
                     parsed_last_line = True
 
 
@@ -212,7 +223,11 @@ def main(argv):
         action='store_true',
         help="Set this flag to parse and report the Minecraft server log from the beginning of the file. Otherwise it simply starts monitoring at the end of the log for new entries."
     )
-
+    parser.add_argument(
+        '--skip_chat_history',
+        action='store_true',
+        help="Set this flag to skip reporting the Minecraft server log chat history. New chats will still be reported."
+    )
     mc_timezone = get_local_zone()
     parser.add_argument(
         '--mc_timezone',
@@ -231,11 +246,12 @@ def main(argv):
             raise NoPasswordException()
         mc_logfile = args.mc_logfile
         parse_mc_history = args.parse_mc_history
+        skip_chat_history = args.skip_chat_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
         last_line = ping_host(coal_host, coal_password)
         logger.info("Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
-        tail(coal_host, mc_logfile, coal_password, tz.zone, parse_mc_history, last_line)
+        tail(coal_host, mc_logfile, coal_password, tz.zone, parse_mc_history, skip_chat_history, last_line)
     except NoPingException:
         logger.error("Unable to ping '{0}'".format(coal_host))
     except pytz.UnknownTimeZoneError:

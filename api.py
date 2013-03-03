@@ -16,7 +16,7 @@ from restler.serializers import json_response as restler_json_response
 
 from main import COALConfig
 
-from models import LogLine, ConnectLine, DisconnectLine, ChatLine, TimeStampLogLine
+from models import LogLine, ConnectLine, DisconnectLine, ChatLine, TimeStampLogLine, OverloadedLine
 
 config = COALConfig.get_config()
 
@@ -129,6 +129,8 @@ class LogLineHandler(JsonRequestHandler):
             if not log_line:
                 log_line, created = handle_chat(line, tz)
             if not log_line:
+                log_line, created = handle_overloaded_log(line, tz)
+            if not log_line:
                 log_line, created = handle_timestamp_log(line, tz)
             if not log_line:
                 log_line, created = handle_unknown_log(line, tz)
@@ -227,6 +229,25 @@ def handle_chat(line, tz):
         )
         chat_line.put()
         return chat_line, True
+    return None, False
+
+
+def handle_overloaded_log(line, tz):
+    match = re.search(r"([\w-]+) ([\w:]+) \[WARNING\] Can't keep up! Did the system time change, or is the server overloaded\?", line)
+    if match:
+        existing_disconnect_line = OverloadedLine.get_line(line)
+        if existing_disconnect_line is not None:
+            return existing_disconnect_line, False
+        dts = "{0} {1}".format(match.group(1), match.group(2))
+        naive_utc_dt = dts_to_naive_utc(dts, tz)
+        timestamp_line = OverloadedLine(
+            line=line,
+            zone=tz.zone,
+            timestamp=naive_utc_dt,
+            log_level='WARNING',
+        )
+        timestamp_line.put()
+        return timestamp_line, True
     return None, False
 
 
