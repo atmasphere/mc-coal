@@ -12,7 +12,7 @@ from webapp2_extras.routes import RedirectRoute
 from agar.auth import authentication_required
 from agar.env import on_production_server
 
-from config import config
+from config import coal_config
 from filters import FILTERS
 from models import User, LogLine
 
@@ -63,7 +63,7 @@ def authenticate(handler, required=True, admin=False):
         user = handler.auth.store.user_model.get_by_id(user_dict['user_id'])
     if user is not None:
         allowed = None
-        for wlu in config.USER_WHITELIST:
+        for wlu in coal_config.USER_WHITELIST:
             if user.email == wlu['email']:
                 allowed = wlu
                 update = False
@@ -134,6 +134,7 @@ class UserAwareHandler(JinjaHandler):
         template_context['flashes'] = self.session.get_flashes()
         template_context['request'] = self.request
         template_context['user'] = self.user
+        template_context['config'] = coal_config
         return template_context
 
 
@@ -188,10 +189,10 @@ class BaseHander(UserAwareHandler):
         pass
 
 
-class MainHandler(BaseHander):
+class HomeHandler(BaseHander):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        self.render_template('main.html')
+        self.render_template('home.html')
 
 
 class PagingHandler(BaseHander):
@@ -225,7 +226,7 @@ class ChatsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            LogLine.query_latest_chats(), LogLine.query_oldest_chats(), config.RESULTS_PER_PAGE
+            LogLine.query_latest_chats(), LogLine.query_oldest_chats(), coal_config.RESULTS_PER_PAGE
         )
         context = {'chats': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('chats.html', context=context)
@@ -235,7 +236,7 @@ class LoginsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            LogLine.query_latest_logins(), LogLine.query_oldest_logins(), config.RESULTS_PER_PAGE
+            LogLine.query_latest_logins(), LogLine.query_oldest_logins(), coal_config.RESULTS_PER_PAGE
         )
         context = {'logins': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('logins.html', context=context)
@@ -245,7 +246,7 @@ class LogoutsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            LogLine.query_latest_logouts(), LogLine.query_oldest_logouts(), config.RESULTS_PER_PAGE
+            LogLine.query_latest_logouts(), LogLine.query_oldest_logouts(), coal_config.RESULTS_PER_PAGE
         )
         context = {'logouts': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('logouts.html', context=context)
@@ -255,13 +256,13 @@ application = webapp2.WSGIApplication(
     [
         RedirectRoute('/login_callback', handler='main.GoogleAppEngineUserAuthHandler:login_callback', name='login_callback'),
         RedirectRoute('/logout', handler='main.GoogleAppEngineUserAuthHandler:logout', name='logout'),
-        RedirectRoute('/', handler=MainHandler, name="main"),
+        RedirectRoute('/', handler=HomeHandler, name="home"),
         RedirectRoute('/chats', handler=ChatsHandler, name="chats"),
         RedirectRoute('/logins', handler=LoginsHandler, name="logins"),
         RedirectRoute('/logouts', handler=LogoutsHandler, name="logouts")
     ],
     config={
-        'webapp2_extras.sessions': {'secret_key': config.SECRET_KEY},
+        'webapp2_extras.sessions': {'secret_key': coal_config.SECRET_KEY},
         'webapp2_extras.auth': {'user_model': 'models.User'}
     },
     debug=not on_production_server

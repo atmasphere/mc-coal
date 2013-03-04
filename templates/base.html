@@ -3,13 +3,13 @@
 <html>
     <head>
         {% block head %}
-        <title>MC COAL -- {% block title %}{% endblock %}</title>
+        <title>{{ config.TITLE }} -- {% block title %}{% endblock %}</title>
         {% endblock %}
     </head>
     <body>
         <div id="menu">
             {% block menu %}
-                <a href="{{ uri_for('main') }}">Home</a> |
+                <a href="{{ uri_for('home') }}">Home</a> |
                 <a href="{{ uri_for('chats') }}">Chats</a> |
                 <a href="{{ uri_for('logins') }}">Logins</a> |
                 <a href="{{ uri_for('logouts') }}">Logouts</a> --
@@ -31,6 +31,7 @@
         <hr>
         <div id="footer">
             {% block footer %}
+                Powered by <strong><a href="https://github.com/gumptionthomas/mc-coal">MC COAL</a></strong> -- The <strong>M</strong>ine<strong>C</strong>raft <strong>C</strong>ommunity <strong>O</strong>nline <strong>A</strong>ctivity <strong>L</strong>og<br/>
                 &copy; Copyright 2013 by <a href="https://plus.google.com/u/0/108604528070735769318">Thomas Bohmbach, Jr.</a>.
             {% endblock %}
         </div>

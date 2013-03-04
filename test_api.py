@@ -15,6 +15,7 @@ for d in os.environ["PATH"].split(":"):
 from agar.test.base_test import BaseTest
 from agar.test.web_test import WebTest
 
+from config import coal_config
 import api
 import models
 
@@ -43,7 +44,7 @@ class ApiTest(BaseTest, WebTest):
 
     def get_secure_url(self, url=None):
         url = url or self.URL
-        return url + '?p={0}'.format(api.config.API_PASSWORD)
+        return url + '?p={0}'.format(coal_config.API_PASSWORD)
 
     def assertCreated(self, response):
         error = u'Response did not return a 201 CREATED (status code was {0})\nBody: {1}'.format(response.status_int, response.body)

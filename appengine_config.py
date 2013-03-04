@@ -1,5 +1,7 @@
 # COAL Configuration
 
+COAL_TITLE = "MC COAL"
+
 COAL_USER_WHITELIST = [
     {
         'email': 'admin@example.com',

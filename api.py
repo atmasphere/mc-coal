@@ -16,7 +16,7 @@ from agar.env import on_production_server
 
 from restler.serializers import json_response as restler_json_response
 
-from config import config
+from config import coal_config
 from models import LogLine, Location
 from models import CONNECTION_TAG, LOGIN_TAG, LOGOUT_TAG
 from models import CHAT_TAG
@@ -96,7 +96,7 @@ class JsonRequestHandler(webapp2.RequestHandler):
 
 
 def authenticate(handler):
-    if handler.request.get('p', None) != config.API_PASSWORD:
+    if handler.request.get('p', None) != coal_config.API_PASSWORD:
         handler.abort(403)
     return None
 

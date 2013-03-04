@@ -12,11 +12,11 @@ for d in os.environ["PATH"].split(":"):
 from agar.test.base_test import BaseTest
 from agar.test.web_test import WebTest
 
+from config import coal_config
 from models import User
-
 import main
 
-TEST_USER_EMAIL = main.config.USER_WHITELIST[0]['email']
+TEST_USER_EMAIL = coal_config.USER_WHITELIST[0]['email']
 
 
 class MainBaseTest(BaseTest, WebTest):
@@ -125,3 +125,5 @@ class MainTest(AuthTest):
         self.log_in_user()
         response = self.get("/")
         self.assertOK(response)
+
+

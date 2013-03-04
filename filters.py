@@ -2,12 +2,12 @@ from pytz.gae import pytz
 
 from webapp2 import uri_for
 
-from config import config
+from config import coal_config
 
 
 def datetime_filter(value, format='%A, %B %d, %Y %I:%M:%S %p'):
     utc_dt = pytz.utc.localize(value)
-    timezone_dt = utc_dt.astimezone(pytz.timezone(config.TIMEZONE))
+    timezone_dt = utc_dt.astimezone(pytz.timezone(coal_config.TIMEZONE))
     return timezone_dt.strftime(format)
 
 
