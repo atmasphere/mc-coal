@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Logouts{% endblock %}
+{% block page_name %}Logouts{% endblock %}
+{% block content %}
+    {% if previous_cursor %}
+        <a href="{{ 'logouts' | nextpageurl(previous_cursor) }}">Previous</a>
+        {% if next_cursor %}
+            |
+        {% endif %}
+    {% endif %}
+    {% if next_cursor %}
+        <a href="{{ 'logouts' | nextpageurl(next_cursor) }}">Next</a>
+    {% endif %}
+    {% for logout in logouts %}
+        <li>[{{ logout.timestamp | datetimeformat }}] &lt;{{ "YOU" if logout.username == user.username else logout.username }}&gt;</li>
+    {% endfor %}
+    {% if previous_cursor %}
+        <a href="{{ 'logouts' | nextpageurl(previous_cursor) }}">Previous</a>
+        {% if next_cursor %}
+            |
+        {% endif %}
+    {% endif %}
+    {% if next_cursor %}
+        <a href="{{ 'logouts' | nextpageurl(next_cursor) }}">Next</a>
+    {% endif %}
+{% endblock %}

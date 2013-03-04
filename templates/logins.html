@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Logins{% endblock %}
+{% block page_name %}Logins{% endblock %}
+{% block content %}
+    {% if previous_cursor %}
+        <a href="{{ 'logins' | nextpageurl(previous_cursor) }}">Previous</a>
+        {% if next_cursor %}
+            |
+        {% endif %}
+    {% endif %}
+    {% if next_cursor %}
+        <a href="{{ 'logins' | nextpageurl(next_cursor) }}">Next</a>
+    {% endif %}
+    {% for login in logins %}
+        <li>[{{ login.timestamp | datetimeformat }}] &lt;{{ "YOU" if login.username == user.username else login.username }}&gt;</li>
+    {% endfor %}
+    {% if previous_cursor %}
+        <a href="{{ 'logins' | nextpageurl(previous_cursor) }}">Previous</a>
+        {% if next_cursor %}
+            |
+        {% endif %}
+    {% endif %}
+    {% if next_cursor %}
+        <a href="{{ 'logins' | nextpageurl(next_cursor) }}">Next</a>
+    {% endif %}
+{% endblock %}

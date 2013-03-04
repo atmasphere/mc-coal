@@ -1,0 +1,38 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+    <head>
+        {% block head %}
+        <title>MC COAL -- {% block title %}{% endblock %}</title>
+        {% endblock %}
+    </head>
+    <body>
+        <div id="menu">
+            {% block menu %}
+                <a href="{{ uri_for('main') }}">Home</a> |
+                <a href="{{ uri_for('chats') }}">Chats</a> |
+                <a href="{{ uri_for('logins') }}">Logins</a> |
+                <a href="{{ uri_for('logouts') }}">Logouts</a> --
+                {% if user %}Hello {{ user.nickname }}{% endif %}
+            {% endblock %}
+        </div>
+        <hr>
+
+        <div id="page_name">
+            <h1>{% block page_name %}Base{% endblock %}</h1>
+        </div>
+
+        <div id="content">
+            {% block content %}
+                Content goes here.
+            {% endblock %}
+        </div>
+
+        <hr>
+        <div id="footer">
+            {% block footer %}
+                &copy; Copyright 2013 by <a href="https://plus.google.com/u/0/108604528070735769318">Thomas Bohmbach, Jr.</a>.
+            {% endblock %}
+        </div>
+    </body>
+</html>

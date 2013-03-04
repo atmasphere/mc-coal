@@ -1,34 +1,24 @@
 import logging
-import jinja2
-import os
 import urllib2
 
 from google.appengine.api import users
+from google.appengine.ext.ndb import Cursor
 
 import webapp2
 
-from webapp2_extras import auth, sessions
+from webapp2_extras import auth, sessions, jinja2
 from webapp2_extras.routes import RedirectRoute
 
 from agar.auth import authentication_required
-from agar.config import Config
 from agar.env import on_production_server
 
-from models import User
-
-
-class COALConfig(Config):
-    _prefix = "COAL"
-
-    USER_WHITELIST = []
-    API_PASSWORD = ''
-    SECRET_KEY = ''
-
-config = COALConfig.get_config()
+from config import config
+from filters import FILTERS
+from models import User, LogLine
 
 
 class JinjaHandler(webapp2.RequestHandler):
-    _filters = {}
+    _filters = FILTERS
     _globals = {'uri_for': webapp2.uri_for}
 
     @webapp2.cached_property
@@ -39,7 +29,6 @@ class JinjaHandler(webapp2.RequestHandler):
         j = jinja2.Jinja2(app)
         j.environment.filters.update(self._filters)
         j.environment.globals.update(self._globals)
-        j.environment.loader = jinja2.FileSystemLoader(os.path.dirname(__file__))
         return j
 
     def get_template_args(self, template_args=None):
@@ -47,8 +36,6 @@ class JinjaHandler(webapp2.RequestHandler):
 
     def render_template(self, filename, context={}):
         context = self.get_template_args(context)
-        if not on_production_server:
-            logging.info("Template values: {0}".format(context))
         self.response.write(self.jinja2.render_template(filename, **context))
 
 
@@ -102,6 +89,24 @@ def authenticate(handler, required=True, admin=False):
     return user
 
 
+def get_results_with_cursors(query, reverse_query, size, cursor):
+    next_cursor = previous_cursor = None
+    if cursor is not None:
+        reverse_cursor = cursor.reversed()
+        reverse_results, reverse_next_cursor, reverse_more = reverse_query.fetch_page(size, start_cursor=reverse_cursor)
+        if reverse_more:
+            previous_cursor = reverse_next_cursor.reversed()
+            previous_cursor = previous_cursor.to_websafe_string()
+        else:
+            previous_cursor = 'START'
+    results, next_cursor, more = query.fetch_page(size, start_cursor=cursor)
+    if more:
+        next_cursor = next_cursor.to_websafe_string()
+    else:
+        next_cursor = None
+    return results, previous_cursor, next_cursor
+
+
 class UserAwareHandler(JinjaHandler):
     @webapp2.cached_property
     def session_store(self):
@@ -122,7 +127,7 @@ class UserAwareHandler(JinjaHandler):
 
     @webapp2.cached_property
     def user(self):
-        user, timestamp = self.auth.store.user_model.get_by_id(self.user_info['user_id']) if self.user_info else (None, None)
+        user = self.auth.store.user_model.get_by_id(self.user_info['user_id']) if self.user_info else None
         return user
 
     def logged_in(self):
@@ -146,6 +151,8 @@ class UserAwareHandler(JinjaHandler):
             args.update(template_args)
         args['flashes'] = self.session.get_flashes()
         args['request'] = self.request
+        args['user'] = self.user
+        return args
 
 
 class GoogleAppEngineUserAuthHandler(UserAwareHandler):
@@ -193,7 +200,7 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
         self.redirect(next_url or '/')
 
 
-class BaseHander(GoogleAppEngineUserAuthHandler):
+class BaseHander(UserAwareHandler):
     def head(self, *args):
         """Head is used by Twitter. If not there the tweet button shows 0"""
         pass
@@ -202,14 +209,62 @@ class BaseHander(GoogleAppEngineUserAuthHandler):
 class MainHandler(BaseHander):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        self.response.write("""Hello, MINECRAFT world.""")
+        self.render_template('main.html')
+
+
+class ChatsHandler(BaseHander):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        cursor = self.request.get('cursor', None)
+        if cursor:
+            try:
+                cursor = Cursor.from_websafe_string(cursor)
+            except:
+                cursor = None
+        query = LogLine.query_latest_chats()
+        reverse_query = LogLine.query_oldest_chats()
+        results, previous_cursor, next_cursor = get_results_with_cursors(query, reverse_query, 50, cursor)
+        self.render_template('chats.html', {'chats': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor})
+
+
+class LoginsHandler(BaseHander):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        cursor = self.request.get('cursor', None)
+        if cursor:
+            try:
+                cursor = Cursor.from_websafe_string(cursor)
+            except:
+                cursor = None
+        query = LogLine.query_latest_logins()
+        reverse_query = LogLine.query_oldest_logins()
+        results, previous_cursor, next_cursor = get_results_with_cursors(query, reverse_query, 50, cursor)
+        self.render_template('logins.html', {'logins': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor})
+
+
+class LogoutsHandler(BaseHander):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        cursor = self.request.get('cursor', None)
+        if cursor:
+            try:
+                cursor = Cursor.from_websafe_string(cursor)
+            except:
+                cursor = None
+        query = LogLine.query_latest_logouts()
+        reverse_query = LogLine.query_oldest_logouts()
+        results, previous_cursor, next_cursor = get_results_with_cursors(query, reverse_query, 50, cursor)
+        self.render_template('logouts.html', {'logouts': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor})
 
 
 application = webapp2.WSGIApplication(
     [
         RedirectRoute('/login_callback', handler='main.GoogleAppEngineUserAuthHandler:login_callback', name='login_callback'),
         RedirectRoute('/logout', handler='main.GoogleAppEngineUserAuthHandler:logout', name='logout'),
-        ('/.*', MainHandler),
+        RedirectRoute('/', handler=MainHandler, name="main"),
+        RedirectRoute('/chats', handler=ChatsHandler, name="chats"),
+        RedirectRoute('/logins', handler=LoginsHandler, name="logins"),
+        RedirectRoute('/logouts', handler=LogoutsHandler, name="logouts")
     ],
     config={
         'webapp2_extras.sessions': {'secret_key': config.SECRET_KEY},

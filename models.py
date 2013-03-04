@@ -1,8 +1,78 @@
+import datetime
+
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import polymodel
 from google.appengine.api import users
 
 import webapp2_extras.appengine.auth.models as auth_models
+
+from pytz.gae import pytz
+
+CONNECTION_TAG = 'connection'
+LOGIN_TAG = 'login'
+LOGOUT_TAG = 'logout'
+CHAT_TAG = 'chat'
+SERVER_TAG = 'server'
+PERFORMANCE_TAG = 'performance'
+OVERLOADED_TAG = 'overloaded'
+
+
+def itersubclasses(cls, _seen=None):
+    """
+    itersubclasses(cls)
+
+    Generator over all subclasses of a given class, in depth first order.
+
+    TAB: Found here: http://code.activestate.com/recipes/576949-find-all-subclasses-of-a-given-class/
+
+    >>> list(itersubclasses(int)) == [bool]
+    True
+    >>> class A(object): pass
+    >>> class B(A): pass
+    >>> class C(A): pass
+    >>> class D(B,C): pass
+    >>> class E(D): pass
+    >>>
+    >>> for cls in itersubclasses(A):
+    ...     print(cls.__name__)
+    B
+    D
+    E
+    C
+    >>> # get ALL (new-style) classes currently defined
+    >>> [cls.__name__ for cls in itersubclasses(object)] #doctest: +ELLIPSIS
+    ['type', ...'tuple', ...]
+    """
+
+    if not isinstance(cls, type):
+        raise TypeError('itersubclasses must be called with '
+                        'new-style classes, not %.100r' % cls)
+    if _seen is None:
+        _seen = set()
+    try:
+        subs = cls.__subclasses__()
+    except TypeError:  # fails only when cls is type
+        subs = cls.__subclasses__(cls)
+    for sub in subs:
+        if sub not in _seen:
+            _seen.add(sub)
+            yield sub
+            for sub in itersubclasses(sub, _seen):
+                yield sub
+
+
+def dts_to_naive_utc(dts, tz):
+    dt = datetime.datetime.strptime(dts, "%Y-%m-%d %H:%M:%S")
+    dt = tz.localize(dt)
+    return dt.astimezone(pytz.utc).replace(tzinfo=None)
+
+
+def zone_to_timezone(zone):
+    try:
+        timezone = pytz.timezone(zone)
+    except:
+        timezone = pytz.utc
+    return timezone
 
 
 class User(auth_models.User):
@@ -46,11 +116,30 @@ class User(auth_models.User):
         return query.get()
 
 
-class LogLine(polymodel.PolyModel):
-    line = ndb.StringProperty()
-    zone = ndb.StringProperty()
+class Location(ndb.Model):
+    x = ndb.FloatProperty()
+    y = ndb.FloatProperty()
+    z = ndb.FloatProperty()
+
+
+class LogLine(ndb.Model):
+    line = ndb.StringProperty(required=True)
+    zone = ndb.StringProperty(required=True)
+    timestamp = ndb.DateTimeProperty()
+    has_timestamp = ndb.ComputedProperty(lambda self: self.timestamp is not None)
+    log_level = ndb.StringProperty()
+    username = ndb.StringProperty()
+    ip = ndb.StringProperty()
+    port = ndb.StringProperty()
+    location = ndb.StructuredProperty(Location)
+    chat = ndb.StringProperty()
+    tags = ndb.StringProperty(repeated=True)
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
+
+    @property
+    def timezone(self):
+        return zone_to_timezone(self.zone)
 
     @property
     def user(self):
@@ -60,47 +149,55 @@ class LogLine(polymodel.PolyModel):
         return None
 
     @classmethod
+    def create(cls, line, zone, **kwargs):
+        instance = cls(line=line, zone=zone, **kwargs)
+        instance.put()
+        return instance
+
+    @classmethod
     def get_line(cls, line):
-        return cls.query().filter(ndb.StringProperty('line') == line).get()
+        return cls.query().filter(cls.line == line).get()
+
+    @classmethod
+    def query_latest(cls):
+        return cls.query().order(-cls.created)
 
     @classmethod
     def get_last_line(cls):
-        return cls.query().order(-ndb.StringProperty('created')).get()
-
-
-class TimeStampLogLine(LogLine):
-    timestamp = ndb.DateTimeProperty(required=True)
-    log_level = ndb.StringProperty(required=True)
+        return cls.query_latest().get()
 
     @classmethod
-    def get_last_line(cls):
-        return cls.query().order(-ndb.StringProperty('timestamp')).get()
+    def query_latest_with_timestamp(cls):
+        return cls.query().filter(cls.has_timestamp == True).order(-cls.timestamp)
 
+    @classmethod
+    def get_last_line_with_timestamp(cls):
+        return cls.query_latest_with_timestamp().get()
 
-class OverloadedLine(TimeStampLogLine):
-    pass
+    @classmethod
+    def query_by_tags(cls, tags):
+        return cls.query().filter(cls.tags == tags)
 
+    @classmethod
+    def query_latest_chats(cls):
+        return cls.query_by_tags(CHAT_TAG).order(-cls.timestamp)
 
-class ConnectionEventLine(TimeStampLogLine):
-    username = ndb.StringProperty(required=True)
+    @classmethod
+    def query_oldest_chats(cls):
+        return cls.query_by_tags(CHAT_TAG).order(cls.timestamp)
 
-    @property
-    def user(self):
-        return User.lookup(username=self.username)
+    @classmethod
+    def query_latest_logins(cls):
+        return cls.query_by_tags(LOGIN_TAG).order(-cls.timestamp)
 
+    @classmethod
+    def query_oldest_logins(cls):
+        return cls.query_by_tags(LOGIN_TAG).order(cls.timestamp)
 
-class ConnectLine(ConnectionEventLine):
-    ip = ndb.StringProperty()
-    port = ndb.StringProperty()
-    location_x = ndb.FloatProperty()
-    location_y = ndb.FloatProperty()
-    location_z = ndb.FloatProperty()
+    @classmethod
+    def query_latest_logouts(cls):
+        return cls.query_by_tags(LOGOUT_TAG).order(-cls.timestamp)
 
-
-class DisconnectLine(ConnectionEventLine):
-    pass
-
-
-class ChatLine(TimeStampLogLine):
-    username = ndb.StringProperty(required=True)
-    chat = ndb.StringProperty(required=True)
+    @classmethod
+    def query_oldest_logouts(cls):
+        return cls.query_by_tags(LOGOUT_TAG).order(cls.timestamp)

@@ -3,6 +3,8 @@ from functools import wraps
 import logging
 import re
 
+from google.appengine.ext import ndb
+
 import webapp2
 
 from pytz.gae import pytz
@@ -14,11 +16,16 @@ from agar.env import on_production_server
 
 from restler.serializers import json_response as restler_json_response
 
-from main import COALConfig
+from config import config
+from models import LogLine, Location
+from models import CONNECTION_TAG, LOGIN_TAG, LOGOUT_TAG
+from models import CHAT_TAG
+from models import SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG
 
-from models import LogLine, ConnectLine, DisconnectLine, ChatLine, TimeStampLogLine, OverloadedLine
-
-config = COALConfig.get_config()
+LOGIN_TAGS = [CONNECTION_TAG, LOGIN_TAG]
+LOGOUT_TAGS = [CONNECTION_TAG, LOGOUT_TAG]
+CHAT_TAGS = [CHAT_TAG]
+OVERLOADED_TAGS = [SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG]
 
 
 def validate_params(form_class):
@@ -102,7 +109,7 @@ class PingHandler(JsonRequestHandler):
     @authentication_required(authenticate=authenticate)
     @validate_params(form_class=PingForm)
     def post(self):
-        last_log_line = TimeStampLogLine.get_last_line()
+        last_log_line = LogLine.get_last_line_with_timestamp()
         response = {'last_line': last_log_line.line if last_log_line is not None else None}
         self.json_response(response, status_code=200)
 
@@ -116,6 +123,7 @@ class LogLineHandler(JsonRequestHandler):
     @authentication_required(authenticate=authenticate)
     @validate_params(form_class=LogLineForm)
     def post(self):
+        status_code = 200
         line = self.request.form.line.data
         zone = self.request.form.zone.data
         try:
@@ -123,20 +131,24 @@ class LogLineHandler(JsonRequestHandler):
         except:
             tz = pytz.utc
         try:
-            log_line, created = handle_logged_in(line, tz)
-            if not log_line:
-                log_line, created = handle_lost_connection(line, tz)
-            if not log_line:
-                log_line, created = handle_chat(line, tz)
-            if not log_line:
-                log_line, created = handle_overloaded_log(line, tz)
-            if not log_line:
-                log_line, created = handle_timestamp_log(line, tz)
-            if not log_line:
-                log_line, created = handle_unknown_log(line, tz)
+            existing_line = LogLine.get_line(line)
+            if existing_line is None:
+                log_line = handle_logged_in(line, tz)
+                if log_line is None:
+                    log_line = handle_lost_connection(line, tz)
+                if log_line is None:
+                    log_line = handle_chat(line, tz)
+                if log_line is None:
+                    log_line = handle_overloaded_log(line, tz)
+                if log_line is None:
+                    log_line = handle_timestamp_log(line, tz)
+                if log_line is None:
+                    log_line = handle_unknown_log(line, tz)
+                if log_line is not None:
+                    status_code = 201
         except Exception, e:
             logging.error(e)
-        self.json_response({}, status_code=201 if log_line and created else 200)
+        self.json_response({}, status_code=status_code)
 
 
 def dts_to_naive_utc(dts, tz):
@@ -152,135 +164,126 @@ def safe_float_from_string(float_string):
         return None
 
 
-def handle_logged_in(line, tz):
-    if 'logged in' in line:
-        existing_connect_line = ConnectLine.get_line(line)
-        if existing_connect_line is not None:
-            return existing_connect_line, False
-        match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\].+\((\w.+), (\w.+), (\w.+)\)", line)
-        if match:
-            dts = "{0} {1}".format(match.group(1), match.group(2))
-            naive_utc_dt = dts_to_naive_utc(dts, tz)
-            log_level = match.group(3)
-            user = match.group(4)
-            ip = match.group(5)
-            port = match.group(6)
-            location_x = safe_float_from_string(match.group(7))
-            location_y = safe_float_from_string(match.group(8))
-            location_z = safe_float_from_string(match.group(9))
-            connect_line = ConnectLine(
-                line=line,
-                zone=tz.zone,
-                timestamp=naive_utc_dt,
-                log_level=log_level,
-                username=user,
-                ip=ip,
-                port=port,
-                location_x=location_x,
-                location_y=location_y,
-                location_z=location_z
-            )
-            connect_line.put()
-            return connect_line, True
-    return None, False
-
-
-def handle_lost_connection(line, tz):
-    if 'lost connection' in line:
-        existing_disconnect_line = DisconnectLine.get_line(line)
-        if existing_disconnect_line is not None:
-            return existing_disconnect_line, False
-        match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)", line)
-        if match:
-            dts = "{0} {1}".format(match.group(1), match.group(2))
-            naive_utc_dt = dts_to_naive_utc(dts, tz)
-            log_level = match.group(3)
-            user = match.group(4)
-            disconnect_line = DisconnectLine(
-                line=line,
-                zone=tz.zone,
-                timestamp=naive_utc_dt,
-                log_level=log_level,
-                username=user
-            )
-            disconnect_line.put()
-            return disconnect_line, True
-    return None, False
-
-
-def handle_chat(line, tz):
-    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
-    if match:
-        existing_disconnect_line = ChatLine.get_line(line)
-        if existing_disconnect_line is not None:
-            return existing_disconnect_line, False
+def handle_logged_in(line, timezone):
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\].+\((\w.+), (\w.+), (\w.+)\)", line)
+    if match and 'logged in' in line:
         dts = "{0} {1}".format(match.group(1), match.group(2))
-        naive_utc_dt = dts_to_naive_utc(dts, tz)
+        naive_utc_dt = dts_to_naive_utc(dts, timezone)
         log_level = match.group(3)
         user = match.group(4)
-        chat = match.group(5)
-        chat_line = ChatLine(
-            line=line,
-            zone=tz.zone,
+        ip = match.group(5)
+        port = match.group(6)
+        location_x = safe_float_from_string(match.group(7))
+        location_y = safe_float_from_string(match.group(8))
+        location_z = safe_float_from_string(match.group(9))
+        return LogLine.create(
+            line, timezone.zone,
             timestamp=naive_utc_dt,
             log_level=log_level,
             username=user,
-            chat=chat
+            ip=ip,
+            port=port,
+            location=Location(x=location_x, y=location_y, z=location_z),
+            tags=LOGIN_TAGS
         )
-        chat_line.put()
-        return chat_line, True
-    return None, False
+    return None
 
 
-def handle_overloaded_log(line, tz):
-    match = re.search(ur"([\w-]+) ([\w:]+) \[WARNING\] Can't keep up! Did the system time change, or is the server overloaded\?", line)
-    if match:
-        existing_disconnect_line = OverloadedLine.get_line(line)
-        if existing_disconnect_line is not None:
-            return existing_disconnect_line, False
+def handle_lost_connection(line, timezone):
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)", line)
+    if match and 'lost connection' in line:
         dts = "{0} {1}".format(match.group(1), match.group(2))
-        naive_utc_dt = dts_to_naive_utc(dts, tz)
-        timestamp_line = OverloadedLine(
-            line=line,
-            zone=tz.zone,
-            timestamp=naive_utc_dt,
-            log_level='WARNING',
-        )
-        timestamp_line.put()
-        return timestamp_line, True
-    return None, False
-
-
-def handle_timestamp_log(line, tz):
-    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (.+)", line)
-    if match:
-        existing_disconnect_line = TimeStampLogLine.get_line(line)
-        if existing_disconnect_line is not None:
-            return existing_disconnect_line, False
-        dts = "{0} {1}".format(match.group(1), match.group(2))
-        naive_utc_dt = dts_to_naive_utc(dts, tz)
+        naive_utc_dt = dts_to_naive_utc(dts, timezone)
         log_level = match.group(3)
-        timestamp_line = TimeStampLogLine(
-            line=line,
-            zone=tz.zone,
+        user = match.group(4)
+        return LogLine.create(
+            line, timezone.zone,
             timestamp=naive_utc_dt,
             log_level=log_level,
+            username=user,
+            tags=LOGOUT_TAGS
         )
-        timestamp_line.put()
-        return timestamp_line, True
-    return None, False
+    return None
 
 
-def handle_unknown_log(line, tz):
-    existing_log_line = LogLine.get_line(line)
-    if existing_log_line is not None:
-        return existing_log_line, False
-    log_line = LogLine(
-        line=line,
-        zone=tz.zone
-    )
-    log_line.put()
-    return log_line, True
+def handle_chat(line, timezone):
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
+    if match:
+        dts = "{0} {1}".format(match.group(1), match.group(2))
+        naive_utc_dt = dts_to_naive_utc(dts, timezone)
+        log_level = match.group(3)
+        user = match.group(4)
+        chat = match.group(5)
+        return LogLine.create(
+            line, timezone.zone,
+            timestamp=naive_utc_dt,
+            log_level=log_level,
+            username=user,
+            chat=chat,
+            tags=CHAT_TAGS
+        )
+    return None
+
+
+def handle_overloaded_log(line, timezone):
+    match = re.search(ur"([\w-]+) ([\w:]+) \[WARNING\] Can't keep up! Did the system time change, or is the server overloaded\?", line)
+    if match:
+        dts = "{0} {1}".format(match.group(1), match.group(2))
+        naive_utc_dt = dts_to_naive_utc(dts, timezone)
+        return LogLine.create(
+            line, timezone.zone,
+            timestamp=naive_utc_dt,
+            log_level='WARNING',
+            tags=OVERLOADED_TAGS
+        )
+    return None
+
+
+def handle_timestamp_log(line, timezone):
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (.+)", line)
+    if match:
+        dts = "{0} {1}".format(match.group(1), match.group(2))
+        naive_utc_dt = dts_to_naive_utc(dts, timezone)
+        log_level = match.group(3)
+        return LogLine.create(
+            line, timezone.zone,
+            timestamp=naive_utc_dt,
+            log_level=log_level,
+            tags=[]
+        )
+    return None
+
+
+def handle_unknown_log(line, timezone):
+    return LogLine.create(line, timezone.zone, tags=[])
+
+
+class MultiPageForm(form.Form):
+    size = fields.IntegerField(default=10, validators=[validators.NumberRange(min=1, max=50)])
+    cursor = fields.StringField(validators=[validators.Optional()])
+
+
+class MultiPageHandler():
+    @property
+    def size(self):
+        return self.request.form.size.data or self.request.form.size.default
+
+    @property
+    def cursor(self):
+        cursor = self.request.form.cursor.data
+        if cursor:
+            try:
+                cursor = ndb.Cursor.from_websafe_string(cursor)
+            except Exception, e:
+                self.abort(400, {'cursor': e.message})
+        return cursor or None
+
+    def fetch_page(self, query, results_name='results'):
+        results, cursor, more = query.fetch_page(self.size, start_cursor=self.cursor)
+        response = {results_name: results}
+        if more:
+            response['cursor'] = cursor.to_websafe_string()
+        return response
 
 
 application = webapp2.WSGIApplication(

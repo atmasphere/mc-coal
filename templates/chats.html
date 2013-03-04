@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Chats{% endblock %}
+{% block page_name %}Chats{% endblock %}
+{% block content %}
+    {% if previous_cursor %}
+        <a href="{{ 'chats' | nextpageurl(previous_cursor) }}">Previous</a>
+        {% if next_cursor %}
+            |
+        {% endif %}
+    {% endif %}
+    {% if next_cursor %}
+        <a href="{{ 'chats' | nextpageurl(next_cursor) }}">Next</a>
+    {% endif %}
+    {% for chat in chats %}
+        <li>[{{ chat.timestamp | datetimeformat }}] &lt;{{ "YOU" if chat.username == user.username else chat.username }}&gt; {{ chat.chat }}</li>
+    {% endfor %}
+    {% if previous_cursor %}
+        <a href="{{ 'chats' | nextpageurl(previous_cursor) }}">Previous</a>
+        {% if next_cursor %}
+            |
+        {% endif %}
+    {% endif %}
+    {% if next_cursor %}
+        <a href="{{ 'chats' | nextpageurl(next_cursor) }}">Next</a>
+    {% endif %}
+{% endblock %}
