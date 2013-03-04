@@ -2,16 +2,6 @@ indexes:
 
 - kind: LogLine
   properties:
-  - name: timestamp
-    direction: desc
-
-- kind: LogLine
-  properties:
-  - name: created
-    direction: desc
-
-- kind: LogLine
-  properties:
   - name: has_timestamp
   - name: timestamp
     direction: desc
