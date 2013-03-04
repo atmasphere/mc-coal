@@ -17,15 +17,17 @@ from agar.env import on_production_server
 from restler.serializers import json_response as restler_json_response
 
 from config import coal_config
-from models import LogLine, Location, PlaySession, Server
+from models import Server, LogLine, Location, PlaySession
 from models import CONNECTION_TAG, LOGIN_TAG, LOGOUT_TAG
 from models import CHAT_TAG
-from models import SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG
+from models import SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG, STOPPING_TAG, STARTING_TAG
 
 LOGIN_TAGS = [CONNECTION_TAG, LOGIN_TAG]
 LOGOUT_TAGS = [CONNECTION_TAG, LOGOUT_TAG]
 CHAT_TAGS = [CHAT_TAG]
 OVERLOADED_TAGS = [SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG]
+STOPPING_TAGS = [SERVER_TAG, STOPPING_TAG]
+STARTING_TAGS = [SERVER_TAG, STARTING_TAG]
 
 
 def validate_params(form_class):
@@ -141,6 +143,10 @@ class LogLineHandler(JsonRequestHandler):
                 if log_line is None:
                     log_line = handle_overloaded_log(line, tz)
                 if log_line is None:
+                    log_line = handle_server_stop(line, tz)
+                if log_line is None:
+                    log_line = handle_server_start(line, tz)
+                if log_line is None:
                     log_line = handle_timestamp_log(line, tz)
                 if log_line is None:
                     log_line = handle_unknown_log(line, tz)
@@ -207,7 +213,7 @@ def handle_lost_connection(line, timezone):
             username=username,
             tags=LOGOUT_TAGS
         )
-        PlaySession.close(username, naive_utc_dt, log_line.key)
+        PlaySession.close_current(username, naive_utc_dt, log_line.key)
         return log_line
     return None
 
@@ -242,6 +248,50 @@ def handle_overloaded_log(line, timezone):
             log_level='WARNING',
             tags=OVERLOADED_TAGS
         )
+    return None
+
+
+@ndb.transactional
+def handle_server_stop(line, timezone):
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] Stopping server", line)
+    if match:
+        dts = "{0} {1}".format(match.group(1), match.group(2))
+        naive_utc_dt = dts_to_naive_utc(dts, timezone)
+        log_level = match.group(3)
+        log_line = LogLine.create(
+            line, timezone.zone,
+            timestamp=naive_utc_dt,
+            log_level=log_level,
+            tags=STOPPING_TAGS
+        )
+        open_sessions_query = PlaySession.query_open()
+        for session in open_sessions_query:
+            session.close(naive_utc_dt, log_line.key)
+        return log_line
+    return None
+
+
+@ndb.transactional
+def handle_server_start(line, timezone):
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] Starting minecraft server version ([\S:]+)", line)
+    if match:
+        dts = "{0} {1}".format(match.group(1), match.group(2))
+        naive_utc_dt = dts_to_naive_utc(dts, timezone)
+        log_level = match.group(3)
+        server_version = match.group(4)
+        server = Server.global_key().get()
+        server.version = server_version
+        server.put()
+        log_line = LogLine.create(
+            line, timezone.zone,
+            timestamp=naive_utc_dt,
+            log_level=log_level,
+            tags=STARTING_TAGS
+        )
+        open_sessions_query = PlaySession.query_open()
+        for session in open_sessions_query:
+            session.close(naive_utc_dt, log_line.key)
+        return log_line
     return None
 
 

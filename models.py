@@ -14,6 +14,8 @@ CHAT_TAG = 'chat'
 SERVER_TAG = 'server'
 PERFORMANCE_TAG = 'performance'
 OVERLOADED_TAG = 'overloaded'
+STOPPING_TAG = 'stopping'
+STARTING_TAG = 'starting'
 
 
 def dts_to_naive_utc(dts, tz):
@@ -73,6 +75,7 @@ class User(auth_models.User):
 
 class Server(ndb.Model):
     name = ndb.StringProperty()
+    version = ndb.StringProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -186,7 +189,7 @@ class LogLine(ndb.Model):
 
 class PlaySession(ndb.Model):
     username = ndb.StringProperty()
-    login_timestamp = ndb.DateTimeProperty()
+    login_timestamp = ndb.DateTimeProperty(required=True)
     logout_timestamp = ndb.DateTimeProperty()
     zone = ndb.StringProperty(required=True)
     login_log_line = ndb.KeyProperty(kind=LogLine)
@@ -200,30 +203,32 @@ class PlaySession(ndb.Model):
             return self.logout_timestamp - self.login_timestamp
         return None
 
+    def close(self, timestamp, logout_log_line_key):
+        self.logout_timestamp = timestamp
+        self.logout_log_line = logout_log_line_key
+        self.put()
+
     @classmethod
-    def create(cls, username, timestamp, zone, login_log_line, **kwargs):
+    def create(cls, username, timestamp, zone, login_log_line_key, **kwargs):
         current = cls.current(username)
         if current:
-            current.logout_timestamp = timestamp
-            current.put()
+            current.close(timestamp, login_log_line_key)
         instance = cls(
             parent=Server.global_key(),
             username=username,
             login_timestamp=timestamp,
             zone=zone,
-            login_log_line=login_log_line,
+            login_log_line=login_log_line_key,
             **kwargs
         )
         instance.put()
         return instance
 
     @classmethod
-    def close(cls, username, timestamp, logout_log_line):
+    def close_current(cls, username, timestamp, logout_log_line_key):
         current = cls.current(username)
         if current:
-            current.logout_timestamp = timestamp
-            current.logout_log_line = logout_log_line
-            current.put()
+            current.close(timestamp, logout_log_line_key)
         return current
 
     @classmethod

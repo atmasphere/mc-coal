@@ -22,12 +22,14 @@ import models
 TIME_ZONE = 'America/Chicago'
 LOG_LINE = 'Test line'
 TIME_STAMP_LOG_LINE = '2012-10-07 15:10:09 [INFO] Preparing level "world"'
+SERVER_START_LOG_LINE = '2012-10-15 16:05:00 [INFO] Starting minecraft server version 1.3.2'
+SERVER_STOP_LOG_LINE = '2012-10-15 16:26:11 [INFO] Stopping server'
 OVERLOADED_LOG_LINE = "2012-10-21 00:01:46 [WARNING] Can't keep up! Did the system time change, or is the server overloaded?"
 CHAT_LOG_LINE = '2012-10-09 20:46:06 [INFO] <vesicular> yo yo'
 DISCONNECT_LOG_LINE = '2012-10-09 20:50:08 [INFO] gumptionthomas lost connection: disconnect.quitting'
 CONNECT_LOG_LINE = '2012-10-09 19:52:55 [INFO] gumptionthomas[/192.168.11.198:59659] logged in with entity id 14698 at (221.41534292614716, 68.0, 239.43154415221068)'
-ALL_LOG_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, CONNECT_LOG_LINE]
-TIMESTAMP_LOG_LINES = [TIME_STAMP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, CONNECT_LOG_LINE]
+ALL_LOG_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, CONNECT_LOG_LINE]
+TIMESTAMP_LOG_LINES = [TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, CONNECT_LOG_LINE]
 
 
 class ApiTest(BaseTest, WebTest):
@@ -130,6 +132,35 @@ class LogLineTest(ApiTest):
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual([], log_line.tags)
 
+    def test_post_server_start_log_line(self):
+        params = {'line': SERVER_START_LOG_LINE, 'zone': TIME_ZONE}
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(0, body)
+        self.assertEqual('1.3.2', models.Server.global_key().get().version)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(SERVER_START_LOG_LINE, log_line.line)
+        self.assertEqual(TIME_ZONE, log_line.zone)
+        self.assertEqual(datetime.datetime(2012, 10, 15, 21, 5), log_line.timestamp)
+        self.assertEqual('INFO', log_line.log_level)
+        self.assertEqual(api.STARTING_TAGS, log_line.tags)
+
+    def test_post_server_stop_log_line(self):
+        params = {'line': SERVER_STOP_LOG_LINE, 'zone': TIME_ZONE}
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(0, body)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(SERVER_STOP_LOG_LINE, log_line.line)
+        self.assertEqual(TIME_ZONE, log_line.zone)
+        self.assertEqual(datetime.datetime(2012, 10, 15, 21, 26, 11), log_line.timestamp)
+        self.assertEqual('INFO', log_line.log_level)
+        self.assertEqual(api.STOPPING_TAGS, log_line.tags)
+
     def test_post_overloaded_log_line(self):
         params = {'line': OVERLOADED_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(self.get_secure_url(), params=params)
@@ -231,6 +262,20 @@ class LogLineTest(ApiTest):
         play_session = models.PlaySession.current('gumptionthomas')
         self.assertIsNotNone(play_session)
         params = {'line': DISCONNECT_LOG_LINE, 'zone': TIME_ZONE}
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.PlaySession.query().count())
+        play_session = models.PlaySession.current('gumptionthomas')
+        self.assertIsNone(play_session)
+
+    def test_login_server_stop(self):
+        params = {'line': CONNECT_LOG_LINE, 'zone': TIME_ZONE}
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.PlaySession.query().count())
+        play_session = models.PlaySession.current('gumptionthomas')
+        self.assertIsNotNone(play_session)
+        params = {'line': SERVER_STOP_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(self.get_secure_url(), params=params)
         self.assertCreated(response)
         self.assertEqual(1, models.PlaySession.query().count())
