@@ -16,16 +16,17 @@ from agar.test.base_test import BaseTest
 from agar.test.web_test import WebTest
 
 import api
-from models import LogLine
+import models
 
 TIME_ZONE = 'America/Chicago'
 LOG_LINE = 'Test line'
 TIME_STAMP_LOG_LINE = '2012-10-07 15:10:09 [INFO] Preparing level "world"'
 OVERLOADED_LOG_LINE = "2012-10-21 00:01:46 [WARNING] Can't keep up! Did the system time change, or is the server overloaded?"
-CHAT_LINE = '2012-10-09 20:46:06 [INFO] <vesicular> yo yo'
-DISCONNECT_LINE = '2012-10-09 20:50:08 [INFO] gumptionthomas lost connection: disconnect.quitting'
-CONNECT_LINE = '2012-10-09 19:52:55 [INFO] gumptionthomas[/192.168.11.198:59659] logged in with entity id 14698 at (221.41534292614716, 68.0, 239.43154415221068)'
-ALL_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LINE, DISCONNECT_LINE, CONNECT_LINE]
+CHAT_LOG_LINE = '2012-10-09 20:46:06 [INFO] <vesicular> yo yo'
+DISCONNECT_LOG_LINE = '2012-10-09 20:50:08 [INFO] gumptionthomas lost connection: disconnect.quitting'
+CONNECT_LOG_LINE = '2012-10-09 19:52:55 [INFO] gumptionthomas[/192.168.11.198:59659] logged in with entity id 14698 at (221.41534292614716, 68.0, 239.43154415221068)'
+ALL_LOG_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, CONNECT_LOG_LINE]
+TIMESTAMP_LOG_LINES = [TIME_STAMP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, CONNECT_LOG_LINE]
 
 
 class ApiTest(BaseTest, WebTest):
@@ -108,8 +109,8 @@ class LogLineTest(ApiTest):
         self.assertCreated(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual(1, LogLine.query().count())
-        log_line = LogLine.query().get()
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
         self.assertEqual(LOG_LINE, log_line.line)
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual([], log_line.tags)
@@ -120,8 +121,8 @@ class LogLineTest(ApiTest):
         self.assertCreated(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual(1, LogLine.query().count())
-        log_line = LogLine.query().get()
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
         self.assertEqual(TIME_STAMP_LOG_LINE, log_line.line)
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 7, 20, 10, 9), log_line.timestamp)
@@ -134,8 +135,8 @@ class LogLineTest(ApiTest):
         self.assertCreated(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual(1, LogLine.query().count())
-        log_line = LogLine.query().get()
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
         self.assertEqual(OVERLOADED_LOG_LINE, log_line.line)
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 21, 5, 1, 46), log_line.timestamp)
@@ -143,14 +144,14 @@ class LogLineTest(ApiTest):
         self.assertEqual(api.OVERLOADED_TAGS, log_line.tags)
 
     def test_post_chat_log_line(self):
-        params = {'line': CHAT_LINE, 'zone': TIME_ZONE}
+        params = {'line': CHAT_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(self.get_secure_url(), params=params)
         self.assertCreated(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual(1, LogLine.query().count())
-        log_line = LogLine.query().get()
-        self.assertEqual(CHAT_LINE, log_line.line)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(CHAT_LOG_LINE, log_line.line)
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 10, 1, 46, 6), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
@@ -159,14 +160,14 @@ class LogLineTest(ApiTest):
         self.assertEqual(api.CHAT_TAGS, log_line.tags)
 
     def test_post_disconnect_line(self):
-        params = {'line': DISCONNECT_LINE, 'zone': TIME_ZONE}
+        params = {'line': DISCONNECT_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(self.get_secure_url(), params=params)
         self.assertCreated(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual(1, LogLine.query().count())
-        log_line = LogLine.query().get()
-        self.assertEqual(DISCONNECT_LINE, log_line.line)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(DISCONNECT_LOG_LINE, log_line.line)
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 10, 1, 50, 8), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
@@ -174,19 +175,33 @@ class LogLineTest(ApiTest):
         self.assertEqual(api.LOGOUT_TAGS, log_line.tags)
 
     def test_post_connect_line(self):
-        params = {'line': CONNECT_LINE, 'zone': TIME_ZONE}
+        params = {'line': CONNECT_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(self.get_secure_url(), params=params)
         self.assertCreated(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual(1, LogLine.query().count())
-        log_line = LogLine.query().get()
-        self.assertEqual(CONNECT_LINE, log_line.line)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(CONNECT_LOG_LINE, log_line.line)
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 10, 0, 52, 55), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(api.LOGIN_TAGS, log_line.tags)
+
+    def test_post_all(self):
+        for line in ALL_LOG_LINES:
+            params = {'line': line, 'zone': TIME_ZONE}
+            response = self.post(self.get_secure_url(), params=params)
+            self.assertCreated(response)
+            body = json.loads(response.body)
+            self.assertLength(0, body)
+        self.assertEqual(len(ALL_LOG_LINES), models.LogLine.query().count())
+        self.assertEqual(len(TIMESTAMP_LOG_LINES), models.LogLine.query_latest_with_timestamp().count())
+        self.assertEqual(1, models.LogLine.query_by_tags(models.OVERLOADED_TAG).count())
+        self.assertEqual(1, models.LogLine.query_latest_chats().count())
+        self.assertEqual(1, models.LogLine.query_latest_logins().count())
+        self.assertEqual(1, models.LogLine.query_latest_logouts().count())
 
     def test_post_log_line_twice(self):
         params = {'line': LOG_LINE, 'zone': TIME_ZONE}
@@ -194,9 +209,9 @@ class LogLineTest(ApiTest):
         self.assertCreated(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual(1, LogLine.query().count())
+        self.assertEqual(1, models.LogLine.query().count())
         response = self.post(self.get_secure_url(), params=params)
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual(1, LogLine.query().count())
+        self.assertEqual(1, models.LogLine.query().count())

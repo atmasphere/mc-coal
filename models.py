@@ -1,7 +1,6 @@
 import datetime
 
 from google.appengine.ext import ndb
-from google.appengine.ext.ndb import polymodel
 from google.appengine.api import users
 
 import webapp2_extras.appengine.auth.models as auth_models
@@ -17,59 +16,15 @@ PERFORMANCE_TAG = 'performance'
 OVERLOADED_TAG = 'overloaded'
 
 
-def itersubclasses(cls, _seen=None):
-    """
-    itersubclasses(cls)
-
-    Generator over all subclasses of a given class, in depth first order.
-
-    TAB: Found here: http://code.activestate.com/recipes/576949-find-all-subclasses-of-a-given-class/
-
-    >>> list(itersubclasses(int)) == [bool]
-    True
-    >>> class A(object): pass
-    >>> class B(A): pass
-    >>> class C(A): pass
-    >>> class D(B,C): pass
-    >>> class E(D): pass
-    >>>
-    >>> for cls in itersubclasses(A):
-    ...     print(cls.__name__)
-    B
-    D
-    E
-    C
-    >>> # get ALL (new-style) classes currently defined
-    >>> [cls.__name__ for cls in itersubclasses(object)] #doctest: +ELLIPSIS
-    ['type', ...'tuple', ...]
-    """
-
-    if not isinstance(cls, type):
-        raise TypeError('itersubclasses must be called with '
-                        'new-style classes, not %.100r' % cls)
-    if _seen is None:
-        _seen = set()
-    try:
-        subs = cls.__subclasses__()
-    except TypeError:  # fails only when cls is type
-        subs = cls.__subclasses__(cls)
-    for sub in subs:
-        if sub not in _seen:
-            _seen.add(sub)
-            yield sub
-            for sub in itersubclasses(sub, _seen):
-                yield sub
-
-
 def dts_to_naive_utc(dts, tz):
     dt = datetime.datetime.strptime(dts, "%Y-%m-%d %H:%M:%S")
     dt = tz.localize(dt)
     return dt.astimezone(pytz.utc).replace(tzinfo=None)
 
 
-def zone_to_timezone(zone):
+def name_to_timezone(name):
     try:
-        timezone = pytz.timezone(zone)
+        timezone = pytz.timezone(name)
     except:
         timezone = pytz.utc
     return timezone
@@ -139,7 +94,7 @@ class LogLine(ndb.Model):
 
     @property
     def timezone(self):
-        return zone_to_timezone(self.zone)
+        return name_to_timezone(self.zone)
 
     @property
     def user(self):

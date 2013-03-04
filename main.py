@@ -31,11 +31,11 @@ class JinjaHandler(webapp2.RequestHandler):
         j.environment.globals.update(self._globals)
         return j
 
-    def get_template_args(self, template_args=None):
-        return template_args
+    def get_template_context(self, context=None):
+        return context
 
     def render_template(self, filename, context={}):
-        context = self.get_template_args(context)
+        context = self.get_template_context(context)
         self.response.write(self.jinja2.render_template(filename, **context))
 
 
@@ -89,24 +89,6 @@ def authenticate(handler, required=True, admin=False):
     return user
 
 
-def get_results_with_cursors(query, reverse_query, size, cursor):
-    next_cursor = previous_cursor = None
-    if cursor is not None:
-        reverse_cursor = cursor.reversed()
-        reverse_results, reverse_next_cursor, reverse_more = reverse_query.fetch_page(size, start_cursor=reverse_cursor)
-        if reverse_more:
-            previous_cursor = reverse_next_cursor.reversed()
-            previous_cursor = previous_cursor.to_websafe_string()
-        else:
-            previous_cursor = 'START'
-    results, next_cursor, more = query.fetch_page(size, start_cursor=cursor)
-    if more:
-        next_cursor = next_cursor.to_websafe_string()
-    else:
-        next_cursor = None
-    return results, previous_cursor, next_cursor
-
-
 class UserAwareHandler(JinjaHandler):
     @webapp2.cached_property
     def session_store(self):
@@ -145,14 +127,14 @@ class UserAwareHandler(JinjaHandler):
         finally:
             self.session_store.save_sessions(self.response)
 
-    def get_template_args(self, template_args=None):
-        args = dict()
-        if template_args:
-            args.update(template_args)
-        args['flashes'] = self.session.get_flashes()
-        args['request'] = self.request
-        args['user'] = self.user
-        return args
+    def get_template_context(self, context=None):
+        template_context = dict()
+        if context:
+            template_context.update(context)
+        template_context['flashes'] = self.session.get_flashes()
+        template_context['request'] = self.request
+        template_context['user'] = self.user
+        return template_context
 
 
 class GoogleAppEngineUserAuthHandler(UserAwareHandler):
@@ -212,49 +194,61 @@ class MainHandler(BaseHander):
         self.render_template('main.html')
 
 
-class ChatsHandler(BaseHander):
-    @authentication_required(authenticate=authenticate)
-    def get(self):
+class PagingHandler(BaseHander):
+    def get_results_with_cursors(self, query, reverse_query, size):
         cursor = self.request.get('cursor', None)
         if cursor:
             try:
                 cursor = Cursor.from_websafe_string(cursor)
             except:
                 cursor = None
-        query = LogLine.query_latest_chats()
-        reverse_query = LogLine.query_oldest_chats()
-        results, previous_cursor, next_cursor = get_results_with_cursors(query, reverse_query, 50, cursor)
-        self.render_template('chats.html', {'chats': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor})
+        next_cursor = previous_cursor = None
+        if cursor is not None:
+            reverse_cursor = cursor.reversed()
+            reverse_results, reverse_next_cursor, reverse_more = reverse_query.fetch_page(
+                size, start_cursor=reverse_cursor
+            )
+            if reverse_more:
+                previous_cursor = reverse_next_cursor.reversed()
+                previous_cursor = previous_cursor.to_websafe_string()
+            else:
+                previous_cursor = 'START'
+        results, next_cursor, more = query.fetch_page(size, start_cursor=cursor)
+        if more:
+            next_cursor = next_cursor.to_websafe_string()
+        else:
+            next_cursor = None
+        return results, previous_cursor, next_cursor
 
 
-class LoginsHandler(BaseHander):
+class ChatsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        cursor = self.request.get('cursor', None)
-        if cursor:
-            try:
-                cursor = Cursor.from_websafe_string(cursor)
-            except:
-                cursor = None
-        query = LogLine.query_latest_logins()
-        reverse_query = LogLine.query_oldest_logins()
-        results, previous_cursor, next_cursor = get_results_with_cursors(query, reverse_query, 50, cursor)
-        self.render_template('logins.html', {'logins': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor})
+        results, previous_cursor, next_cursor = self.get_results_with_cursors(
+            LogLine.query_latest_chats(), LogLine.query_oldest_chats(), config.RESULTS_PER_PAGE
+        )
+        context = {'chats': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        self.render_template('chats.html', context=context)
 
 
-class LogoutsHandler(BaseHander):
+class LoginsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        cursor = self.request.get('cursor', None)
-        if cursor:
-            try:
-                cursor = Cursor.from_websafe_string(cursor)
-            except:
-                cursor = None
-        query = LogLine.query_latest_logouts()
-        reverse_query = LogLine.query_oldest_logouts()
-        results, previous_cursor, next_cursor = get_results_with_cursors(query, reverse_query, 50, cursor)
-        self.render_template('logouts.html', {'logouts': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor})
+        results, previous_cursor, next_cursor = self.get_results_with_cursors(
+            LogLine.query_latest_logins(), LogLine.query_oldest_logins(), config.RESULTS_PER_PAGE
+        )
+        context = {'logins': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        self.render_template('logins.html', context=context)
+
+
+class LogoutsHandler(PagingHandler):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        results, previous_cursor, next_cursor = self.get_results_with_cursors(
+            LogLine.query_latest_logouts(), LogLine.query_oldest_logouts(), config.RESULTS_PER_PAGE
+        )
+        context = {'logouts': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        self.render_template('logouts.html', context=context)
 
 
 application = webapp2.WSGIApplication(
