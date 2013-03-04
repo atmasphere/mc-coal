@@ -14,7 +14,7 @@ from agar.env import on_production_server
 
 from config import coal_config
 from filters import FILTERS
-from models import User, LogLine, PlaySession
+from models import User, Server, LogLine, PlaySession
 
 
 def uri_for_pagination(name, cursor=None):
@@ -145,6 +145,7 @@ class UserAwareHandler(JinjaHandler):
         template_context['request'] = self.request
         template_context['user'] = self.user
         template_context['config'] = coal_config
+        template_context['server'] = Server.global_key().get()
         return template_context
 
 
