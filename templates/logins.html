@@ -1,26 +1,12 @@
 {% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
 {% block title %}Logins{% endblock %}
 {% block page_name %}Logins{% endblock %}
 {% block content %}
-    {% if previous_cursor %}
-        <a href="{{ 'logins' | nextpageurl(previous_cursor) }}">Previous</a>
-        {% if next_cursor %}
-            |
-        {% endif %}
-    {% endif %}
-    {% if next_cursor %}
-        <a href="{{ 'logins' | nextpageurl(next_cursor) }}">Next</a>
-    {% endif %}
+    {{ macros.previous_next_uri('chats', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
     {% for login in logins %}
         <li>[{{ login.timestamp | datetimeformat }}] &lt;{{ "YOU" if login.username == user.username else login.username }}&gt;</li>
     {% endfor %}
-    {% if previous_cursor %}
-        <a href="{{ 'logins' | nextpageurl(previous_cursor) }}">Previous</a>
-        {% if next_cursor %}
-            |
-        {% endif %}
-    {% endif %}
-    {% if next_cursor %}
-        <a href="{{ 'logins' | nextpageurl(next_cursor) }}">Next</a>
-    {% endif %}
+    {{ macros.previous_next_uri('chats', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
 {% endblock %}

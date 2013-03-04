@@ -17,9 +17,19 @@ from filters import FILTERS
 from models import User, LogLine
 
 
+def uri_for_pagination(name, cursor=None):
+    uri = webapp2.uri_for(name)
+    if cursor is not None and cursor != 'START':
+        uri = "{0}?cursor={1}".format(uri, cursor)
+    return uri
+
+
 class JinjaHandler(webapp2.RequestHandler):
     _filters = FILTERS
-    _globals = {'uri_for': webapp2.uri_for}
+    _globals = {
+        'uri_for': webapp2.uri_for,
+        'uri_for_pagination': uri_for_pagination
+    }
 
     @webapp2.cached_property
     def jinja2(self):
