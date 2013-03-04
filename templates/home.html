@@ -4,12 +4,12 @@
 {% block content %}
     <h2>Welcome to {{ config.TITLE }}</h2>
     <h3>Sever Version: {{ server.version }}</h3>
-    <h3>Currently Playing</h3>
     {% if open_sessions %}
+        <h3>Currently Playing</h3>
         {% for open_session in open_sessions %}
             <li>{{ open_session.username | username_pronoun(user) }}</li>
         {% endfor %}
     {% else %}
-        No one is playing. I'm lonely.
+        <h3>No one is playing. I'm lonely.</h3>
     {% endif %}
 {% endblock %}
