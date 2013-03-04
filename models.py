@@ -137,19 +137,19 @@ class LogLine(ndb.Model):
 
     @classmethod
     def get_line(cls, line):
-        return cls.query().filter(cls.line == line).get()
+        return cls.query(ancestor=Server.global_key()).filter(cls.line == line).get()
 
     @classmethod
     def query_latest(cls):
-        return cls.query().order(-cls.created)
+        return cls.query(ancestor=Server.global_key()).order(-cls.created)
 
     @classmethod
     def get_last_line(cls):
-        return cls.query_latest().get()
+        return cls.query_latest(ancestor=Server.global_key()).get()
 
     @classmethod
     def query_latest_with_timestamp(cls):
-        return cls.query().filter(cls.has_timestamp == True).order(-cls.timestamp)
+        return cls.query(ancestor=Server.global_key()).filter(cls.has_timestamp == True).order(-cls.timestamp)
 
     @classmethod
     def get_last_line_with_timestamp(cls):
@@ -157,7 +157,7 @@ class LogLine(ndb.Model):
 
     @classmethod
     def query_by_tags(cls, tags):
-        return cls.query().filter(cls.tags == tags)
+        return cls.query(ancestor=Server.global_key()).filter(cls.tags == tags)
 
     @classmethod
     def query_latest_chats(cls):
