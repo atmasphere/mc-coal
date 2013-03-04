@@ -118,12 +118,47 @@ class AuthTest(MainBaseTest):
             self.assertLoggedIn(response)
 
 
-class MainTest(AuthTest):
+class HomeTest(AuthTest):
     URL = '/'
 
     def test_get(self):
         self.log_in_user()
-        response = self.get("/")
+        response = self.get(self.URL)
         self.assertOK(response)
 
+
+class ChatsTest(AuthTest):
+    URL = '/chats'
+
+    def test_get(self):
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
+
+
+class LoginsTest(AuthTest):
+    URL = '/logins'
+
+    def test_get(self):
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
+
+
+class LogoutsTest(AuthTest):
+    URL = '/logouts'
+
+    def test_get(self):
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
+
+
+class PlaySessionsTest(AuthTest):
+    URL = '/sessions'
+
+    def test_get(self):
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
 

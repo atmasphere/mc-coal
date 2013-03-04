@@ -6,7 +6,7 @@
 {% block content %}
     {{ macros.previous_next_uri('chats', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
     {% for chat in chats %}
-        <li>[{{ chat.timestamp | datetimeformat }}] &lt;{{ "YOU" if chat.username == user.username else chat.username }}&gt; {{ chat.chat }}</li>
+        <li>[{{ chat.timestamp | datetimeformat }}] &lt;{{ chat.username | username_pronoun(user) }}&gt; {{ chat.chat }}</li>
     {% endfor %}
     {{ macros.previous_next_uri('chats', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
 {% endblock %}

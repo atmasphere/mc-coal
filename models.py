@@ -1,7 +1,7 @@
 import datetime
 
 from google.appengine.ext import ndb
-from google.appengine.api import users
+from google.appengine.api import users, memcache
 
 import webapp2_extras.appengine.auth.models as auth_models
 
@@ -71,6 +71,32 @@ class User(auth_models.User):
         return query.get()
 
 
+class Server(ndb.Model):
+    name = ndb.StringProperty()
+    created = ndb.DateTimeProperty(auto_now_add=True)
+    updated = ndb.DateTimeProperty(auto_now=True)
+
+    @classmethod
+    def create(cls, key_name, **kwargs):
+        instance = cls(**kwargs)
+        instance.put()
+        return instance
+
+    @classmethod
+    def get_or_insert_key(cls):
+        data = memcache.get('global_key')
+        if data is not None:
+            return ndb.Key(urlsafe=data)
+        else:
+            server = Server.get_or_insert('global_server')
+            memcache.add('global_key', server.key.urlsafe())
+            return server.key
+
+    @classmethod
+    def global_key(cls):
+        return cls.get_or_insert_key()
+
+
 class Location(ndb.Model):
     x = ndb.FloatProperty()
     y = ndb.FloatProperty()
@@ -105,7 +131,7 @@ class LogLine(ndb.Model):
 
     @classmethod
     def create(cls, line, zone, **kwargs):
-        instance = cls(line=line, zone=zone, **kwargs)
+        instance = cls(parent=Server.global_key(), line=line, zone=zone, **kwargs)
         instance.put()
         return instance
 
@@ -156,3 +182,66 @@ class LogLine(ndb.Model):
     @classmethod
     def query_oldest_logouts(cls):
         return cls.query_by_tags(LOGOUT_TAG).order(cls.timestamp)
+
+
+class PlaySession(ndb.Model):
+    username = ndb.StringProperty()
+    login_timestamp = ndb.DateTimeProperty()
+    logout_timestamp = ndb.DateTimeProperty()
+    zone = ndb.StringProperty(required=True)
+    login_log_line = ndb.KeyProperty(kind=LogLine)
+    logout_log_line = ndb.KeyProperty(kind=LogLine)
+    created = ndb.DateTimeProperty(auto_now_add=True)
+    updated = ndb.DateTimeProperty(auto_now=True)
+
+    @property
+    def duration(self):
+        if self.login_timestamp is not None and self.logout_timestamp is not None:
+            return self.logout_timestamp - self.login_timestamp
+        return None
+
+    @classmethod
+    def create(cls, username, timestamp, zone, login_log_line, **kwargs):
+        current = cls.current(username)
+        if current:
+            current.logout_timestamp = timestamp
+            current.put()
+        instance = cls(
+            parent=Server.global_key(),
+            username=username,
+            login_timestamp=timestamp,
+            zone=zone,
+            login_log_line=login_log_line,
+            **kwargs
+        )
+        instance.put()
+        return instance
+
+    @classmethod
+    def close(cls, username, timestamp, logout_log_line):
+        current = cls.current(username)
+        if current:
+            current.logout_timestamp = timestamp
+            current.logout_log_line = logout_log_line
+            current.put()
+        return current
+
+    @classmethod
+    def query_open(cls):
+        return PlaySession.query(ancestor=Server.global_key()).filter(cls.logout_timestamp == None)
+
+    @classmethod
+    def query_current(cls, username):
+        return PlaySession.query(ancestor=Server.global_key()).filter(cls.username == username).filter(cls.logout_timestamp == None)
+
+    @classmethod
+    def current(cls, username):
+        return cls.query_current(username).get()
+
+    @classmethod
+    def query_latest(cls):
+        return PlaySession.query(ancestor=Server.global_key()).order(-cls.login_timestamp)
+
+    @classmethod
+    def query_oldest(cls):
+        return PlaySession.query(ancestor=Server.global_key()).order(cls.login_timestamp)

@@ -14,7 +14,7 @@ from agar.env import on_production_server
 
 from config import coal_config
 from filters import FILTERS
-from models import User, LogLine
+from models import User, LogLine, PlaySession
 
 
 def uri_for_pagination(name, cursor=None):
@@ -202,7 +202,15 @@ class BaseHander(UserAwareHandler):
 class HomeHandler(BaseHander):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        self.render_template('home.html')
+        open_sessions_query = PlaySession.query_open()
+        playing_usernames = []
+        open_sessions = []
+        for open_session in open_sessions_query:
+            if open_session.username and open_session.username not in playing_usernames:
+                playing_usernames.append(open_session.username)
+                open_sessions.append(open_session)
+        context = {'open_sessions': open_sessions}
+        self.render_template('home.html', context=context)
 
 
 class PagingHandler(BaseHander):
@@ -262,14 +270,25 @@ class LogoutsHandler(PagingHandler):
         self.render_template('logouts.html', context=context)
 
 
+class PlaySessionsHandler(PagingHandler):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        results, previous_cursor, next_cursor = self.get_results_with_cursors(
+            PlaySession.query_latest(), PlaySession.query_oldest(), coal_config.RESULTS_PER_PAGE
+        )
+        context = {'play_sessions': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        self.render_template('play_sessions.html', context=context)
+
+
 application = webapp2.WSGIApplication(
     [
         RedirectRoute('/login_callback', handler='main.GoogleAppEngineUserAuthHandler:login_callback', name='login_callback'),
         RedirectRoute('/logout', handler='main.GoogleAppEngineUserAuthHandler:logout', name='logout'),
         RedirectRoute('/', handler=HomeHandler, name="home"),
-        RedirectRoute('/chats', handler=ChatsHandler, name="chats"),
-        RedirectRoute('/logins', handler=LoginsHandler, name="logins"),
-        RedirectRoute('/logouts', handler=LogoutsHandler, name="logouts")
+        RedirectRoute('/chats', handler=ChatsHandler, strict_slash=True, name="chats"),
+        RedirectRoute('/logins', handler=LoginsHandler, strict_slash=True, name="logins"),
+        RedirectRoute('/logouts', handler=LogoutsHandler, strict_slash=True, name="logouts"),
+        RedirectRoute('/sessions', handler=PlaySessionsHandler, strict_slash=True, name="play_sessions")
     ],
     config={
         'webapp2_extras.sessions': {'secret_key': coal_config.SECRET_KEY},

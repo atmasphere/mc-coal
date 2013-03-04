@@ -174,6 +174,9 @@ class LogLineTest(ApiTest):
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(api.LOGOUT_TAGS, log_line.tags)
+        self.assertEqual(0, models.PlaySession.query().count())
+        play_session = models.PlaySession.current('gumptionthomas')
+        self.assertIsNone(play_session)
 
     def test_post_connect_line(self):
         params = {'line': CONNECT_LOG_LINE, 'zone': TIME_ZONE}
@@ -189,6 +192,9 @@ class LogLineTest(ApiTest):
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(api.LOGIN_TAGS, log_line.tags)
+        self.assertEqual(1, models.PlaySession.query().count())
+        play_session = models.PlaySession.current('gumptionthomas')
+        self.assertIsNotNone(play_session)
 
     def test_post_all(self):
         for line in ALL_LOG_LINES:
@@ -216,3 +222,17 @@ class LogLineTest(ApiTest):
         body = json.loads(response.body)
         self.assertLength(0, body)
         self.assertEqual(1, models.LogLine.query().count())
+
+    def test_login_logout(self):
+        params = {'line': CONNECT_LOG_LINE, 'zone': TIME_ZONE}
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.PlaySession.query().count())
+        play_session = models.PlaySession.current('gumptionthomas')
+        self.assertIsNotNone(play_session)
+        params = {'line': DISCONNECT_LOG_LINE, 'zone': TIME_ZONE}
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.PlaySession.query().count())
+        play_session = models.PlaySession.current('gumptionthomas')
+        self.assertIsNone(play_session)

@@ -17,7 +17,7 @@ from agar.env import on_production_server
 from restler.serializers import json_response as restler_json_response
 
 from config import coal_config
-from models import LogLine, Location
+from models import LogLine, Location, PlaySession, Server
 from models import CONNECTION_TAG, LOGIN_TAG, LOGOUT_TAG
 from models import CHAT_TAG
 from models import SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG
@@ -164,45 +164,51 @@ def safe_float_from_string(float_string):
         return None
 
 
+@ndb.transactional
 def handle_logged_in(line, timezone):
     match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\].+\((\w.+), (\w.+), (\w.+)\)", line)
     if match and 'logged in' in line:
         dts = "{0} {1}".format(match.group(1), match.group(2))
         naive_utc_dt = dts_to_naive_utc(dts, timezone)
         log_level = match.group(3)
-        user = match.group(4)
+        username = match.group(4)
         ip = match.group(5)
         port = match.group(6)
         location_x = safe_float_from_string(match.group(7))
         location_y = safe_float_from_string(match.group(8))
         location_z = safe_float_from_string(match.group(9))
-        return LogLine.create(
+        log_line = LogLine.create(
             line, timezone.zone,
             timestamp=naive_utc_dt,
             log_level=log_level,
-            username=user,
+            username=username,
             ip=ip,
             port=port,
             location=Location(x=location_x, y=location_y, z=location_z),
             tags=LOGIN_TAGS
         )
+        PlaySession.create(username, naive_utc_dt, timezone.zone, log_line.key)
+        return log_line
     return None
 
 
+@ndb.transactional
 def handle_lost_connection(line, timezone):
     match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)", line)
     if match and 'lost connection' in line:
         dts = "{0} {1}".format(match.group(1), match.group(2))
         naive_utc_dt = dts_to_naive_utc(dts, timezone)
         log_level = match.group(3)
-        user = match.group(4)
-        return LogLine.create(
+        username = match.group(4)
+        log_line = LogLine.create(
             line, timezone.zone,
             timestamp=naive_utc_dt,
             log_level=log_level,
-            username=user,
+            username=username,
             tags=LOGOUT_TAGS
         )
+        PlaySession.close(username, naive_utc_dt, log_line.key)
+        return log_line
     return None
 
 

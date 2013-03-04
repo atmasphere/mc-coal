@@ -6,7 +6,7 @@
 {% block content %}
     {{ macros.previous_next_uri('chats', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
     {% for logout in logouts %}
-        <li>[{{ logout.timestamp | datetimeformat }}] &lt;{{ "YOU" if logout.username == user.username else logout.username }}&gt;</li>
+        <li>[{{ logout.timestamp | datetimeformat }}] &lt;{{ logout.username | username_pronoun(user) }}&gt;</li>
     {% endfor %}
     {{ macros.previous_next_uri('chats', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
 {% endblock %}

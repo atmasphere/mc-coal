@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Sessions{% endblock %}
+{% block page_name %}Sessions{% endblock %}
+{% block content %}
+    {{ macros.previous_next_uri('play_sessions', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+    {% for play_session in play_sessions %}
+        <li>
+            &lt;{{ play_session.username | username_pronoun(user) }}&gt;
+            --
+            {% if play_session.duration %}
+                Play Time: {{ play_session.duration }}
+            {% else %}
+                CURRENTLY PLAYING
+            {% endif %}
+            --
+            [
+            Login: {{ play_session.login_timestamp | datetimeformat }}
+            {% if play_session.logout_timestamp %}
+                - Logout: {{ play_session.logout_timestamp | datetimeformat }}
+            {% endif %}
+            ]
+        </li>
+    {% endfor %}
+    {{ macros.previous_next_uri('play_sessions', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+{% endblock %}
