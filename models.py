@@ -299,7 +299,7 @@ class PlaySession(UsernameModel):
             logout_timestamp = self.logout_timestamp
             if not logout_timestamp:
                 logout_timestamp = datetime.datetime.now()
-            return self.logout_timestamp - self.login_timestamp
+            return logout_timestamp - self.login_timestamp
         return None
 
     def close(self, timestamp, logout_log_line_key):
