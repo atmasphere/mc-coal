@@ -63,7 +63,7 @@ def is_server_running(pidfile):
                 pid = int(pid)
                 psutil.Process(pid)
                 is_running = True
-            except psutil.NoSuchProcess:
+            except:
                 is_running = False
     return is_running
 
