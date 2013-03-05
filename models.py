@@ -54,6 +54,11 @@ class User(auth_models.User):
         self.last_chat_view = dt
         self.put()
 
+    def is_player(self, player):
+        if player is not None:
+            return player.username == self.username
+        return False
+
     @classmethod
     def get_gae_user_auth_id(cls, gae_user_id=None, gae_user=None):
         if not gae_user_id:
@@ -155,6 +160,11 @@ class Player(ServerModel):
             logout_timestamp = last_session.logout_timestamp or datetime.datetime.now()
             return logout_timestamp - login_timestamp
         return None
+
+    def is_user(self, user):
+        if user is not None:
+            return user.username == self.username
+        return False
 
     @classmethod
     def get_or_create(cls, username):
