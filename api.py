@@ -103,14 +103,34 @@ def authenticate(handler):
     return None
 
 
+class OptionalBooleanField(fields.BooleanField):
+    def process_data(self, value):
+        if value is not None:
+            self.data = bool(value)
+        else:
+            self.data = None
+
+    def process_formdata(self, valuelist):
+        if not valuelist:
+            self.data = None
+        else:
+            self.data = valuelist[0] == 'True'
+
+
 class PingForm(form.Form):
     server_name = fields.StringField(validators=[validators.InputRequired(), validators.Length(max=500)])
+    is_server_running = OptionalBooleanField(validators=[validators.Optional()])
 
 
 class PingHandler(JsonRequestHandler):
     @authentication_required(authenticate=authenticate)
     @validate_params(form_class=PingForm)
     def post(self):
+        is_server_running = self.request.form.is_server_running.data
+        server = Server.global_key().get()
+        if is_server_running != server.is_running:
+            server.is_running = is_server_running
+            server.put()
         last_log_line = LogLine.get_last_line_with_timestamp()
         response = {'last_line': last_log_line.line if last_log_line is not None else None}
         self.json_response(response, status_code=200)

@@ -1,4 +1,7 @@
+#!/usr/bin/env python
+
 import argparse
+import datetime
 import httplib
 import json
 import logging
@@ -12,9 +15,15 @@ import urllib
 import timezones
 import yaml
 
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
 
 DEFAULT_AGENT_LOGFILE = 'agent.log'
 DEFAULT_MC_LOGFILE = '../server.log'
+DEFAULT_MC_PIDFILE = '../server.pid'
 
 
 class AgentException(Exception):
@@ -33,14 +42,44 @@ class NoPingException(AgentException):
     pass
 
 
-def ping_host(host, password):
+def read_pid(pidfile):
+    logger = logging.getLogger('ping')
+    try:
+        with open(pidfile, 'r') as pidfile:
+            pid = pidfile.read()
+            if pid:
+                return pid.strip()
+    except Exception, e:
+        logger.error(e)
+    return None
+
+
+def is_server_running(pidfile):
+    is_running = None
+    if psutil is not None:
+        pid = read_pid(pidfile)
+        if pid:
+            try:
+                pid = int(pid)
+                psutil.Process(pid)
+                is_running = True
+            except:
+                is_running = False
+    return is_running
+
+
+def ping_host(host, password, pidfile, fail=True):
     logger = logging.getLogger('ping')
     try:
         headers = {
             "Content-type": "application/x-www-form-urlencoded",
             "Accept": "text/plain"
         }
-        params = urllib.urlencode({'server_name': host})
+        running = is_server_running(pidfile)
+        params = {'server_name': host}
+        if running is not None:
+            params['is_server_running'] = running
+        params = urllib.urlencode(params)
         conn = httplib.HTTPConnection(host)
         conn.request("POST", "/api/ping?p={0}".format(password), params, headers)
         response = conn.getresponse()
@@ -53,7 +92,8 @@ def ping_host(host, password):
             logger.debug("{0}".format(response.read()))
     except Exception, e:
         logger.error("{0}".format(str(e)))
-    raise NoPingException()
+    if fail:
+        raise NoPingException()
 
 
 def is_moved_wrongly_warning(line):
@@ -104,8 +144,11 @@ def post_line(host, line, password, zone, skip_chat):
         time.sleep(timeout)
 
 
-def line_reader(logfile):
+def line_reader(logfile, last_ping, host, password, pidfile):
     while True:
+        if datetime.datetime.now() > last_ping + datetime.timedelta(minutes=1):
+            ping_host(host, password, pidfile, fail=False)
+            last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()
         line = raw_line.decode('ISO-8859-2', errors='ignore')
@@ -114,10 +157,10 @@ def line_reader(logfile):
             logfile.seek(where)
             time.sleep(1.0)
         else:
-            yield line
+            yield line, last_ping
 
 
-def tail(host, filename, password, zone, parse_history, skip_chat, last_line):
+def tail(host, filename, password, zone, parse_history, skip_chat, last_line, last_ping, pidfile):
     logger = logging.getLogger('main')
     with open(filename, 'r') as logfile:
         st_results = os.stat(filename)
@@ -131,7 +174,7 @@ def tail(host, filename, password, zone, parse_history, skip_chat, last_line):
             st_size = st_results[6]
             logfile.seek(st_size)
             read_last_line = True
-        for line in line_reader(logfile):
+        for line, last_ping in line_reader(logfile, last_ping, host, password, pidfile):
             if read_last_line:
                 post_line(host, line, password, zone, skip_chat)
                 if skip_chat:
@@ -234,6 +277,11 @@ def main(argv):
         help="The Minecraft server log filename (default: '{0}')".format(DEFAULT_MC_LOGFILE)
     )
     parser.add_argument(
+        '--mc_pidfile',
+        default=DEFAULT_MC_PIDFILE,
+        help="The Minecraft server PID filename (default: '{0}')".format(DEFAULT_MC_PIDFILE)
+    )
+    parser.add_argument(
         '--parse_mc_history',
         action='store_true',
         help="Set this flag to parse and report on the Minecraft server log from the beginning rather than just new entries."
@@ -260,13 +308,25 @@ def main(argv):
         if not coal_password:
             raise NoPasswordException()
         mc_logfile = args.mc_logfile
+        mc_pidfile = args.mc_pidfile
         parse_mc_history = args.parse_mc_history
         skip_chat_history = args.skip_chat_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
-        last_line = ping_host(coal_host, coal_password)
+        last_line = ping_host(coal_host, coal_password, mc_pidfile)
+        last_ping = datetime.datetime.now()
         logger.info("Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
-        tail(coal_host, mc_logfile, coal_password, tz.zone, parse_mc_history, skip_chat_history, last_line)
+        tail(
+            coal_host,
+            mc_logfile,
+            coal_password,
+            tz.zone,
+            parse_mc_history,
+            skip_chat_history,
+            last_line,
+            last_ping,
+            mc_pidfile
+        )
     except NoPingException:
         logger.error("Unable to ping '{0}'".format(coal_host))
     except pytz.UnknownTimeZoneError:

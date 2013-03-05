@@ -68,12 +68,31 @@ class PingTest(ApiTest):
         body = json.loads(response.body)
         self.assertLength(1, body)
         self.assertIsNone(body['last_line'])
+        self.assertIsNone(models.Server.global_key().get().is_running)
 
     def test_post_no_server_name(self):
         response = self.post(self.get_secure_url())
         self.assertBadRequest(response)
         body = json.loads(response.body)
         self.assertEqual({u'errors': {u'server_name': [u'This field is required.']}}, body)
+
+    def test_post_server_running(self):
+        params = {'server_name': 'test', 'is_server_running': True}
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        self.assertIsNone(body['last_line'])
+        self.assertTrue(models.Server.global_key().get().is_running)
+
+    def test_post_server_not_running(self):
+        params = {'server_name': 'test', 'is_server_running': False}
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        self.assertIsNone(body['last_line'])
+        self.assertFalse(models.Server.global_key().get().is_running)
 
     def test_post_last_line(self):
         params = {'line': TIME_STAMP_LOG_LINE, 'zone': TIME_ZONE}

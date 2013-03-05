@@ -3,8 +3,11 @@
 {% block page_name %}Home{% endblock %}
 
 {% block content %}
-    <h2>{{ config.TITLE }}</h2>
-    <h3>Version: {{ server.version }}</h3>
+    <div class="box">
+        <h2>{{ config.TITLE }}</h2>
+        <h3>Version: {{ server.version }}</h3>
+        <h3>Server Status: {% if server.is_running == True %}Running{% elif server.is_running == False %}Not Running{% else %}Unknown{% endif %}</h3>
+    </div>
     
     {% if open_sessions %}
     <div class="player_list">
