@@ -313,7 +313,7 @@ def main(argv):
         skip_chat_history = args.skip_chat_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
-        last_line = ping_host(coal_host, coal_password)
+        last_line = ping_host(coal_host, coal_password, mc_pidfile)
         last_ping = datetime.datetime.now()
         logger.info("Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
         tail(
