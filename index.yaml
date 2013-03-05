@@ -31,6 +31,13 @@ indexes:
   - name: login_timestamp
     direction: desc
 
+- kind: PlaySession
+  ancestor: yes
+  properties:
+  - name: username
+  - name: login_timestamp
+    direction: desc
+
 - kind: Player
   ancestor: yes
   properties:

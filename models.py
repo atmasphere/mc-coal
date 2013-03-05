@@ -138,6 +138,23 @@ class Player(ServerModel):
     def is_playing(self):
         return PlaySession.current(self.username) is not None
 
+    @property
+    def last_login(self):
+        last_session = PlaySession.last(self.username)
+        if last_session is not None:
+            return last_session.login_timestamp
+
+    @property
+    def last_session_duration(self):
+        last_session = PlaySession.last(self.username)
+        if last_session is not None:
+            import logging
+            logging.error(last_session)
+            login_timestamp = last_session.login_timestamp or datetime.datetime.now()
+            logout_timestamp = last_session.logout_timestamp or datetime.datetime.now()
+            return logout_timestamp - login_timestamp
+        return None
+
     @classmethod
     def get_or_create(cls, username):
         return cls.get_or_insert(username, parent=Server.global_key(), username=username)
@@ -305,6 +322,14 @@ class PlaySession(UsernameModel):
     @classmethod
     def query_current(cls, username):
         return cls.query_open().filter(cls.username == username)
+
+    @classmethod
+    def query_last(cls, username):
+        return cls.server_query().filter(cls.username == username).order(-cls.login_timestamp)
+
+    @classmethod
+    def last(cls, username):
+        return cls.query_last(username).get()
 
     @classmethod
     def current(cls, username):
