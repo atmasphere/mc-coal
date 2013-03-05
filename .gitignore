@@ -35,6 +35,7 @@ nosetests.xml
 .pydevproject
 *.sublime-*
 .devtable
+.codeintel
 
 # Logs
 *.log

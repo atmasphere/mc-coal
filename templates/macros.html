@@ -1,11 +1,11 @@
 {% macro previous_next_uri(name, previous_cursor=None, next_cursor, size=20) -%}
     {% if previous_cursor %}
-        <a href="{{ uri_for_pagination(name, cursor=previous_cursor) }}">Previous</a>
+        <a href="{{ uri_for_pagination(name, cursor=previous_cursor) }}">Newer</a>
         {% if next_cursor %}
             |
         {% endif %}
     {% endif %}
     {% if next_cursor %}
-        <a href="{{ uri_for_pagination(name, cursor=next_cursor) }}">Next</a>
+        <a href="{{ uri_for_pagination(name, cursor=next_cursor) }}">Older</a>
     {% endif %}
 {%- endmacro %}

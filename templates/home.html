@@ -12,4 +12,13 @@
     {% else %}
         <h3>No one is playing. I'm lonely.</h3>
     {% endif %}
+    {% if new_chats %}
+        <h3>New Chats</h3>
+        {% for chat in new_chats %}
+            <li>[{{ chat.timestamp | datetimeformat }}] &lt;{{ chat.username | username_pronoun(user) }}&gt; {{ chat.chat }}</li>
+        {% endfor %}
+        {% if chats_cursor %}
+            <a href="{{ uri_for('chats')}}">More...</a>
+        {% endif %}
+    {% endif %}
 {% endblock %}

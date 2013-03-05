@@ -38,8 +38,15 @@ class User(auth_models.User):
     email = ndb.StringProperty()
     nickname = ndb.StringProperty()
     username = ndb.StringProperty()
+    last_chat_view = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
+
+    def record_chat_view(self, dt=None):
+        if dt is None:
+            dt = datetime.datetime.now()
+        self.last_chat_view = dt
+        self.put()
 
     @classmethod
     def get_gae_user_auth_id(cls, gae_user_id=None, gae_user=None):

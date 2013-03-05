@@ -112,6 +112,7 @@ def line_reader(logfile):
         line = line.strip()
         if not line:
             logfile.seek(where)
+            time.sleep(1.0)
         else:
             yield line
 
@@ -144,7 +145,6 @@ def tail(host, filename, password, zone, parse_history, skip_chat, last_line):
                 if where >= st_size:
                     read_last_line = True
                     skip_chat = False
-                time.sleep(1.0)
 
 
 def get_application_host():

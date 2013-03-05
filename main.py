@@ -204,13 +204,23 @@ class HomeHandler(BaseHander):
     @authentication_required(authenticate=authenticate)
     def get(self):
         open_sessions_query = PlaySession.query_open()
+        # Get open sessions
         playing_usernames = []
         open_sessions = []
         for open_session in open_sessions_query:
             if open_session.username and open_session.username not in playing_usernames:
                 playing_usernames.append(open_session.username)
                 open_sessions.append(open_session)
-        context = {'open_sessions': open_sessions}
+        # Get new chats
+        new_chats_query = LogLine.query_latest_chats()
+        last_chat_view = self.request.user.last_chat_view
+        if last_chat_view is not None:
+            new_chats_query = new_chats_query.filter(LogLine.timestamp > last_chat_view)
+        new_chats, chats_cursor, more = new_chats_query.fetch_page(20)
+        if new_chats:
+            self.request.user.record_chat_view(new_chats[0].timestamp)
+        # Render with context
+        context = {'open_sessions': open_sessions, 'new_chats': new_chats, 'chats_cursor': chats_cursor}
         self.render_template('home.html', context=context)
 
 
@@ -244,9 +254,12 @@ class PagingHandler(BaseHander):
 class ChatsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
+        self.request.user.record_chat_view()
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
             LogLine.query_latest_chats(), LogLine.query_oldest_chats(), coal_config.RESULTS_PER_PAGE
         )
+        if results:
+            self.request.user.record_chat_view(results[0].timestamp)
         context = {'chats': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('chats.html', context=context)
 
