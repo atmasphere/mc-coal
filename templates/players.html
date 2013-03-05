@@ -1,12 +1,41 @@
 {% extends "base.html" %}
 {% import 'macros.html' as macros %}
+{% set nav="Players" %}
 
 {% block title %}Players{% endblock %}
 {% block page_name %}Players{% endblock %}
+
 {% block content %}
-    {{ macros.previous_next_uri('players', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
-    {% for player in players %}
-        <li>&lt;{{ player.username | username_pronoun(user) }}&gt; {% if player.is_playing %}<strong><em>Playing</em></strong>{% else %}Not Playing{% endif %} Last Login: {{ player.last_login | datetimeformat }} Duration: {{ player.last_session_duration }}</li>
-    {% endfor %}
+    <div class="player_list players">
+        <h2 class="box">Players</h2>
+        
+        <div class="box">
+        {% for player in players %}
+            {% if player.last_session_duration %}
+            <div class="player wrap">
+                <div class="activity {% if player.is_playing %}on{% endif %}"></div>
+                <div class="avatar" style="background-image: url(http://i.mcss.me/{{player.username}}.png)"></div>
+                <div class="name">{{ player.username }}</div>
+                <div class="online">
+                    {% if player.is_playing %}
+                        <h4>Online For</h4>
+                        <div class="data">{{ player.last_session_duration }}</div>
+                    {% else %}
+                        <h4>Last Login</h4>
+                        <div class="data">{{ player.last_login | datetimeformat }}</div>
+                    {% endif %}
+                </div>
+            </div>                
+            {% endif %}
+        {% endfor %}
+            <div class="player you wrap">
+                <div class="activity on"></div>
+                <div class="avatar" style="background-image: url(http://i.mcss.me/vesicular.png)"></div>
+                <div class="name">Vesicular</div>
+                <div class="online">22m</div>
+            </div>
+        </div>
+    </div>
+    
     {{ macros.previous_next_uri('players', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
 {% endblock %}

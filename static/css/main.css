@@ -76,12 +76,25 @@ a:hover {
     text-decoration: underline;
 }
 
+h2 {
+    padding: 15px;
+    font-weight: 200;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    line-height: 23px;
+}
 
 h3 {
     padding: 15px;
     font-weight: 200;
     text-transform: uppercase;
     margin-bottom: 5px;
+}
+
+h4 {
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 200;
 }
 
 
@@ -96,7 +109,7 @@ h3 {
 /* GERNERIC STYLES */
 .box {
     color: rgba(255,255,255,0.9);
-    background-color: rgba(0,0,0,0.7);
+    background-color: rgba(0,0,0,0.75);
 }
 
 
@@ -111,7 +124,7 @@ h3 {
 #main {
     position: relative;
     z-index: 1;
-    margin-top: 70px;
+    margin: 70px 0;
 }
 
 #header,
@@ -193,6 +206,11 @@ header nav li:hover {
     background-color: rgba(255,255,255,0.4);
 }
 
+header nav li.on {
+    background-color: rgba(255,255,255,0.4);
+    color: #046fba;
+}
+
 header nav li.user {
     font-size: 13px;
     color: #999;
@@ -213,14 +231,14 @@ header nav li.user:hover {
     float: left;
     height: 40px;
     width: 40px;
+    background-image: url(/img/steve.png);
     background-size: 185px auto;
     background-position: -20px 0px;
 }
 
-
 .player {
     position: relative;
-    padding: 15px;
+    padding: 15px 15px 15px 19px;
     border-bottom: 1px solid rgba(0,0,0,0.5);
 }
 
@@ -228,12 +246,16 @@ header nav li.user:hover {
     border-bottom: 0;
 }
 
+.player.you {
+    background-color: rgba(14,144,87,0.4);
+}
+
 .activity {
     position: absolute;
     top: 0;
     left: 0;
     bottom: 0;
-    border-left: 4px solid rgba(255,255,255,0.5);
+    border-left: 4px solid rgba(255,255,255,0.4);
 }
 
 .activity.on {
@@ -254,6 +276,20 @@ header nav li.user:hover {
     color: rgba(255,255,255,0.5);
 }
 
+.data {
+    color: rgba(255,255,255,0.8);
+}
+
+/* PLAYERS */
+
+.player_list.players {
+    width: 600px;
+}
+
+.players .online {
+    text-align: right;
+    line-height: 1.45em;
+}
 
 
 

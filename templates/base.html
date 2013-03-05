@@ -1,3 +1,4 @@
+{%- set nav = nav -%}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,7 +16,7 @@
     <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
 </head>
 <body>
-    <img src="/img/spire.png" id="spire" style="display:none"/>
+    <img src="/img/cap/spire.png" id="spire" style="display:none"/>
     <canvas height="375" width="500" style="width: 500px; height: 375px;" id="canvas"></canvas>
     
     <header class="wrap">
@@ -25,9 +26,9 @@
         <nav>
             <ul>
                 <li class="user">{{ user.nickname }}</li>
-                <a href="{{ uri_for('chats') }}"><li>Chats</li></a>
-                <a href="{{ uri_for('play_sessions') }}"><li>Sessions</li></a>
-                <a href="{{ uri_for('players') }}"><li>Players</li></a>
+                <a href="{{ uri_for('chats') }}"><li {% if nav=="Chats" %}class="on"{% endif %}>Chats</li></a>
+                <a href="{{ uri_for('play_sessions') }}"><li {% if nav=="Sessions" %}class="on"{% endif %}>Sessions</li></a>
+                <a href="{{ uri_for('players') }}"><li {% if nav=="Players" %}class="on"{% endif %}>Players</li></a>
             </ul>
         </nav>
         {% endblock %}
