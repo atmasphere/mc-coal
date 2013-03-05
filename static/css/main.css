@@ -68,13 +68,23 @@ body {
 }
 
 a { 
-    color: #046fba;
+    color: #059ee6;
     text-decoration: none;
 }
 
 a:hover {
+    color: #059ee6;
     text-decoration: underline;
 }
+
+h1 {
+    font-size: 24px;
+    padding: 15px;
+    font-weight: 400;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
 
 h2 {
     padding: 15px;
@@ -104,6 +114,9 @@ h4 {
 
 .bgimg { display: block; border: 0; text-indent: -999em; overflow: hidden; background-color: transparent; background-repeat: no-repeat; text-align: left; direction: ltr; *line-height: 0; /*IE7*/ }
 .bgimg br { display: none; }
+
+.right { float: right; }
+.left { float: left; }
 
 
 /* GERNERIC STYLES */
@@ -136,26 +149,6 @@ h4 {
 
 #content {
     padding: 20px;
-}
-
-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 3;
-    padding: 10px 20px;
-    font-size: 12px;
-    color: #fff;
-    background-color: #000;
-    opacity: 0.55;
-    -moz-transition: opacity 0.2s ease-in-out;
-    -webkit-transition: opacity 0.2s ease-in-out;
-    transition: opacity 0.2s ease-in-out;
-}
-
-footer:hover {
-    opacity: 0.9;
 }
 
 
@@ -222,7 +215,7 @@ header nav li.user:hover {
 }
 
 
-/* PLAYERS */
+/* PLAYER LIST */
 .player_list {
     width: 350px;
 }
@@ -280,8 +273,33 @@ header nav li.user:hover {
     color: rgba(255,255,255,0.8);
 }
 
-/* PLAYERS */
+/* HOME */
+.title {
+    padding: 15px;
+    margin-bottom: 30px;
+}
 
+.title h1,
+.title h2,
+.title h3,
+.title h4  {
+    padding: 0;
+}
+
+.title > div {
+    padding-top: 7px;
+}
+
+.status {
+    float: right;
+    padding: 7px 15px 7px 70px;
+    background-color: rgba(151,151,151,0.5);
+    text-align: right;
+}
+
+
+
+/* PLAYERS */
 .player_list.players {
     width: 600px;
 }
@@ -291,7 +309,30 @@ header nav li.user:hover {
     line-height: 1.45em;
 }
 
+/* FOOTER */
+footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    padding: 10px 20px;
+    font-size: 12px;
+    color: #fff;
+    background-color: #000;
+    opacity: 0.55;
+    -moz-transition: opacity 0.2s ease-in-out;
+    -webkit-transition: opacity 0.2s ease-in-out;
+    transition: opacity 0.2s ease-in-out;
+}
 
+footer:hover {
+    opacity: 0.9;
+}
+
+footer .copy {
+    font-style: italic;
+}
 
 
 /*** PRINT ***/

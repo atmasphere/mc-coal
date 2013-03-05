@@ -3,10 +3,23 @@
 {% block page_name %}Home{% endblock %}
 
 {% block content %}
-    <div class="box">
-        <h2>{{ config.TITLE }}</h2>
-        <h3>Version: {{ server.version }}</h3>
-        <h3>Server Status: {% if server.is_running == True %}Running{% elif server.is_running == False %}Not Running{% else %}Unknown{% endif %}</h3>
+    <div class="title box wrap">
+        <div class="left">
+            <h1>{{ config.TITLE }}</h1>
+            <h4>Running v{{ server.version }}</h4>
+        </div>
+        <div class="status">
+            <h4>Sever Status</h4>
+            <strong>
+                {% if server.is_running == True %}
+                    Running
+                {% elif server.is_running == False %}
+                    Down
+                {% else %}
+                    Unknown
+                {% endif %}
+            </strong>
+        </div>
     </div>
     
     {% if open_sessions %}
@@ -17,12 +30,11 @@
         {% for open_session in open_sessions %}
             <div class="player wrap">
                 <div class="activity on"></div>
-                <div class="avatar" style="background-image: url(http://i.mcss.me/{{ open_session.username | username_pronoun(user) }}.png)"></div>
-                <div class="name">{{ open_session.username | username_pronoun(user) }}</div>
-                <div class="online">22m</div>
+                <div class="avatar" style="background-image: url(http://i.mcss.me/{{open_session.username}}.png)"></div>
+                <div class="name">{{ open_session.username }}</div>
+                <div class="online">{{ open_session.last_session_duration }}</div>
             </div>    
         {% endfor %}
-
         </div>
     </div>
     {% else %}
