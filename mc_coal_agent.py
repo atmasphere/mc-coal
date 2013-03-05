@@ -77,7 +77,7 @@ def ping_host(host, password, pidfile, fail=True):
         }
         running = is_server_running(pidfile)
         params = {'server_name': host}
-        if running:
+        if running is not None:
             params['is_server_running'] = running
         params = urllib.urlencode(params)
         conn = httplib.HTTPConnection(host)
