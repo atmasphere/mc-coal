@@ -91,6 +91,7 @@ class User(auth_models.User):
 class Server(ndb.Model):
     name = ndb.StringProperty()
     version = ndb.StringProperty()
+    is_running = ndb.BooleanProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 

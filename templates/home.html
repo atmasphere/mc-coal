@@ -4,6 +4,7 @@
 {% block content %}
     <h2>Welcome to {{ config.TITLE }}</h2>
     <h3>Sever Version: {{ server.version }}</h3>
+    <h3>Server Status: {% if server.is_running == True %}Running{% elif server.is_running == False %}Not Running{% else %}Unknown{% endif %}</h3>
     {% if open_sessions %}
         <h3>Currently Playing</h3>
         {% for open_session in open_sessions %}
