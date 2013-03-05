@@ -154,8 +154,6 @@ class Player(ServerModel):
     def last_session_duration(self):
         last_session = PlaySession.last(self.username)
         if last_session is not None:
-            import logging
-            logging.error(last_session)
             login_timestamp = last_session.login_timestamp or datetime.datetime.now()
             logout_timestamp = last_session.logout_timestamp or datetime.datetime.now()
             return logout_timestamp - login_timestamp
@@ -297,7 +295,10 @@ class PlaySession(UsernameModel):
 
     @property
     def duration(self):
-        if self.login_timestamp is not None and self.logout_timestamp is not None:
+        if self.login_timestamp is not None:
+            logout_timestamp = self.logout_timestamp
+            if not logout_timestamp:
+                logout_timestamp = datetime.datetime.now()
             return self.logout_timestamp - self.login_timestamp
         return None
 
