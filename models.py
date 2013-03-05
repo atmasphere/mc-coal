@@ -201,6 +201,9 @@ class UsernameModel(ServerModel):
     def player(self):
         return Player.lookup(self.username)
 
+    def is_user(self, user):
+        return self.username == user.username if user else False
+
 
 class LogLine(UsernameModel):
     line = ndb.StringProperty(required=True)
