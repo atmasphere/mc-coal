@@ -22,24 +22,25 @@
         </div>
     </div>
     
-    {% if open_sessions %}
     <div class="player_list">
         <h3 class="box">Currently Playing</h3>
-        
         <div class="box">
-        {% for open_session in open_sessions %}
-            <div class="player wrap">
-                <div class="activity on"></div>
-                <div class="avatar" style="background-image: url(http://i.mcss.me/{{open_session.username}}.png)"></div>
-                <div class="name">{{ open_session.username }}</div>
-                <div class="online">{{ open_session.last_session_duration }}</div>
-            </div>    
-        {% endfor %}
+        {% if open_sessions %}
+        
+            {% for open_session in open_sessions %}
+                <div class="player wrap">
+                    <div class="activity on"></div>
+                    <div class="avatar" style="background-image: url(http://i.mcss.me/{{open_session.username}}.png)"></div>
+                    <div class="name">{{ open_session.username }}</div>
+                    <div class="online">{{ open_session.last_session_duration }}</div>
+                </div>    
+            {% endfor %}
+        
+        {% else %}
+            <div class="pad">Nobody is currently online.</div>
+        {% endif %}
         </div>
     </div>
-    {% else %}
-        <h3>No one is playing. I'm lonely.</h3>
-    {% endif %}
     
     {% if new_chats %}
         <h3>New Chats</h3>

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% import 'macros.html' as macros %}
+{% set nav="Sessions" %}
 
 {% block title %}Sessions{% endblock %}
-{% block page_name %}Sessions{% endblock %}
+
 {% block content %}
     {{ macros.previous_next_uri('play_sessions', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
     {% for play_session in play_sessions %}

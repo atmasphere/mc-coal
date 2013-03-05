@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
     {% block head %}
-        <title>{{ config.TITLE }} -- {% block title %}{% endblock %}</title>
+        <title>{{ config.TITLE }} | {% block title %}{% endblock %}</title>
     {% endblock %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
@@ -26,9 +26,9 @@
         <nav>
             <ul>
                 <li class="user">{{ user.nickname }}</li>
-                <a href="{{ uri_for('chats') }}"><li {% if nav=="Chats" %}class="on"{% endif %}>Chats</li></a>
-                <a href="{{ uri_for('play_sessions') }}"><li {% if nav=="Sessions" %}class="on"{% endif %}>Sessions</li></a>
                 <a href="{{ uri_for('players') }}"><li {% if nav=="Players" %}class="on"{% endif %}>Players</li></a>
+                <a href="{{ uri_for('play_sessions') }}"><li {% if nav=="Sessions" %}class="on"{% endif %}>Sessions</li></a>
+                <a href="{{ uri_for('chats') }}"><li {% if nav=="Chats" %}class="on"{% endif %}>Chats</li></a>
             </ul>
         </nav>
         {% endblock %}

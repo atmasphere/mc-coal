@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% import 'macros.html' as macros %}
+{% set nav="Chats" %}
 
 {% block title %}Chats{% endblock %}
-{% block page_name %}Chats{% endblock %}
+
 {% block content %}
     {{ macros.previous_next_uri('chats', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
     {% for chat in chats %}

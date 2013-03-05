@@ -107,7 +107,6 @@ h4 {
     font-weight: 200;
 }
 
-
 .wrap:before, .wrap:after { content: ""; display: table; }
 .wrap:after { clear: both; }
 .wrap { *zoom: 1; } /*IE7*/
@@ -123,6 +122,10 @@ h4 {
 .box {
     color: rgba(255,255,255,0.9);
     background-color: rgba(0,0,0,0.75);
+}
+
+.pad {
+    padding: 15px;
 }
 
 
