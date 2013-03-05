@@ -143,11 +143,11 @@ class Player(ServerModel):
         return cls.get_or_insert(username, parent=Server.global_key(), username=username)
 
     @classmethod
-    def query_all_players(cls):
+    def query_all(cls):
         return cls.server_query().order(cls.username)
 
     @classmethod
-    def query_all_players_reverse(cls):
+    def query_all_reverse(cls):
         return cls.server_query().order(-cls.username)
 
     @classmethod
