@@ -1,17 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Home{% endblock %}
 {% block page_name %}Home{% endblock %}
+
 {% block content %}
-    <h2>Welcome to {{ config.TITLE }}</h2>
-    <h3>Sever Version: {{ server.version }}</h3>
+    <h2>{{ config.TITLE }}</h2>
+    <h3>Version: {{ server.version }}</h3>
+    
     {% if open_sessions %}
-        <h3>Currently Playing</h3>
+    <div class="player_list">
+        <h3 class="box">Currently Playing</h3>
+        
+        <div class="box">
         {% for open_session in open_sessions %}
-            <li>{{ open_session.username | username_pronoun(user) }}</li>
+            <div class="player wrap">
+                <div class="activity on"></div>
+                <div class="avatar" style="background-image: url(http://i.mcss.me/{{ open_session.username | username_pronoun(user) }}.png)"></div>
+                <div class="name">{{ open_session.username | username_pronoun(user) }}</div>
+                <div class="online">22m</div>
+            </div>    
         {% endfor %}
+        </div>
+    </div>
     {% else %}
         <h3>No one is playing. I'm lonely.</h3>
     {% endif %}
+    
     {% if new_chats %}
         <h3>New Chats</h3>
         {% for chat in new_chats %}
@@ -21,4 +34,5 @@
             <a href="{{ uri_for('chats')}}">More...</a>
         {% endif %}
     {% endif %}
+    
 {% endblock %}
