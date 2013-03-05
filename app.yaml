@@ -4,15 +4,38 @@ runtime: python27
 threadsafe: true
 api_version: 1
 
-handlers:
-- url: /api/.*
-  script: api.application
-
-- url: /.*
-  script: main.application
-
 libraries:
 - name: webapp2
   version: latest
 - name: jinja2
   version: latest
+
+inbound_services:
+- warmup
+
+handlers:
+- url: /_ah/warmup
+  script: warmup.application
+
+# - url: /google28fe702d4ac094cf\.html
+#   static_files: google28fe702d4ac094cf.html
+#   upload: google28fe702d4ac094cf.html
+
+- url: /(robots\.txt|favicon\.ico)
+  static_files: static/\1
+  upload: static/(.*)
+
+- url: /css
+  static_dir: static/css
+
+- url: /img
+  static_dir: static/img
+
+- url: /js
+  static_dir: static/js
+
+- url: /api/.*
+  script: api.application
+
+- url: /.*
+  script: main.application
