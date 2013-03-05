@@ -17,7 +17,7 @@ from agar.env import on_production_server
 from restler.serializers import json_response as restler_json_response
 
 from config import coal_config
-from models import Server, LogLine, Location, PlaySession
+from models import Server, LogLine, Location, Player, PlaySession
 from models import CONNECTION_TAG, LOGIN_TAG, LOGOUT_TAG
 from models import CHAT_TAG
 from models import SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG, STOPPING_TAG, STARTING_TAG
@@ -133,7 +133,7 @@ class LogLineHandler(JsonRequestHandler):
         except:
             tz = pytz.utc
         try:
-            existing_line = LogLine.get_line(line)
+            existing_line = LogLine.lookup_line(line)
             if existing_line is None:
                 log_line = handle_logged_in(line, tz)
                 if log_line is None:

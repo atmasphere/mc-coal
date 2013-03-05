@@ -136,17 +136,8 @@ class ChatsTest(AuthTest):
         self.assertOK(response)
 
 
-class LoginsTest(AuthTest):
-    URL = '/logins'
-
-    def test_get(self):
-        self.log_in_user()
-        response = self.get(self.URL)
-        self.assertOK(response)
-
-
-class LogoutsTest(AuthTest):
-    URL = '/logouts'
+class PlayersTest(AuthTest):
+    URL = '/players'
 
     def test_get(self):
         self.log_in_user()

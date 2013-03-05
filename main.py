@@ -14,7 +14,7 @@ from agar.env import on_production_server
 
 from config import coal_config
 from filters import FILTERS
-from models import User, Server, LogLine, PlaySession
+from models import User, Server, Player, LogLine, PlaySession
 
 
 def uri_for_pagination(name, cursor=None):
@@ -264,24 +264,14 @@ class ChatsHandler(PagingHandler):
         self.render_template('chats.html', context=context)
 
 
-class LoginsHandler(PagingHandler):
+class PlayersHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            LogLine.query_latest_logins(), LogLine.query_oldest_logins(), coal_config.RESULTS_PER_PAGE
+            Player.query_all_players(), Player.query_all_players_reverse(), coal_config.RESULTS_PER_PAGE
         )
-        context = {'logins': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
-        self.render_template('logins.html', context=context)
-
-
-class LogoutsHandler(PagingHandler):
-    @authentication_required(authenticate=authenticate)
-    def get(self):
-        results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            LogLine.query_latest_logouts(), LogLine.query_oldest_logouts(), coal_config.RESULTS_PER_PAGE
-        )
-        context = {'logouts': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
-        self.render_template('logouts.html', context=context)
+        context = {'players': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        self.render_template('players.html', context=context)
 
 
 class PlaySessionsHandler(PagingHandler):
@@ -300,8 +290,7 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/logout', handler='main.GoogleAppEngineUserAuthHandler:logout', name='logout'),
         RedirectRoute('/', handler=HomeHandler, name="home"),
         RedirectRoute('/chats', handler=ChatsHandler, strict_slash=True, name="chats"),
-        RedirectRoute('/logins', handler=LoginsHandler, strict_slash=True, name="logins"),
-        RedirectRoute('/logouts', handler=LogoutsHandler, strict_slash=True, name="logouts"),
+        RedirectRoute('/players', handler=PlayersHandler, strict_slash=True, name="players"),
         RedirectRoute('/sessions', handler=PlaySessionsHandler, strict_slash=True, name="play_sessions")
     ],
     config={

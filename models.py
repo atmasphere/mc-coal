@@ -42,6 +42,12 @@ class User(auth_models.User):
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
+    @property
+    def player(self):
+        if self.username:
+            return Player.get_or_create(self.username)
+        return None
+
     def record_chat_view(self, dt=None):
         if dt is None:
             dt = datetime.datetime.now()
@@ -72,12 +78,14 @@ class User(auth_models.User):
 
     @classmethod
     def lookup(cls, email=None, username=None):
-        query = cls.query()
-        if email is not None:
-            query = query.filter(ndb.StringProperty('email') == email)
-        if username is not None:
-            query = query.filter(ndb.StringProperty('username') == username)
-        return query.get()
+        if email is not None or username is not None:
+            query = cls.query()
+            if email is not None:
+                query = query.filter(ndb.StringProperty('email') == email)
+            if username is not None:
+                query = query.filter(ndb.StringProperty('username') == username)
+            return query.get()
+        return None
 
 
 class Server(ndb.Model):
@@ -85,6 +93,10 @@ class Server(ndb.Model):
     version = ndb.StringProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
+
+    @property
+    def players_query(self):
+        return Player.query_all_players()
 
     @classmethod
     def create(cls, key_name, **kwargs):
@@ -107,13 +119,62 @@ class Server(ndb.Model):
         return cls.get_or_insert_key()
 
 
+class ServerModel(ndb.Model):
+    @classmethod
+    def server_query(cls):
+        return cls.query(ancestor=Server.global_key())
+
+
+class Player(ServerModel):
+    username = ndb.StringProperty(required=True)
+
+    @property
+    def user(self):
+        if self.username:
+            return User.query().filter(username=self.username).get()
+        return None
+
+    @property
+    def is_playing(self):
+        return PlaySession.current(self.username) is not None
+
+    @classmethod
+    def get_or_create(cls, username):
+        return cls.get_or_insert(username, parent=Server.global_key(), username=username)
+
+    @classmethod
+    def query_all_players(cls):
+        return cls.server_query().order(cls.username)
+
+    @classmethod
+    def query_all_players_reverse(cls):
+        return cls.server_query().order(-cls.username)
+
+    @classmethod
+    def lookup(cls, username):
+        if username is not None:
+            parent = Server.global_key()
+            key = ndb.Key(cls, username, parent=parent)
+        return key.get() if key is not None else None
+
+
 class Location(ndb.Model):
     x = ndb.FloatProperty()
     y = ndb.FloatProperty()
     z = ndb.FloatProperty()
 
 
-class LogLine(ndb.Model):
+class UsernameModel(ServerModel):
+    @property
+    def user(self):
+        return User.lookup(username=self.username)
+
+    @property
+    def player(self):
+        return Player.lookup(self.username)
+
+
+class LogLine(UsernameModel):
     line = ndb.StringProperty(required=True)
     zone = ndb.StringProperty(required=True)
     timestamp = ndb.DateTimeProperty()
@@ -128,38 +189,37 @@ class LogLine(ndb.Model):
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
+    def _pre_put_hook(self):
+        if self.username:
+            Player.get_or_create(self.username)
+
     @property
     def timezone(self):
         return name_to_timezone(self.zone)
-
-    @property
-    def user(self):
-        username = getattr(self, 'username', None)
-        if username is not None:
-            return User.lookup(username=self.username)
-        return None
 
     @classmethod
     def create(cls, line, zone, **kwargs):
         instance = cls(parent=Server.global_key(), line=line, zone=zone, **kwargs)
         instance.put()
+        if instance.username:
+            Player.get_or_create(instance.username)
         return instance
 
     @classmethod
-    def get_line(cls, line):
-        return cls.query(ancestor=Server.global_key()).filter(cls.line == line).get()
+    def lookup_line(cls, line):
+        return cls.server_query().filter(cls.line == line).get()
 
     @classmethod
     def query_latest(cls):
-        return cls.query(ancestor=Server.global_key()).order(-cls.created)
+        return cls.server_query().order(-cls.created)
 
     @classmethod
     def get_last_line(cls):
-        return cls.query_latest(ancestor=Server.global_key()).get()
+        return cls.query_latest().get()
 
     @classmethod
     def query_latest_with_timestamp(cls):
-        return cls.query(ancestor=Server.global_key()).filter(cls.has_timestamp == True).order(-cls.timestamp)
+        return cls.server_query().filter(cls.has_timestamp == True).order(-cls.timestamp)
 
     @classmethod
     def get_last_line_with_timestamp(cls):
@@ -167,7 +227,7 @@ class LogLine(ndb.Model):
 
     @classmethod
     def query_by_tags(cls, tags):
-        return cls.query(ancestor=Server.global_key()).filter(cls.tags == tags)
+        return cls.server_query().filter(cls.tags == tags)
 
     @classmethod
     def query_latest_chats(cls):
@@ -194,7 +254,7 @@ class LogLine(ndb.Model):
         return cls.query_by_tags(LOGOUT_TAG).order(cls.timestamp)
 
 
-class PlaySession(ndb.Model):
+class PlaySession(UsernameModel):
     username = ndb.StringProperty()
     login_timestamp = ndb.DateTimeProperty(required=True)
     logout_timestamp = ndb.DateTimeProperty()
@@ -240,11 +300,11 @@ class PlaySession(ndb.Model):
 
     @classmethod
     def query_open(cls):
-        return PlaySession.query(ancestor=Server.global_key()).filter(cls.logout_timestamp == None)
+        return cls.server_query().filter(cls.logout_timestamp == None)
 
     @classmethod
     def query_current(cls, username):
-        return PlaySession.query(ancestor=Server.global_key()).filter(cls.username == username).filter(cls.logout_timestamp == None)
+        return cls.query_open().filter(cls.username == username)
 
     @classmethod
     def current(cls, username):
@@ -252,8 +312,8 @@ class PlaySession(ndb.Model):
 
     @classmethod
     def query_latest(cls):
-        return PlaySession.query(ancestor=Server.global_key()).order(-cls.login_timestamp)
+        return cls.server_query().order(-cls.login_timestamp)
 
     @classmethod
     def query_oldest(cls):
-        return PlaySession.query(ancestor=Server.global_key()).order(cls.login_timestamp)
+        return cls.server_query().order(cls.login_timestamp)

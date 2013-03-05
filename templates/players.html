@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Players{% endblock %}
+{% block page_name %}Players{% endblock %}
+{% block content %}
+    {{ macros.previous_next_uri('players', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+    {% for player in players %}
+        <li>&lt;{{ player.username | username_pronoun(user) }}&gt; {% if player.is_playing %}Playing{% else %}Not Playing{% endif %}</li>
+    {% endfor %}
+    {{ macros.previous_next_uri('players', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+{% endblock %}

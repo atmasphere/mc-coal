@@ -190,6 +190,9 @@ class LogLineTest(ApiTest):
         self.assertEqual('vesicular', log_line.username)
         self.assertEqual('yo yo', log_line.chat)
         self.assertEqual(api.CHAT_TAGS, log_line.tags)
+        self.assertEqual(1, models.Player.query().count())
+        player = models.Player.lookup(log_line.username)
+        self.assertIsNotNone(player)
 
     def test_post_disconnect_line(self):
         params = {'line': DISCONNECT_LOG_LINE, 'zone': TIME_ZONE}
@@ -226,6 +229,10 @@ class LogLineTest(ApiTest):
         self.assertEqual(1, models.PlaySession.query().count())
         play_session = models.PlaySession.current('gumptionthomas')
         self.assertIsNotNone(play_session)
+        self.assertEqual(1, models.Player.query().count())
+        player = models.Player.lookup(log_line.username)
+        self.assertIsNotNone(player)
+        self.assertTrue(player.is_playing)
 
     def test_post_all(self):
         for line in ALL_LOG_LINES:
