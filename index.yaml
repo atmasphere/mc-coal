@@ -28,6 +28,13 @@ indexes:
 - kind: PlaySession
   ancestor: yes
   properties:
+  - name: logout_timestamp
+  - name: login_timestamp
+    direction: desc
+
+- kind: PlaySession
+  ancestor: yes
+  properties:
   - name: login_timestamp
     direction: desc
 

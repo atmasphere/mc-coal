@@ -203,7 +203,7 @@ class BaseHander(UserAwareHandler):
 class HomeHandler(BaseHander):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        open_sessions_query = PlaySession.query_open()
+        open_sessions_query = PlaySession.query_latest_open()
         # Get open sessions
         playing_usernames = []
         open_sessions = []

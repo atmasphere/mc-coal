@@ -335,6 +335,10 @@ class PlaySession(UsernameModel):
         return cls.server_query().filter(cls.logout_timestamp == None)
 
     @classmethod
+    def query_latest_open(cls):
+        return cls.query_open().order(-cls.login_timestamp)
+
+    @classmethod
     def query_current(cls, username):
         return cls.query_open().filter(cls.username == username)
 

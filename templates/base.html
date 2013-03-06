@@ -9,7 +9,7 @@
         <title>{{ config.TITLE }} | {% block title %}{% endblock %}</title>
     {% endblock %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:300,400,300italic,400italic">
     <link rel="stylesheet" href="/css/main.css">
 
@@ -18,7 +18,7 @@
 <body>
     <img src="/img/cap/spire.png" id="spire" style="display:none"/>
     <canvas height="375" width="500" style="width: 500px; height: 375px;" id="canvas"></canvas>
-    
+
     <header class="wrap">
         <div id="header">
         <a href="{{ uri_for('home') }}"><div class="logo sprite left"></div></a>
@@ -34,26 +34,26 @@
         {% endblock %}
         </div>
     </header>
-    
+
     <div id="main">
         <div id="content">
             {% block content %}{% endblock %}
         </div>
     </div>
-    
+
     <footer>
         {% block footer %}
         <div id="footer">
             <span class="copy">&copy; Copyright 2013&nbsp;&nbsp;The MineCraft Community Online Activity Log</span>
-            <span class="right">Code: <a href="https://plus.google.com/u/0/108604528070735769318">Thomas Bohmbach, Jr.</a>&nbsp;&nbsp;|&nbsp;&nbsp;Design: <a href="http://brentgustafson.com">Brent Gustafson</a></span>
+            <span class="right">Code: <a href="http://www.gumption.com">Thomas Bohmbach, Jr.</a>&nbsp;&nbsp;|&nbsp;&nbsp;Design: <a href="http://brentgustafson.com">Brent Gustafson</a></span>
         </div>
         {% endblock %}
     </footer>
-    
+
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script src="/js/plugins.js"></script> <!-- paste jQuery plugins here -->
     <script src="/js/stackblur.js"></script>
     <script src="/js/main.js"></script>
-    
+
 </body>
 </html>
