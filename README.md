@@ -22,7 +22,7 @@ Installation
 9. In the `mc-coal` directory, run the agent:
     $ [~/minecraft-server/mc-coal] $ python mc_coal_agent.py
     2013-03-05 16:48:07,772 : main     INFO   Monitoring '../server.log' and reporting to 'my-app-id.appspot.com'...
-10.
+
 Continuous Integration Build Status
 -----------------------------------
 [![Build Status](https://drone.io/github.com/gumptionthomas/mc-coal/status.png)](https://drone.io/github.com/gumptionthomas/mc-coal/latest)
