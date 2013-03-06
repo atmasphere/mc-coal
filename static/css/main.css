@@ -301,10 +301,9 @@ header nav li.user:hover {
 }
 
 
-
 /* PLAYERS */
 .player_list.players {
-    width: 600px;
+    width: 500px;
 }
 
 .players .online {

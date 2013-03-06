@@ -32,7 +32,7 @@
                     <div class="activity on"></div>
                     <div class="avatar" style="background-image: url(http://i.mcss.me/{{open_session.username}}.png)"></div>
                     <div class="name">{{ open_session.username }}</div>
-                    <div class="online">{{ open_session.last_session_duration }}</div>
+                    <div class="online">{{ open_session.duration }}</div>
                 </div>    
             {% endfor %}
         
@@ -43,7 +43,7 @@
     </div>
     
     {% if new_chats %}
-        <h3>New Chats</h3>
+        <h3>Latest Chats</h3>
         {% for chat in new_chats %}
             <li>[{{ chat.timestamp | datetimeformat }}] &lt;{{ chat.username | username_pronoun(user) }}&gt; {{ chat.chat }}</li>
         {% endfor %}

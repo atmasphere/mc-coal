@@ -21,7 +21,7 @@
                         <div class="data">{{ player.last_session_duration }}</div>
                     {% else %}
                         <h4>Last Login</h4>
-                        <div class="data">{{ player.last_login | datetimeformat }}</div>
+                        <div class="data">{{ player.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ player.last_login|datetimeformat('%g:%M%p') }}</div>
                     {% endif %}
                 </div>
             </div>                
