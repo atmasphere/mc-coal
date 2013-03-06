@@ -26,12 +26,12 @@
             </div>
         </div>
     </div>
-    
+
     <div class="player_list left">
         <h3 class="box">Currently Playing</h3>
         <div class="box">
         {% if open_sessions %}
-        
+
             {% for open_session in open_sessions %}
                 <div class="player wrap">
                     <div class="activity on"></div>
@@ -42,15 +42,15 @@
                             {{ macros.time_elapse(open_session.duration.days, open_session.duration.seconds) }}
                         {% endif %}
                     </div>
-                </div>    
+                </div>
             {% endfor %}
-        
+
         {% else %}
             <div class="pad">Nobody is currently online.</div>
         {% endif %}
         </div>
     </div>
-    
+
     <div class="player_list chats home">
         <h3 class="box">Latest Chats</h3>
 
@@ -66,18 +66,18 @@
 
                 <div class="online">
                     <div class="data">
-                        {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%g:%M%p') }}
+                        {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%I:%M%p') }}
                     </div>
                 </div>
-            </div>                
+            </div>
         {% endfor %}
         </div>
-        
+
         {% if chats_cursor %}
         <div class="page box left">
             <a href="{{ uri_for('chats')}}">More Chats</a>
         </div>
         {% endif %}
-    </div>    
-    
+    </div>
+
 {% endblock %}

@@ -7,23 +7,23 @@
 {% block content %}
 <div class="player_list chats">
     <h2 class="box">Chats</h2>
-    
+
     <div class="box">
     {% for chat in chats %}
         <div class="player wrap {% if chat.is_user(user) %}you{% endif %}">
             <div class="avatar" style="background-image: url(http://i.mcss.me/{{chat.username}}.png)"></div>
             <div class="name">{{ chat.username }}</div>
-            
+
             <div class="chat">
                 {{ chat.chat }}
             </div>
-            
+
             <div class="online">
                 <div class="data">
-                    {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%g:%M%p') }}
+                    {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%I:%M%p') }}
                 </div>
             </div>
-        </div>                
+        </div>
     {% endfor %}
     </div>
 </div>
