@@ -117,6 +117,12 @@ h4 {
 .right { float: right; }
 .left { float: left; }
 
+.sprite {
+    display: inline-block;
+    position: relative;
+    background-image: url(/img/coal_sprite.png);
+    background-size: 250px auto;
+}
 
 /* GERNERIC STYLES */
 .box {
@@ -128,6 +134,15 @@ h4 {
     padding: 15px;
 }
 
+.page {
+    padding: 10px 20px;
+    margin-top: 15px;
+    border-right: 1px solid rgba(0,0,0,0.5);
+}
+
+.page:last-child {
+    border-bottom: 0;
+}
 
 /* SITE DIMENSIONS */
 #canvas {
@@ -171,7 +186,14 @@ header {
 }
 
 header img {
-    padding: 14px 0;
+    
+}
+
+header div.logo.sprite {
+    height: 27px;
+    width: 118px;
+    background-position: 0 0;
+    margin: 14px 0;
 }
 
 header nav {
@@ -220,14 +242,13 @@ header nav li.user:hover {
 
 /* PLAYER LIST */
 .player_list {
-    width: 350px;
+    width: 300px;
 }
 
 .avatar {
     float: left;
     height: 40px;
     width: 40px;
-    background-image: url(/img/steve.png);
     background-size: 185px auto;
     background-position: -20px 0px;
 }
@@ -295,21 +316,139 @@ header nav li.user:hover {
 
 .status {
     float: right;
-    padding: 7px 15px 7px 70px;
+    padding: 5px 15px;
     background-color: rgba(151,151,151,0.5);
     text-align: right;
+}
+
+.status i.sprite {
+    float: left;
+    height: 25px;
+    width: 25px;
+    margin: 7px 25px 0 0;
+    opacity: 0.45;
+}
+
+.status.up {
+    background-color: rgba(0,225,132,0.65);
+}
+
+.status.up i.sprite {
+    background-position: 0px -55px;
+}
+
+.status.down {
+    background-color: rgba(255,34,65,0.65);
+}
+
+.status.down i.sprite {
+    background-position: 0px -30px;
+}
+
+.status.unknown {
+    background-color: rgba(101,101,101,0.65);
+}
+
+.status.status.unknown i.sprite {
+    background-position: 0px -80px;
 }
 
 
 /* PLAYERS */
 .player_list.players {
     width: 500px;
+    margin: 0 auto;
 }
 
 .players .online {
     text-align: right;
     line-height: 1.45em;
 }
+
+
+/* SESSIONS */
+.player_list.sessions {
+    width: 100%;
+}
+
+.sessions .online {
+    text-align: right;
+    line-height: 1.45em;
+}
+
+.sessions .online.playtime {
+    width: 200px;
+}
+
+.sessions .online.login {
+    width: 200px;
+}
+
+.sessions .online.logout {
+    width: 200px;
+}
+
+
+/* CHAT */
+.player_list.chats {
+    width: 100%;
+}
+
+.player_list.chats.home {
+    width: 640px;
+    float: right;
+}
+
+.chats .chat {
+    float: left;
+    width: 660px;
+    color: #fff;
+    font-weight: 700;
+    margin-left: 5px;
+}
+
+.chats.home .chat {
+    width: 345px;
+}
+
+.chats .avatar {
+    float: left;
+    height: 20px;
+    width: 20px;
+    background-size: 93px auto;
+    background-position: -10px 0px;
+}
+
+.chats .player {
+    position: relative;
+    padding: 8px 15px;
+    border-bottom: 1px solid rgba(0,0,0,0.5);
+}
+
+.chats .name {
+    float: left;
+    line-height: 18px;
+    font-weight: 500;
+    font-size: 15px;
+    padding-left: 10px;
+    width: 95px;
+    white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+    color: rgba(255,255,255,0.7);
+}
+
+.chats .online {
+    float: right;
+    line-height: 17px;
+}
+
+.chats .data {
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+}
+
+
 
 /* FOOTER */
 footer {

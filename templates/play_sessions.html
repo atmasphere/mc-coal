@@ -5,24 +5,43 @@
 {% block title %}Sessions{% endblock %}
 
 {% block content %}
-    {{ macros.previous_next_uri('play_sessions', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+<div class="player_list sessions">
+    <h2 class="box">Sessions</h2>
+    
+    <div class="box">
     {% for play_session in play_sessions %}
-        <li>
-            &lt;{{ play_session.username | username_pronoun(user) }}&gt;
-            --
-            {% if play_session.duration %}
-                Play Time: {{ play_session.duration }}
-            {% else %}
-                CURRENTLY PLAYING
-            {% endif %}
-            --
-            [
-            Login: {{ play_session.login_timestamp | datetimeformat }}
-            {% if play_session.logout_timestamp %}
-                - Logout: {{ play_session.logout_timestamp | datetimeformat }}
-            {% endif %}
-            ]
-        </li>
+        <div class="player wrap {% if play_session.is_user(user) %}you{% endif %}">
+            <div class="activity {% if not play_session.logout_timestamp %}on{% endif %}"></div>
+            <div class="avatar" style="background-image: url(http://i.mcss.me/{{play_session.username}}.png)"></div>
+            <div class="name">{{ play_session.username }}</div>
+            
+            <div class="online logout">
+                <h4>Logout Date</h4>
+                <div class="data">
+                    {% if play_session.logout_timestamp %}
+                        {{ play_session.logout_timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ play_session.logout_timestamp|datetimeformat('%g:%M%p') }}
+                    {% else %}
+                        <em>Currently Playing</em>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="online login">
+                <h4>Login Date</h4>
+                <div class="data">{{ play_session.login_timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ play_session.login_timestamp|datetimeformat('%g:%M%p') }}</div>
+            </div>
+            
+            <div class="online playtime">
+                <h4>Play Time</h4>
+                <div class="data">
+                    {{ macros.time_elapse(play_session.duration.days, play_session.duration.seconds) }}
+                </div>
+            </div>
+        </div>                
     {% endfor %}
+    </div>
+</div>
+
+    
     {{ macros.previous_next_uri('play_sessions', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
 {% endblock %}

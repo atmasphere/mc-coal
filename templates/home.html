@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
 {% block title %}Home{% endblock %}
 {% block page_name %}Home{% endblock %}
 
@@ -8,21 +10,24 @@
             <h1>{{ config.TITLE }}</h1>
             <h4>Running v{{ server.version }}</h4>
         </div>
-        <div class="status">
-            <h4>Sever Status</h4>
-            <strong>
-                {% if server.is_running == True %}
-                    Running
-                {% elif server.is_running == False %}
-                    Down
-                {% else %}
-                    Unknown
-                {% endif %}
-            </strong>
+        <div class="status wrap {% if server.is_running == True %}up{% elif server.is_running == False %}down{% else %}unknown{% endif %}">
+            <i class="sprite"></i>
+            <div class="right">
+                <h4>Sever Status</h4>
+                <strong>
+                    {% if server.is_running == True %}
+                        Running
+                    {% elif server.is_running == False %}
+                        Down
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </strong>
+            </div>
         </div>
     </div>
     
-    <div class="player_list">
+    <div class="player_list left">
         <h3 class="box">Currently Playing</h3>
         <div class="box">
         {% if open_sessions %}
@@ -32,7 +37,11 @@
                     <div class="activity on"></div>
                     <div class="avatar" style="background-image: url(http://i.mcss.me/{{open_session.username}}.png)"></div>
                     <div class="name">{{ open_session.username }}</div>
-                    <div class="online">{{ open_session.duration }}</div>
+                    <div class="online">
+                        {% if open_session.duration %}
+                            {{ macros.time_elapse(open_session.duration.days, open_session.duration.seconds) }}
+                        {% endif %}
+                    </div>
                 </div>    
             {% endfor %}
         
@@ -42,14 +51,33 @@
         </div>
     </div>
     
-    {% if new_chats %}
-        <h3>Latest Chats</h3>
+    <div class="player_list chats home">
+        <h3 class="box">Latest Chats</h3>
+
+        <div class="box">
         {% for chat in new_chats %}
-            <li>[{{ chat.timestamp | datetimeformat }}] &lt;{{ chat.username | username_pronoun(user) }}&gt; {{ chat.chat }}</li>
+            <div class="player wrap {% if chat.is_user(user) %}you{% endif %}">
+                <div class="avatar" style="background-image: url(http://i.mcss.me/{{chat.username}}.png)"></div>
+                <div class="name">{{ chat.username }}</div>
+
+                <div class="chat">
+                    {{ chat.chat }}
+                </div>
+
+                <div class="online">
+                    <div class="data">
+                        {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%g:%M%p') }}
+                    </div>
+                </div>
+            </div>                
         {% endfor %}
+        </div>
+        
         {% if chats_cursor %}
-            <a href="{{ uri_for('chats')}}">More...</a>
+        <div class="page box left">
+            <a href="{{ uri_for('chats')}}">More Chats</a>
+        </div>
         {% endif %}
-    {% endif %}
+    </div>    
     
 {% endblock %}

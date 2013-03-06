@@ -11,14 +11,18 @@
         <div class="box">
         {% for player in players %}
             {% if player.last_session_duration %}
-            <div class="player wrap">
+            <div class="player wrap {% if player.is_user(user) %}you{% endif %}">
                 <div class="activity {% if player.is_playing %}on{% endif %}"></div>
                 <div class="avatar" style="background-image: url(http://i.mcss.me/{{player.username}}.png)"></div>
                 <div class="name">{{ player.username }}</div>
                 <div class="online">
                     {% if player.is_playing %}
                         <h4>Online For</h4>
-                        <div class="data">{{ player.last_session_duration }}</div>
+                        <div class="data">
+                            {% if player.last_session_duration %}
+                                {{ macros.time_elapse(player.last_session_duration.days, player.last_session_duration.seconds) }}
+                            {% endif %}
+                        </div>
                     {% else %}
                         <h4>Last Login</h4>
                         <div class="data">{{ player.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ player.last_login|datetimeformat('%g:%M%p') }}</div>
@@ -27,12 +31,6 @@
             </div>                
             {% endif %}
         {% endfor %}
-            <div class="player you wrap">
-                <div class="activity on"></div>
-                <div class="avatar" style="background-image: url(http://i.mcss.me/vesicular.png)"></div>
-                <div class="name">Vesicular</div>
-                <div class="online">22m</div>
-            </div>
         </div>
     </div>
     
