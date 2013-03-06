@@ -27,12 +27,7 @@ Installation
 10. Start your minecraft server with the `mc-start.sh` script:
 
     `[~/minecraft-server] $ ./mc-start.sh`
-    `210 recipes`
-    `27 achievements`
     `2013-03-05 16:49:18 [INFO] Starting minecraft server version 1.4.7`
-    `...`
-    `...`
-
 
 Continuous Integration Build Status
 -----------------------------------
