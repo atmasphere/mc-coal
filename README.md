@@ -31,6 +31,8 @@ Installation
 
     `2013-03-05 16:49:18 [INFO] Starting minecraft server version 1.4.7`
 
+11. Go to your new COAL installation at `http://[my-app-id].appspot.com` where `[my-app-id]` is your app engine application id from above.
+
 Continuous Integration Build Status
 -----------------------------------
 [![Build Status](https://drone.io/github.com/gumptionthomas/mc-coal/status.png)](https://drone.io/github.com/gumptionthomas/mc-coal/latest)
