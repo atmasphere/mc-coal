@@ -133,7 +133,7 @@ class ServerModel(ndb.Model):
 
 class Player(ServerModel):
     username = ndb.StringProperty(required=True)
-    last_login_timestamp = ndb.ComputedProperty(lambda self: self._last_login_timestamp)
+    last_login_timestamp = ndb.DateTimeProperty()
 
     @property
     def user(self):
@@ -325,7 +325,8 @@ class PlaySession(UsernameModel):
         )
         instance.put()
         player = Player.get_or_create(username)
-        player.put()  # Update last_login_timestamp
+        player.last_login_timestamp = timestamp
+        player.put()
         return instance
 
     @classmethod

@@ -16,9 +16,9 @@ Installation
 3. Clone (or copy) the fork into the minecraft server directory (the directory containing the `minecraft-server.jar` and `server.log` files).
 4. Change `mc-coal` in the first line of `app.yaml` to the application id from above.
 5. Edit `appengine_config.py` installation-specific settings (whitelisted users, app title, etc.) as desired.
-6. Deploy the application to app engine using oauth2. This is the first and only time you'll need to deploy the application theself.
+6. Deploy the application to app engine using oauth2. This is the first and only time you'll need to deploy the application yourself.
 
-  >    [~/minecraft-server/mc-coal] $ appcfg.py --oauth2 update .
+  >     [~/minecraft-server/mc-coal] $ appcfg.py --oauth2 update .
 
 7. Find the `refresh_token` in `~/.appcfg_ouath2_tokens`. You'll need it to allow [drone.io](http://drone.io) to deploy the application for you.
 8. Set up a [drone.io](http://drone.io) account.
