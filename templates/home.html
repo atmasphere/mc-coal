@@ -1,25 +1,83 @@
 {% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
 {% block title %}Home{% endblock %}
 {% block page_name %}Home{% endblock %}
+
 {% block content %}
-    <h2>Welcome to {{ config.TITLE }}</h2>
-    <h3>Sever Version: {{ server.version }}</h3>
-    <h3>Server Status: {% if server.is_running == True %}Running{% elif server.is_running == False %}Not Running{% else %}Unknown{% endif %}</h3>
-    {% if open_sessions %}
-        <h3>Currently Playing</h3>
-        {% for open_session in open_sessions %}
-            <li>{{ open_session.username | username_pronoun(user) }}</li>
-        {% endfor %}
-    {% else %}
-        <h3>No one is playing. I'm lonely.</h3>
-    {% endif %}
-    {% if new_chats %}
-        <h3>New Chats</h3>
-        {% for chat in new_chats %}
-            <li>[{{ chat.timestamp | datetimeformat }}] &lt;{{ chat.username | username_pronoun(user) }}&gt; {{ chat.chat }}</li>
-        {% endfor %}
-        {% if chats_cursor %}
-            <a href="{{ uri_for('chats')}}">More...</a>
+    <div class="title box wrap">
+        <div class="left">
+            <h1>{{ config.TITLE }}</h1>
+            <h4>Running v{{ server.version }}</h4>
+        </div>
+        <div class="status wrap {% if server.is_running == True %}up{% elif server.is_running == False %}down{% else %}unknown{% endif %}">
+            <i class="sprite"></i>
+            <div class="right">
+                <h4>Sever Status</h4>
+                <strong>
+                    {% if server.is_running == True %}
+                        Running
+                    {% elif server.is_running == False %}
+                        Down
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </strong>
+            </div>
+        </div>
+    </div>
+    
+    <div class="player_list left">
+        <h3 class="box">Currently Playing</h3>
+        <div class="box">
+        {% if open_sessions %}
+        
+            {% for open_session in open_sessions %}
+                <div class="player wrap">
+                    <div class="activity on"></div>
+                    <div class="avatar" style="background-image: url(http://i.mcss.me/{{open_session.username}}.png)"></div>
+                    <div class="name">{{ open_session.username }}</div>
+                    <div class="online">
+                        {% if open_session.duration %}
+                            {{ macros.time_elapse(open_session.duration.days, open_session.duration.seconds) }}
+                        {% endif %}
+                    </div>
+                </div>    
+            {% endfor %}
+        
+        {% else %}
+            <div class="pad">Nobody is currently online.</div>
         {% endif %}
-    {% endif %}
+        </div>
+    </div>
+    
+    <div class="player_list chats home">
+        <h3 class="box">Latest Chats</h3>
+
+        <div class="box">
+        {% for chat in new_chats %}
+            <div class="player wrap {% if chat.is_user(user) %}you{% endif %}">
+                <div class="avatar" style="background-image: url(http://i.mcss.me/{{chat.username}}.png)"></div>
+                <div class="name">{{ chat.username }}</div>
+
+                <div class="chat">
+                    {{ chat.chat }}
+                </div>
+
+                <div class="online">
+                    <div class="data">
+                        {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%g:%M%p') }}
+                    </div>
+                </div>
+            </div>                
+        {% endfor %}
+        </div>
+        
+        {% if chats_cursor %}
+        <div class="page box left">
+            <a href="{{ uri_for('chats')}}">More Chats</a>
+        </div>
+        {% endif %}
+    </div>    
+    
 {% endblock %}
