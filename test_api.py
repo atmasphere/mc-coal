@@ -231,7 +231,7 @@ class LogLineTest(ApiTest):
         play_session = models.PlaySession.current('gumptionthomas')
         self.assertIsNone(play_session)
         player = models.Player.lookup(log_line.username)
-        self.assertIsNone(player.last_login)
+        self.assertIsNone(player.last_login_timestamp)
         self.assertIsNone(player.last_session_duration)
 
     def test_post_connect_line(self):
@@ -255,7 +255,7 @@ class LogLineTest(ApiTest):
         player = models.Player.lookup(log_line.username)
         self.assertIsNotNone(player)
         self.assertTrue(player.is_playing)
-        self.assertEqual(datetime.datetime(2012, 10, 10, 0, 52, 55), player.last_login)
+        self.assertEqual(datetime.datetime(2012, 10, 10, 0, 52, 55), player.last_login_timestamp)
         self.assertIsNotNone(player.last_session_duration)
 
     def test_post_all(self):

@@ -133,6 +133,7 @@ class ServerModel(ndb.Model):
 
 class Player(ServerModel):
     username = ndb.StringProperty(required=True)
+    last_login_timestamp = ndb.ComputedProperty(lambda self: self._last_login_timestamp)
 
     @property
     def user(self):
@@ -145,10 +146,11 @@ class Player(ServerModel):
         return PlaySession.current(self.username) is not None
 
     @property
-    def last_login(self):
+    def _last_login_timestamp(self):
         last_session = PlaySession.last(self.username)
         if last_session is not None:
             return last_session.login_timestamp
+        return None
 
     @property
     def last_session_duration(self):
@@ -170,11 +172,11 @@ class Player(ServerModel):
 
     @classmethod
     def query_all(cls):
-        return cls.server_query().order(cls.username)
+        return cls.server_query().order(cls.last_login_timestamp)
 
     @classmethod
     def query_all_reverse(cls):
-        return cls.server_query().order(-cls.username)
+        return cls.server_query().order(-cls.last_login_timestamp)
 
     @classmethod
     def lookup(cls, username):
@@ -308,6 +310,7 @@ class PlaySession(UsernameModel):
         self.put()
 
     @classmethod
+    @ndb.transactional
     def create(cls, username, timestamp, zone, login_log_line_key, **kwargs):
         current = cls.current(username)
         if current:
@@ -321,6 +324,8 @@ class PlaySession(UsernameModel):
             **kwargs
         )
         instance.put()
+        player = Player.get_or_create(username)
+        player.put()  # Update last_login_timestamp
         return instance
 
     @classmethod

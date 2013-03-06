@@ -268,7 +268,7 @@ class PlayersHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            Player.query_all(), Player.query_all_reverse(), coal_config.RESULTS_PER_PAGE
+            Player.query_all_reverse(), Player.query_all(), coal_config.RESULTS_PER_PAGE
         )
         context = {'players': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('players.html', context=context)

@@ -7,7 +7,7 @@
 {% block content %}
     <div class="player_list players">
         <h2 class="box">Players</h2>
-        
+
         <div class="box">
         {% for player in players %}
             {% if player.last_session_duration %}
@@ -25,14 +25,14 @@
                         </div>
                     {% else %}
                         <h4>Last Login</h4>
-                        <div class="data">{{ player.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ player.last_login|datetimeformat('%g:%M%p') }}</div>
+                        <div class="data">{{ player.last_login_timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ player.last_login|datetimeformat('%I:%M%p') }}</div>
                     {% endif %}
                 </div>
-            </div>                
+            </div>
             {% endif %}
         {% endfor %}
         </div>
     </div>
-    
+
     {{ macros.previous_next_uri('players', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
 {% endblock %}
