@@ -21,16 +21,22 @@ Installation
 8. In the `mc-coal` directory, run the agent:
 
     `[~/minecraft-server/mc-coal] $ python mc_coal_agent.py
+
     2013-03-05 16:48:07,772 : main     INFO   Monitoring '../server.log' and reporting to 'my-app-id.appspot.com'...`
 
 9. Copy `mc-start.sh` script into the minecraft server directory. Edit java configs as desired.
 10. Start your minecraft server with the `mc-start.sh` script:
 
     `[~/minecraft-server] $ ./mc-start.sh
+
     210 recipes
+
     27 achievements
+
     2013-03-05 16:49:18 [INFO] Starting minecraft server version 1.4.7
+
     ...
+
     ...`
 
 
