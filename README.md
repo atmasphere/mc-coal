@@ -20,14 +20,14 @@ Installation
 7. Clone (or copy) your fork into your minecraft server directory (it contains the `minecraft-server.jar` file).
 8. In the `mc-coal` directory, run the agent:
 
->     [~/minecraft-server/mc-coal] $ python mc_coal_agent.py
->     2013-03-05 16:48:07,772 : main     INFO   Monitoring '../server.log' and reporting to 'my-app-id.appspot.com'...
+  >     [~/minecraft-server/mc-coal] $ python mc_coal_agent.py
+  >     2013-03-05 16:48:07,772 : main     INFO   Monitoring '../server.log' and reporting to 'my-app-id.appspot.com'...
 
 9. Copy the `mc-start.sh` script into the minecraft server directory. Edit java configs as desired.
 10. Start your minecraft server with the `mc-start.sh` script:
 
->     [~/minecraft-server] $ ./mc-start.sh
->     2013-03-05 16:49:18 [INFO] Starting minecraft server version 1.4.7
+  >     [~/minecraft-server] $ ./mc-start.sh
+  >     2013-03-05 16:49:18 [INFO] Starting minecraft server version 1.4.7
 
 11. Go to your new COAL installation at `http://[my-app-id].appspot.com` where `[my-app-id]` is your app engine application id from above.
 
