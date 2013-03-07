@@ -2,7 +2,7 @@ import datetime
 import hashlib
 import os
 
-from google.appengine.api import users
+from google.appengine.api.users import User
 
 from agar.test.base_test import BaseTest
 from agar.test.web_test import WebTest
@@ -27,7 +27,7 @@ class StatusCheckTest(BaseTest, WebTest):
         os.environ['USER_EMAIL'] = email
         os.environ['USER_ID'] = user_id
         os.environ['USER_IS_ADMIN'] = '1'
-        return users.User(email=email, _user_id=user_id)
+        return User(email=email, _user_id=user_id)
 
     def test_server_ok(self):
         self.server.is_running = True
