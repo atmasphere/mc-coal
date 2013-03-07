@@ -115,7 +115,7 @@ class Server(ndb.Model):
 
     def update_is_running(self, is_running, last_ping=None):
         was_running = self.is_running
-        if was_running != is_running:
+        if was_running != is_running or last_ping is not None:
             if is_running:
                 status = 'RUNNING'
             elif is_running == False:
