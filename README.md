@@ -11,11 +11,16 @@ Prerequisites
 
 Installation
 ------------
-1. Create an app engine application for the COAL installation. Take note of the application id you select.
-2. Fork this repository.
-3. Clone (or copy) the fork into the minecraft server directory (the directory containing the `minecraft-server.jar` and `server.log` files).
-4. Change `mc-coal` in the first line of `app.yaml` to the application id from above.
-5. Edit `appengine_config.py` installation-specific settings (whitelisted users, app title, etc.) as desired.
+1. Temporarily install the Google App Engine SDK (if you don't already have it installed):
+
+  >     [~] $ wget -q -O /tmp/gae.zip http://googleappengine.googlecode.com/files/google_appengine_1.7.5.zip
+  >     [~] $ unzip /tmp/gae.zip /tmp
+  >     [~] $ PATH=$PATH:/tmp/google_appengine/
+
+2. [Create an App Engine application](https://appengine.google.com/) for your new COAL installation. Take note of the application id you select.
+3. Clone this repository into the minecraft server directory (the directory containing the `minecraft-server.jar` and `server.log` files).
+4. Change `mc-coal` in the first line of `app.yaml` to the application id you registered above.
+5. Edit `appengine_config.py` installation-specific settings (white-listed users, app title, etc.) as desired.
 6. Deploy the application to app engine using oauth2. This is the first and only time you'll need to deploy the application yourself.
 
   >     [~/minecraft-server/mc-coal] $ appcfg.py --oauth2 update .
@@ -30,7 +35,7 @@ Installation
   >     [~/minecraft-server/mc-coal] $ python mc_coal_agent.py
   >     2013-03-05 16:48:07,772 : main     INFO   Monitoring '../server.log' and reporting to 'my-app-id.appspot.com'...
 
-13. Copy the `mc-start.sh` script into the minecraft server directory. Edit java configs as desired.
+13. Copy the `mc-start.sh` script into the minecraft server directory. Edit java configuration parameters as desired.
 14. Start the minecraft server with the `mc-start.sh` script:
 
   >     [~/minecraft-server] $ ./mc-start.sh

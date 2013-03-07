@@ -11,7 +11,7 @@ class ServerStatusHandler(webapp2.RequestHandler):
     def get(self):
         logging.info("Starting server status check...")
         server = Server.global_key().get()
-        server.update_is_running()
+        server.check_is_running()
         logging.info("Finishing server status check.")
 
 

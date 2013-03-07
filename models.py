@@ -2,11 +2,13 @@ import datetime
 import logging
 
 from google.appengine.ext import ndb
-from google.appengine.api import users, memcache
+from google.appengine.api import users, memcache, mail, app_identity
 
 import webapp2_extras.appengine.auth.models as auth_models
 
 from pytz.gae import pytz
+
+from config import coal_config
 
 CONNECTION_TAG = 'connection'
 LOGIN_TAG = 'login'
@@ -106,11 +108,32 @@ class Server(ndb.Model):
     def players_query(self):
         return Player.query_all_players()
 
-    def update_is_running(self):
+    def check_is_running(self):
         if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=2):
-            logging.info("Haven't heard from the agent since {0}. Running status is unknown.".format(self.last_ping))
-            self.is_running = None
+            logging.info("Haven't heard from the agent since {0}. Setting server status is UNKNOWN.".format(self.last_ping))
+            self.update_is_running(None)
+
+    def update_is_running(self, is_running):
+        was_running = self.is_running
+        if was_running != is_running:
+            if is_running:
+                status = 'RUNNING'
+            elif is_running == False:
+                status = 'DOWN'
+            else:
+                status = 'UNKNOWN'
+            self.is_running = is_running
             self.put()
+            body = 'The {0} server status is {1} as of {2}.'.format(coal_config.TITLE, status, datetime.datetime.now())
+            admin_emails = []
+            admin_emails = [user.email for user in User.query().filter(User.admin == True)]
+            if admin_emails:
+                mail.send_mail(
+                    sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
+                    to=admin_emails,
+                    subject="{0} server status is {1}".format(coal_config.TITLE, status),
+                    body=body
+                )
 
     @classmethod
     def create(cls, key_name, **kwargs):
