@@ -1,15 +1,14 @@
-import base64
 import datetime
 import hashlib
 import os
 
 from google.appengine.api import users
-from google.appengine.ext import testbed, deferred
 
-from agar.test import BaseTest, WebTest
+from agar.test.base_test import BaseTest
+from agar.test.web_test import WebTest
 
 import cron
-import models
+from models import Server
 
 
 class StatusCheckTest(BaseTest, WebTest):
@@ -18,19 +17,8 @@ class StatusCheckTest(BaseTest, WebTest):
     def setUp(self):
         super(StatusCheckTest, self).setUp()
         self.now = datetime.datetime.now()
-        self.server = models.Server.global_key().get()
+        self.server = Server.global_key().get()
         self.log_in_admin('admin@test.com')
-
-    def run_deferred(self, expected_tasks=1):
-        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
-        tasks = taskqueue_stub.GetTasks('default')
-        self.assertEqual(
-            expected_tasks,
-            len(tasks),
-            "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks)
-        )
-        for task in tasks:
-            deferred.run(base64.b64decode(task['body']))
 
     def log_in_admin(self, email):
         # stolen from dev_appserver_login
@@ -46,7 +34,7 @@ class StatusCheckTest(BaseTest, WebTest):
         self.server.last_ping = self.now
         self.response = self.get("/cron/server/status")
         self.assertOK(self.response)
-        server = models.Server.global_key().get()
+        server = Server.global_key().get()
         self.assertTrue(server.is_running)
 
     def test_server_unknown(self):
@@ -54,5 +42,5 @@ class StatusCheckTest(BaseTest, WebTest):
         self.server.last_ping = self.now - datetime.timedelta(minutes=3)
         self.response = self.get("/cron/server/status")
         self.assertOK(self.response)
-        server = models.Server.global_key().get()
+        server = Server.global_key().get()
         self.assertIsNone(server.is_running)
