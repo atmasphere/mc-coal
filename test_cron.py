@@ -39,7 +39,7 @@ class StatusCheckTest(BaseTest, WebTest):
 
     def test_server_unknown(self):
         self.server.is_running = True
-        self.server.last_ping = self.now - datetime.timedelta(minutes=3)
+        self.server.last_ping = self.now - datetime.timedelta(minutes=6)
         self.response = self.get("/cron/server/status")
         self.assertOK(self.response)
         server = models.Server.global_key().get()
