@@ -126,16 +126,17 @@ class Server(ndb.Model):
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
-            body = 'The {0} server status is {1} as of {2}.'.format(coal_config.TITLE, status, datetime.datetime.now())
-            admin_emails = []
-            admin_emails = [user.email for user in User.query().filter(User.admin == True)]
-            if admin_emails:
-                mail.send_mail(
-                    sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
-                    to=admin_emails,
-                    subject="{0} server status is {1}".format(coal_config.TITLE, status),
-                    body=body
-                )
+            if was_running != is_running:
+                body = 'The {0} server status is {1} as of {2}.'.format(coal_config.TITLE, status, datetime.datetime.now())
+                admin_emails = []
+                admin_emails = [user.email for user in User.query().filter(User.admin == True)]
+                if admin_emails:
+                    mail.send_mail(
+                        sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
+                        to=admin_emails,
+                        subject="{0} server status is {1}".format(coal_config.TITLE, status),
+                        body=body
+                    )
 
     @classmethod
     def create(cls, key_name, **kwargs):
