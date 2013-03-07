@@ -37,6 +37,10 @@ handlers:
 - url: /js
   static_dir: static/js
 
+- url: /cron/.*
+  script: cron.application
+  login: admin
+
 - url: /api/.*
   script: api.application
 

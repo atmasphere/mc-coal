@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from google.appengine.ext import ndb
 from google.appengine.api import users, memcache
@@ -97,12 +98,19 @@ class Server(ndb.Model):
     name = ndb.StringProperty()
     version = ndb.StringProperty()
     is_running = ndb.BooleanProperty()
+    last_ping = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
     @property
     def players_query(self):
         return Player.query_all_players()
+
+    def update_is_running(self):
+        if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=2):
+            logging.info("Haven't heard from the agent since {0}. Running status is unknown.".format(self.last_ping))
+            self.is_running = None
+            self.put()
 
     @classmethod
     def create(cls, key_name, **kwargs):

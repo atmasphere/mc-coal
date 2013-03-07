@@ -1,0 +1,4 @@
+cron:
+- description: Check server status
+  url: /cron/server/status
+  schedule: every 1 minutes
