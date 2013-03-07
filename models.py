@@ -116,18 +116,30 @@ class Server(ndb.Model):
     def update_is_running(self, is_running, last_ping=None):
         was_running = self.is_running
         if was_running != is_running or last_ping is not None:
-            if is_running:
-                status = 'RUNNING'
-            elif is_running == False:
-                status = 'DOWN'
-            else:
-                status = 'UNKNOWN'
             self.is_running = is_running
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
             if was_running != is_running:
-                body = 'The {0} server status is {1} as of {2}.'.format(coal_config.TITLE, status, datetime.datetime.now())
+                if is_running == True:
+                    status = 'RUNNING'
+                elif is_running == False:
+                    status = 'DOWN'
+                else:
+                    status = 'UNKNOWN'
+                tf = '%A, %B %d, %Y %I:%M:%S %p'
+                now_utc_dt = pytz.utc.localize(datetime.datetime.now())
+                now_ts = now_utc_dt.astimezone(pytz.timezone(coal_config.TIMEZONE)).strftime(tf)
+                last_ping_ts = "NEVER"
+                if self.last_ping:
+                    last_ping_utc_dt = pytz.utc.localize(self.last_ping)
+                    last_ping_ts = last_ping_utc_dt.astimezone(pytz.timezone(coal_config.TIMEZONE)).strftime(tf)
+                body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
+                    coal_config.TITLE,
+                    status,
+                    now_ts,
+                    last_ping_ts
+                )
                 admin_emails = []
                 admin_emails = [user.email for user in User.query().filter(User.admin == True)]
                 if admin_emails:
