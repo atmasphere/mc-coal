@@ -109,7 +109,7 @@ class Server(ndb.Model):
         return Player.query_all_players()
 
     def check_is_running(self):
-        if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=2):
+        if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=5):
             logging.info("Haven't heard from the agent since {0}. Setting server status is UNKNOWN.".format(self.last_ping))
             self.update_is_running(None)
 
