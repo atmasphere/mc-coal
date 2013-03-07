@@ -109,11 +109,11 @@ class Server(ndb.Model):
         return Player.query_all_players()
 
     def check_is_running(self):
-        if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=5):
+        if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=2):
             logging.info("Haven't heard from the agent since {0}. Setting server status is UNKNOWN.".format(self.last_ping))
             self.update_is_running(None)
 
-    def update_is_running(self, is_running):
+    def update_is_running(self, is_running, last_ping=None):
         was_running = self.is_running
         if was_running != is_running:
             if is_running:
@@ -123,6 +123,8 @@ class Server(ndb.Model):
             else:
                 status = 'UNKNOWN'
             self.is_running = is_running
+            if last_ping is not None:
+                self.last_ping = last_ping
             self.put()
             body = 'The {0} server status is {1} as of {2}.'.format(coal_config.TITLE, status, datetime.datetime.now())
             admin_emails = []

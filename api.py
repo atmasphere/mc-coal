@@ -128,8 +128,7 @@ class PingHandler(JsonRequestHandler):
     def post(self):
         is_server_running = self.request.form.is_server_running.data
         server = Server.global_key().get()
-        server.last_ping = datetime.datetime.now()
-        server.update_is_running(is_server_running)
+        server.update_is_running(is_server_running, last_ping=datetime.datetime.now())
         last_log_line = LogLine.get_last_line_with_timestamp()
         response = {'last_line': last_log_line.line if last_log_line is not None else None}
         self.json_response(response, status_code=200)
