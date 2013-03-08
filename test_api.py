@@ -19,6 +19,8 @@ from config import coal_config
 import api
 import models
 
+LOGGING_LEVEL = logging.ERROR
+
 TIME_ZONE = 'America/Chicago'
 LOG_LINE = 'Test line'
 TIME_STAMP_LOG_LINE = '2012-10-07 15:10:09 [INFO] Preparing level "world"'
@@ -38,7 +40,7 @@ class ApiTest(BaseTest, WebTest):
 
     def setUp(self):
         super(ApiTest, self).setUp()
-        logging.disable(logging.ERROR)
+        logging.disable(LOGGING_LEVEL)
 
     def tearDown(self):
         super(ApiTest, self).tearDown()

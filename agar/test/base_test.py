@@ -3,6 +3,7 @@ import hashlib
 import unittest
 
 from google.appengine.api import memcache
+from google.appengine.api.search.simple_search_stub import SearchServiceStub
 from google.appengine.api import users
 from google.appengine.ext import testbed
 
@@ -51,6 +52,9 @@ class BaseTest(unittest.TestCase):
         self.testbed.init_xmpp_stub()
         self.testbed.init_mail_stub()
         self.testbed.init_blobstore_stub()
+
+        stub = SearchServiceStub()
+        self.testbed._register_stub('search', stub)
 
         try:
             from google.appengine.api.images import images_stub

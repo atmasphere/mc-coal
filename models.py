@@ -9,6 +9,7 @@ import webapp2_extras.appengine.auth.models as auth_models
 from pytz.gae import pytz
 
 from config import coal_config
+import search
 
 CONNECTION_TAG = 'connection'
 LOGIN_TAG = 'login'
@@ -212,6 +213,13 @@ class Player(ServerModel):
             return user.username == self.username
         return False
 
+    def _post_put_hook(self, future):
+        search.add_player(self)
+
+    @classmethod
+    def _post_delete_hook(cls, key, future):
+        search.remove_player(key)
+
     @classmethod
     def get_or_create(cls, username):
         return cls.get_or_insert(username, parent=Server.global_key(), username=username)
@@ -270,9 +278,16 @@ class LogLine(UsernameModel):
         if self.username:
             Player.get_or_create(self.username)
 
+    def _post_put_hook(self, future):
+        search.add_log_line(self)
+
     @property
     def timezone(self):
         return name_to_timezone(self.zone)
+
+    @classmethod
+    def _post_delete_hook(cls, key, future):
+        search.remove_log_line(key)
 
     @classmethod
     def create(cls, line, zone, **kwargs):

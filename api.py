@@ -153,21 +153,7 @@ class LogLineHandler(JsonRequestHandler):
         try:
             existing_line = LogLine.lookup_line(line)
             if existing_line is None:
-                log_line = handle_logged_in(line, tz)
-                if log_line is None:
-                    log_line = handle_lost_connection(line, tz)
-                if log_line is None:
-                    log_line = handle_chat(line, tz)
-                if log_line is None:
-                    log_line = handle_overloaded_log(line, tz)
-                if log_line is None:
-                    log_line = handle_server_stop(line, tz)
-                if log_line is None:
-                    log_line = handle_server_start(line, tz)
-                if log_line is None:
-                    log_line = handle_timestamp_log(line, tz)
-                if log_line is None:
-                    log_line = handle_unknown_log(line, tz)
+                log_line = handle_new_line(line, tz)
                 if log_line is not None:
                     status_code = 201
         except Exception, e:
@@ -186,6 +172,25 @@ def safe_float_from_string(float_string):
         return float(float_string)
     except:
         return None
+
+
+def handle_new_line(line, tz):
+    log_line = handle_logged_in(line, tz)
+    if log_line is None:
+        log_line = handle_lost_connection(line, tz)
+    if log_line is None:
+        log_line = handle_chat(line, tz)
+    if log_line is None:
+        log_line = handle_overloaded_log(line, tz)
+    if log_line is None:
+        log_line = handle_server_stop(line, tz)
+    if log_line is None:
+        log_line = handle_server_start(line, tz)
+    if log_line is None:
+        log_line = handle_timestamp_log(line, tz)
+    if log_line is None:
+        log_line = handle_unknown_log(line, tz)
+    return log_line
 
 
 @ndb.transactional

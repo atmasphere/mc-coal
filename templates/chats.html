@@ -6,8 +6,11 @@
 
 {% block content %}
 <div class="player_list chats">
-    <h2 class="box">Chats</h2>
-
+    <h2 class="box">Chats<form action="/chats" method="GET">
+            <input type="text" name="q" value="{{ query_string }}"/>
+            <input type="submit" value="Search" />
+        </form>
+</h2>
     <div class="box">
     {% for chat in chats %}
         <div class="player wrap {% if chat.is_user(user) %}you{% endif %}">
