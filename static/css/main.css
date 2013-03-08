@@ -198,6 +198,7 @@ header div.logo.sprite {
 
 header nav {
     float: right;
+    width: 600px;
 }
 
 header nav a {
@@ -208,6 +209,10 @@ header nav a {
 
 header nav a:hover {
     color: #046fba;
+}
+
+header nav ul {
+    float: right;
 }
 
 header nav li {

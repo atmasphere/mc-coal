@@ -55,22 +55,26 @@
         <h3 class="box">Latest Chats</h3>
 
         <div class="box">
-        {% for chat in new_chats %}
-            <div class="player wrap {% if chat.is_user(user) %}you{% endif %}">
-                <div class="avatar" style="background-image: url(http://i.mcss.me/{{chat.username}}.png)"></div>
-                <div class="name">{{ chat.username }}</div>
+        {% if new_chats %}
+            {% for chat in new_chats %}
+                <div class="player wrap {% if chat.is_user(user) %}you{% endif %}">
+                    <div class="avatar" style="background-image: url(http://i.mcss.me/{{chat.username}}.png)"></div>
+                    <div class="name">{{ chat.username }}</div>
 
-                <div class="chat">
-                    {{ chat.chat }}
-                </div>
+                    <div class="chat">
+                        {{ chat.chat }}
+                    </div>
 
-                <div class="online">
-                    <div class="data">
-                        {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%I:%M%p') }}
+                    <div class="online">
+                        <div class="data">
+                            {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%I:%M%p') }}
+                        </div>
                     </div>
                 </div>
-            </div>
-        {% endfor %}
+            {% endfor %}
+        {% else %}
+            <div class="pad">There are no new chats.</div>
+        {% endif %}
         </div>
 
         {% if chats_cursor %}
