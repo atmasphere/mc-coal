@@ -15,12 +15,16 @@ from agar.env import on_production_server
 from config import coal_config
 from filters import FILTERS
 from models import User, Server, Player, LogLine, PlaySession
+import search
 
 
 def uri_for_pagination(name, cursor=None):
     uri = webapp2.uri_for(name)
     if cursor is not None and cursor != 'START':
-        uri = "{0}?cursor={1}".format(uri, cursor)
+        if cursor.startswith('PAGE_0'):
+            uri = u"{0}{1}{2}".format(uri, '&' if '?' in uri else '?', cursor[7:])
+        else:
+            uri = u"{0}{1}cursor={2}".format(uri, '&' if '?' in uri else '?', cursor)
     return uri
 
 
@@ -255,12 +259,28 @@ class ChatsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         self.request.user.record_chat_view()
-        results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            LogLine.query_latest_chats(), LogLine.query_oldest_chats(), coal_config.RESULTS_PER_PAGE
-        )
+        query_string = self.request.get('q', None)
+        # Search
+        if query_string:
+            page = 0
+            cursor = self.request.get('cursor', None)
+            if cursor and cursor.startswith('PAGE_'):
+                page = int(cursor.strip()[5:])
+            offset = page*coal_config.RESULTS_PER_PAGE
+            results, number_found = search.search_log_lines('chat:{0}'.format(query_string), limit=coal_config.RESULTS_PER_PAGE, offset=offset)
+            previous_cursor = next_cursor = None
+            if page > 0:
+                previous_cursor = u'PAGE_{0}&q={1}'.format(page - 1 if page > 0 else 0, query_string)
+            if number_found > offset + coal_config.RESULTS_PER_PAGE:
+                next_cursor = u'PAGE_{0}&q={1}'.format(page + 1, query_string)
+        # Latest
+        else:
+            results, previous_cursor, next_cursor = self.get_results_with_cursors(
+                LogLine.query_latest_chats(), LogLine.query_oldest_chats(), coal_config.RESULTS_PER_PAGE
+            )
         if results:
             self.request.user.record_chat_view(results[0].timestamp)
-        context = {'chats': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        context = {'chats': results, 'query_string': query_string or '', 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('chats.html', context=context)
 
 

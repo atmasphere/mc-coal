@@ -18,30 +18,31 @@ Installation
   >     [~] $ PATH=$PATH:/tmp/google_appengine/
 
 2. [Create an App Engine application](https://appengine.google.com/) for your new COAL installation. Take note of the application id you select.
-3. Clone this repository into the minecraft server directory (the directory containing the `minecraft-server.jar` and `server.log` files).
-4. Change `mc-coal` in the first line of `app.yaml` to the application id you registered above.
-5. Edit `appengine_config.py` installation-specific settings (white-listed users, app title, etc.) as desired.
-6. Deploy the application to app engine using oauth2. This is the first and only time you'll need to deploy the application yourself.
+3. Fork this repository.
+4. Clone the new forked repository into the minecraft server directory (the directory containing the `minecraft-server.jar` and `server.log` files).
+5. Change `mc-coal` in the first line of `app.yaml` to the application id you registered above.
+6. Edit `appengine_config.py` installation-specific settings (white-listed users, app title, etc.) as desired.
+7. Deploy the application to app engine using oauth2. This is the first and only time you'll need to deploy the application yourself.
 
   >     [~/minecraft-server/mc-coal] $ appcfg.py --oauth2 update .
 
-7. Find the `refresh_token` in `~/.appcfg_ouath2_tokens`. You'll need it to allow [drone.io](http://drone.io) to deploy the application for you.
-8. Set up a [drone.io](http://drone.io) account.
-9. Link a new [drone.io](http://drone.io) project to the mc-coal fork. See [drone.io settings](#droneio-settings) below.
-10. Link a new [drone.io](http://drone.io) project deployment to your app engine application. You'll need your refresh token.
-11. Test build/deploy.
-12. In the `mc-coal` directory, run the agent:
+8. Find the `refresh_token` in `~/.appcfg_ouath2_tokens`. You'll need it to allow [drone.io](http://drone.io) to deploy the application for you.
+9. Set up a [drone.io](http://drone.io) account.
+10. Link a new [drone.io](http://drone.io) project to the mc-coal fork. See [drone.io settings](#droneio-settings) below.
+11. Link a new [drone.io](http://drone.io) project deployment to your app engine application. You'll need your refresh token.
+12. Test build/deploy.
+13. In the `mc-coal` directory, run the agent:
 
   >     [~/minecraft-server/mc-coal] $ python mc_coal_agent.py
   >     2013-03-05 16:48:07,772 : main     INFO   Monitoring '../server.log' and reporting to 'my-app-id.appspot.com'...
 
-13. Copy the `mc-start.sh` script into the minecraft server directory. Edit java configuration parameters as desired.
-14. Start the minecraft server with the `mc-start.sh` script:
+14. Copy the `mc-start.sh` script into the minecraft server directory. Edit java configuration parameters as desired.
+15. Start the minecraft server with the `mc-start.sh` script:
 
   >     [~/minecraft-server] $ ./mc-start.sh
   >     2013-03-05 16:49:18 [INFO] Starting minecraft server version 1.4.7
 
-15. Go to the new COAL installation at `http://[my-app-id].appspot.com` where `[my-app-id]` is the application id.
+16. Go to the new COAL installation at `http://[my-app-id].appspot.com` where `[my-app-id]` is the application id.
 
 Continuous Integration Build Status
 -----------------------------------
