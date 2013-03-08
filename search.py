@@ -78,6 +78,7 @@ def search_index(index, query_string, sort_options=None, limit=1000, offset=0):
     )
     query = search.Query(query_string=query_string, options=options)
     retries = 0
+    instances = None
     try:
         results = index.search(query)
         keys = [ndb.Key(urlsafe=result.doc_id) for result in results]
