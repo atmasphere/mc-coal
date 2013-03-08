@@ -107,6 +107,14 @@ h4 {
     font-weight: 200;
 }
 
+input[type="text"] {
+    font: 500 14px/1.45em "Lato", "Helvetica Neue", arial, helvetica, sans-serif;
+    padding: 5px;
+    color: rgba(255,255,255,0.9);
+    background-color: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,0,0,0.5);
+}
+
 .wrap:before, .wrap:after { content: ""; display: table; }
 .wrap:after { clear: both; }
 .wrap { *zoom: 1; } /*IE7*/
@@ -413,6 +421,14 @@ header nav li.user:hover {
     float: right;
 }
 
+.chats h2 {
+    padding: 12px 15px;
+}
+
+.chats h2 div {
+    line-height: 28px;
+}
+
 .chats .chat {
     float: left;
     width: 660px;
@@ -460,6 +476,17 @@ header nav li.user:hover {
 .chats .data {
     color: rgba(255,255,255,0.5);
     font-size: 12px;
+}
+
+#search {
+    float: right;
+}
+
+#search input[type="text"] {
+    height: 16px;
+    width: 200px;
+    padding-right: 20px;
+    background-position: 200px -109px;
 }
 
 
