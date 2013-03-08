@@ -284,7 +284,12 @@ def main(argv):
     parser.add_argument(
         '--parse_mc_history',
         action='store_true',
-        help="Set this flag to parse and report on the Minecraft server log from the beginning rather than just new entries."
+        help="Set this flag to parse and report on the Minecraft server log from the beginning (or where parsing left off last time) rather than just new entries."
+    )
+    parser.add_argument(
+        '--parse_all',
+        action='store_true',
+        help="Set this flag to parse and report on the Minecraft server log from the beginning even if parsing has been partially completed."
     )
     parser.add_argument(
         '--skip_chat_history',
@@ -314,6 +319,9 @@ def main(argv):
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
         last_line = ping_host(coal_host, coal_password, mc_pidfile)
+        parse_all = args.parse_all
+        if parse_all:
+            last_line = None
         last_ping = datetime.datetime.now()
         logger.info("Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
         tail(
