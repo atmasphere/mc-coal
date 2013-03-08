@@ -278,8 +278,6 @@ class ChatsHandler(PagingHandler):
             results, previous_cursor, next_cursor = self.get_results_with_cursors(
                 LogLine.query_latest_chats(), LogLine.query_oldest_chats(), coal_config.RESULTS_PER_PAGE
             )
-        if results:
-            self.request.user.record_chat_view(results[0].timestamp)
         context = {'chats': results, 'query_string': query_string or '', 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('chats.html', context=context)
 
