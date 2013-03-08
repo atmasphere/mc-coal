@@ -195,7 +195,7 @@ header {
     top: 0;
     left: 0;
     right: 0;
-    z-index: 2;
+    z-index: 3;
     background-image: -webkit-linear-gradient(top, rgba(255,255,255,0.7), rgba(255,255,255,0.6));
     background-image: -moz-linear-gradient(top, rgba(255,255,255,0.7), rgba(255,255,255,0.6));
     background-image: -ms-linear-gradient(top, rgba(255,255,255,0.7), rgba(255,255,255,0.6)));
@@ -214,7 +214,7 @@ header div.logo.sprite {
 
 header nav {
     float: right;
-    width: 600px;
+    width: 550px;
 }
 
 header nav a {
@@ -490,7 +490,6 @@ header nav li.user:hover {
 }
 
 
-
 /* FOOTER */
 footer {
     position: fixed;
@@ -514,6 +513,49 @@ footer:hover {
 
 footer .copy {
     font-style: italic;
+}
+
+
+/*** iPad portrait orientation changes (also works for desktop) ***/
+@media only screen and (max-width: 768px) {
+    #header,
+    #content,
+    #footer {
+        width: 700px;
+        margin: 0 auto;
+    }
+    
+    .player_list {
+        float: none;
+        width: 100%;
+    }
+    
+    .player_list.chats.home {
+        float: none;
+        margin-top: 30px;
+        width: 100%;
+    }
+    
+    .sessions .online.playtime {
+        width: 100px;
+    }
+
+    .sessions .online.login {
+        width: 175px;
+    }
+
+    .sessions .online.logout {
+        width: 175px;
+    }
+    
+    .chats .chat {
+        width: 410px;
+    }
+    
+    .chats.home .chat {
+        width: 410px;
+    }
+    
 }
 
 

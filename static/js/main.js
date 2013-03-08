@@ -4,13 +4,5 @@
 ******************************************************/
 
 $(function() {
-    stackBlurImage("bg", "canvas", 11, false);
-    
-    setTimeout(function () {
-        stackBlurImage("bg", "canvas", 11, false);
-    }, 10);
-    
-    $(window).resize(function() {
-        stackBlurImage("bg", "canvas", 11, false);
-    });
+
 });
