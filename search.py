@@ -11,13 +11,15 @@ player_index = search.Index(name='player_search')
 def add_to_index(index, key, fields):
     doc = search.Document(doc_id=key.urlsafe(), fields=fields)
     retries = 0
-    try:
-        index.put(doc)
-    except Exception, e:
-        if retries > 10:
-            logging.error(u"Couldn't add doc_id '{0}' to the search index: {1}".format(key.urlsafe(), e))
-            raise e
-        retries += 1
+    while True:
+        try:
+            index.put(doc)
+            break
+        except Exception, e:
+            if retries > 10:
+                logging.error(u"Couldn't add doc_id '{0}' to the search index: {1}".format(key.urlsafe(), e))
+                raise e
+            retries += 1
     return doc
 
 
@@ -52,13 +54,15 @@ def add_player(player):
 
 def remove_from_index(index, key):
     retries = 0
-    try:
-        index.delete(key.urlsafe())
-    except Exception, e:
-        if retries > 10:
-            logging.error(u"Couldn't remove doc_id '{0}' from the search index: {1}".format(key.urlsafe(), e))
-            raise e
-        retries += 1
+    while True:
+        try:
+            index.delete(key.urlsafe())
+            break
+        except Exception, e:
+            if retries > 10:
+                logging.error(u"Couldn't remove doc_id '{0}' from the search index: {1}".format(key.urlsafe(), e))
+                raise e
+            retries += 1
 
 
 def remove_log_line(log_line_key):
@@ -79,15 +83,17 @@ def search_index(index, query_string, sort_options=None, limit=1000, offset=0):
     query = search.Query(query_string=query_string, options=options)
     retries = 0
     instances = None
-    try:
-        results = index.search(query)
-        keys = [ndb.Key(urlsafe=result.doc_id) for result in results]
-        instances = ndb.get_multi(keys)
-    except Exception, e:
-        if retries > 10:
-            logging.error(u"Couldn't search index: {0}".format(e))
-            raise e
-        retries += 1
+    while True:
+        try:
+            results = index.search(query)
+            keys = [ndb.Key(urlsafe=result.doc_id) for result in results]
+            instances = ndb.get_multi(keys)
+            break
+        except Exception, e:
+            if retries > 10:
+                logging.error(u"Couldn't search index: {0}".format(e))
+                raise e
+            retries += 1
     return instances, results.number_found
 
 
