@@ -150,14 +150,11 @@ class LogLineHandler(JsonRequestHandler):
             tz = pytz.timezone(zone)
         except:
             tz = pytz.utc
-        try:
-            existing_line = LogLine.lookup_line(line)
-            if existing_line is None:
-                log_line = handle_new_line(line, tz)
-                if log_line is not None:
-                    status_code = 201
-        except Exception, e:
-            logging.error(e)
+        existing_line = LogLine.lookup_line(line)
+        if existing_line is None:
+            log_line = handle_new_line(line, tz)
+            if log_line is not None:
+                status_code = 201
         self.json_response({}, status_code=status_code)
 
 
