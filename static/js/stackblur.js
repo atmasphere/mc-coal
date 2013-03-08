@@ -83,11 +83,12 @@ function stackBlurImage( imageID, canvasID, radius, blurAlphaChannel )
 	var w = $(window).width();
     var h = $(window).height();
     
+    /*
     img.style.width  = w + "px";
     img.style.height = h + "px";
     img.width = w;
     img.height = h;
-       
+    */ 
 	var canvas = document.getElementById( canvasID );
       
     canvas.style.width  = w + "px";
@@ -95,12 +96,14 @@ function stackBlurImage( imageID, canvasID, radius, blurAlphaChannel )
     canvas.width = w;
     canvas.height = h;
     
+    /*
     var offsetW = (w - img.naturalWidth) / 2;
     var offsetH = (h - img.naturalHeight) / 2;
+    */
     
     var context = canvas.getContext("2d");
     context.clearRect( 0, 0, w, h );
-    context.drawImage( img, offsetW, 0);
+    context.drawImage( img, 0, 0, w, h);
 
 	if ( isNaN(radius) || radius < 1 ) return;
 	
@@ -405,7 +408,7 @@ function stackBlurCanvasRGB( id, top_x, top_y, width, height, radius )
 		}
 	  }
 	} catch(e) {
-	  alert("Cannot access image");
+	  //alert("Cannot access image");
 	  throw new Error("unable to access image data: " + e);
 	}
 			
