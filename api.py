@@ -192,8 +192,8 @@ def handle_new_line(line, tz):
 
 @ndb.transactional
 def handle_logged_in(line, timezone):
-    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\].+\((-?\w.+), (-?\w.+), (-?\w.+)\)", line)
-    if match and 'logged in' in line:
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\] logged in.+\((-?\w.+), (-?\w.+), (-?\w.+)\)", line)
+    if match:
         dts = "{0} {1}".format(match.group(1), match.group(2))
         naive_utc_dt = dts_to_naive_utc(dts, timezone)
         log_level = match.group(3)
@@ -220,7 +220,7 @@ def handle_logged_in(line, timezone):
 
 @ndb.transactional
 def handle_lost_connection(line, timezone):
-    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)", line)
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+) lost connection: disconnect\.quitting", line)
     if match and 'lost connection' in line:
         dts = "{0} {1}".format(match.group(1), match.group(2))
         naive_utc_dt = dts_to_naive_utc(dts, timezone)

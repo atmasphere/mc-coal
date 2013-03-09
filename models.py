@@ -502,9 +502,17 @@ class ScreenShot(AgarImage, UsernameModel):
 
     @classmethod
     def random(cls):
-        screen_shot = ScreenShot.query().filter(cls.random_id > random.random()).order(cls.random_id).get()
-        if screen_shot is None:
-            screen_shot = ScreenShot.query().order(cls.random_id).get()
+        count = ScreenShot.server_query().count(limit=101)
+        if not count:
+            return None
+        # Small enough for offset?
+        if count <= 100:
+            offset = random.randrange(count)
+            screen_shot = ScreenShot.server_query().order(cls.random_id).get(offset=offset)
+        else:  # Use statistics
+            screen_shot = ScreenShot.server_query().filter(cls.random_id > random.random()).order(cls.random_id).get()
+            if screen_shot is None:
+                screen_shot = ScreenShot.server_query().order(cls.random_id).get()
         return screen_shot
 
     @classmethod

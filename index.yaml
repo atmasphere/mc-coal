@@ -59,6 +59,11 @@ indexes:
 - kind: ScreenShot
   ancestor: yes
   properties:
+  - name: random_id
+
+- kind: ScreenShot
+  ancestor: yes
+  properties:
   - name: created
     direction: desc
 
