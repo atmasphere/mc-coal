@@ -10,7 +10,10 @@ import webapp2_extras.appengine.auth.models as auth_models
 
 from pytz.gae import pytz
 
-from PIL import Image, ImageFilter
+try:
+    from PIL import Image, ImageFilter
+except ImportError:
+    Image = None
 
 from agar.image import NdbImage as AgarImage
 
