@@ -2,7 +2,10 @@ import logging
 import urllib2
 
 from google.appengine.api import users
+from google.appengine.ext import blobstore
+from google.appengine.ext import ndb
 from google.appengine.ext.ndb import Cursor
+from google.appengine.ext.webapp import blobstore_handlers
 
 import webapp2
 
@@ -14,7 +17,7 @@ from agar.env import on_production_server
 
 from config import coal_config
 from filters import FILTERS
-from models import User, Server, Player, LogLine, PlaySession
+from models import User, Server, Player, LogLine, PlaySession, ScreenShot
 import search
 
 
@@ -150,6 +153,9 @@ class UserAwareHandler(JinjaHandler):
         template_context['user'] = self.user
         template_context['config'] = coal_config
         template_context['server'] = Server.global_key().get()
+        bg_img = ScreenShot.random()
+        if bg_img is not None:
+            template_context['bg_img'] = bg_img.blurred_image_serving_url
         return template_context
 
 
@@ -302,6 +308,68 @@ class PlaySessionsHandler(PagingHandler):
         self.render_template('play_sessions.html', context=context)
 
 
+class ScreenShotUploadHandler(BaseHander):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        url = webapp2.uri_for('screen_shot_uploaded')
+        upload_url = blobstore.create_upload_url(url)
+        context = {'upload_url': upload_url}
+        self.render_template('screen_shot_upload.html', context=context)
+
+
+class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler):
+    @webapp2.cached_property
+    def session_store(self):
+        return sessions.get_store(request=self.request)
+
+    @webapp2.cached_property
+    def session(self):
+        return self.session_store.get_session(backend="datastore")
+
+    @webapp2.cached_property
+    def auth(self):
+        return auth.get_auth(request=self.request)
+
+    @webapp2.cached_property
+    def user_info(self):
+        user_info = self.auth.get_user_by_session()
+        return user_info
+
+    @webapp2.cached_property
+    def user(self):
+        user = self.auth.store.user_model.get_by_id(self.user_info['user_id']) if self.user_info else None
+        return user
+
+    @authentication_required(authenticate=authenticate)
+    def post(self):
+        blob_info = self.get_uploads('file')[0]
+        ScreenShot.create(self.request.user.username, blob_info=blob_info)
+        self.redirect(webapp2.uri_for('screen_shots'))
+
+
+class ScreenShotsHandler(PagingHandler):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        results, previous_cursor, next_cursor = self.get_results_with_cursors(
+            ScreenShot.query_latest(), ScreenShot.query_oldest(), coal_config.RESULTS_PER_PAGE
+        )
+        context = {'screen_shots': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        self.render_template('screen_shots.html', context=context)
+
+
+class ScreenShotRemoveHandler(BaseHander):
+    @authentication_required(authenticate=authenticate)
+    def post(self, key):
+        try:
+            screen_shot_key = ndb.Key(urlsafe=key)
+            screen_shot = screen_shot_key.get()
+            if screen_shot is not None:
+                screen_shot.key.delete()
+        except Exception, e:
+            logging.error(u"Error removing screen shot: {0}".format(e))
+        self.redirect(webapp2.uri_for('screen_shots'))
+
+
 application = webapp2.WSGIApplication(
     [
         RedirectRoute('/login_callback', handler='main.GoogleAppEngineUserAuthHandler:login_callback', name='login_callback'),
@@ -309,7 +377,11 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/', handler=HomeHandler, name="home"),
         RedirectRoute('/chats', handler=ChatsHandler, strict_slash=True, name="chats"),
         RedirectRoute('/players', handler=PlayersHandler, strict_slash=True, name="players"),
-        RedirectRoute('/sessions', handler=PlaySessionsHandler, strict_slash=True, name="play_sessions")
+        RedirectRoute('/sessions', handler=PlaySessionsHandler, strict_slash=True, name="play_sessions"),
+        RedirectRoute('/screen_shot_upload', handler=ScreenShotUploadHandler, strict_slash=True, name="screen_shot_upload"),
+        RedirectRoute('/screen_shot_uploaded', handler=ScreenShotUploadedHandler, strict_slash=True, name="screen_shot_uploaded"),
+        RedirectRoute('/screen_shots', handler=ScreenShotsHandler, strict_slash=True, name="screen_shots"),
+        RedirectRoute('/screen_shot_remove/<key>', handler=ScreenShotRemoveHandler, strict_slash=True, name="screen_shot_remove"),
     ],
     config={
         'webapp2_extras.sessions': {'secret_key': coal_config.SECRET_KEY},

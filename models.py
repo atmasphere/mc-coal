@@ -1,12 +1,18 @@
+from cStringIO import StringIO
 import datetime
 import logging
+import random
 
-from google.appengine.ext import ndb
+from google.appengine.ext import ndb, blobstore
 from google.appengine.api import users, memcache, mail, app_identity
 
 import webapp2_extras.appengine.auth.models as auth_models
 
 from pytz.gae import pytz
+
+from PIL import Image, ImageFilter
+
+from agar.image import NdbImage as AgarImage
 
 from config import coal_config
 import search
@@ -247,6 +253,8 @@ class Location(ndb.Model):
 
 
 class UsernameModel(ServerModel):
+    username = ndb.StringProperty()
+
     @property
     def user(self):
         return User.lookup(username=self.username)
@@ -265,7 +273,6 @@ class LogLine(UsernameModel):
     timestamp = ndb.DateTimeProperty()
     has_timestamp = ndb.ComputedProperty(lambda self: self.timestamp is not None)
     log_level = ndb.StringProperty()
-    username = ndb.StringProperty()
     ip = ndb.StringProperty()
     port = ndb.StringProperty()
     location = ndb.StructuredProperty(Location)
@@ -347,7 +354,6 @@ class LogLine(UsernameModel):
 
 
 class PlaySession(UsernameModel):
-    username = ndb.StringProperty()
     login_timestamp = ndb.DateTimeProperty(required=True)
     logout_timestamp = ndb.DateTimeProperty()
     zone = ndb.StringProperty(required=True)
@@ -428,3 +434,75 @@ class PlaySession(UsernameModel):
     @classmethod
     def query_oldest(cls):
         return cls.server_query().order(cls.login_timestamp)
+
+
+class MyGaussianBlur(ImageFilter.Filter):
+    name = "GaussianBlur"
+
+    def __init__(self, radius=2):
+        self.radius = radius
+
+    def filter(self, image):
+        return image.gaussian_blur(self.radius)
+
+
+class ScreenShot(AgarImage, UsernameModel):
+    random_id = ndb.FloatProperty()
+    blurred_image_key = ndb.KeyProperty(kind=AgarImage)
+    created = ndb.DateTimeProperty(auto_now_add=True)
+    updated = ndb.DateTimeProperty(auto_now=True)
+
+    @classmethod
+    def _pre_delete_hook(cls, key):
+        instance = key.get()
+        blurred_image = instance.blurred_image
+        if blurred_image is not None:
+            blurred_image.key.delete()
+
+    @property
+    def blurred_image(self):
+        return self.blurred_image_key.get() if self.blurred_image_key else None
+
+    @property
+    def blurred_image_serving_url(self):
+        blurred_image = self.blurred_image
+        if blurred_image is not None:
+            return blurred_image.get_serving_url()
+        return None
+
+    def create_blurred(self):
+        blob_reader = blobstore.BlobReader(self.blob_key)
+        pil_image = Image.open(blob_reader)
+        my_filter = MyGaussianBlur(radius=10)
+        pil_image = pil_image.filter(my_filter)
+        output = StringIO()
+        pil_image.save(output, format="png")
+        pil_image_data = output.getvalue()
+        output.close()
+        blurred_image = AgarImage.create(parent=self.key, data=pil_image_data, mime_type='image/png')
+        self.blurred_image_key = blurred_image.key
+        self.put()
+
+    @classmethod
+    def create(cls, username, **kwargs):
+        instance = super(ScreenShot, cls).create(parent=Server.global_key(), **kwargs)
+        instance.username = username
+        instance.random_id = random.random()
+        instance.put()
+        instance.create_blurred()
+        return instance
+
+    @classmethod
+    def random(cls):
+        screen_shot = ScreenShot.query().filter(cls.random_id > random.random()).order(cls.random_id).get()
+        if screen_shot is None:
+            screen_shot = ScreenShot.query().order(cls.random_id).get()
+        return screen_shot
+
+    @classmethod
+    def query_latest(cls):
+        return cls.server_query().order(-cls.created)
+
+    @classmethod
+    def query_oldest(cls):
+        return cls.server_query().order(cls.created)

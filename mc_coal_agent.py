@@ -229,7 +229,7 @@ def init_loggers(debug=False, logfile='agent.log'):
     ping_logger.propagate = False
     log_line_logger.setLevel(logging.DEBUG)
     log_line_logger.propagate = False
-    formatter = logging.Formatter('%(asctime)s : %(name)-8s %(levelname)-6s %(message)s')
+    formatter = logging.Formatter(u'%(asctime)s : %(name)-8s %(levelname)-6s %(message)s')
     if logfile:
         fh = logging.FileHandler(logfile)
         fh.setLevel(logging.DEBUG)
@@ -259,7 +259,7 @@ def main(argv):
     parser.add_argument(
         '--agent_logfile',
         default=DEFAULT_AGENT_LOGFILE,
-        help="The MC COAL agent log filename (default: '{0}'). Set to blank (i.e. '--agent-logfile=') to supress file logging.".format(DEFAULT_AGENT_LOGFILE)
+        help="The MC COAL agent log filename (default: '{0}'). Set to blank (i.e. '--agent-logfile=') to suppress file logging.".format(DEFAULT_AGENT_LOGFILE)
     )
     coal_host = get_application_host()
     parser.add_argument(
@@ -344,7 +344,7 @@ def main(argv):
     except NoPasswordException:
         logger.error("No MC COAL server API password provided.")
     except KeyboardInterrupt:
-        logger.info("Cancelled")
+        logger.info("Canceled")
     except SystemExit:
         logger.info("System Exit")
     except Exception, e:

@@ -9,6 +9,8 @@ libraries:
   version: latest
 - name: jinja2
   version: latest
+- name: PIL
+  version: latest
 
 builtins:
 - remote_api: on

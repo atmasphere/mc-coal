@@ -61,6 +61,10 @@ class MainBaseTest(BaseTest, WebTest):
     def assertNotLoggedIn(self, response):
         self.assertIn('Login', response.body)
 
+    def assertCreated(self, response):
+        error = u'Response did not return a 201 CREATED (status code was {0})\nBody: {1}'.format(response.status_int, response.body)
+        self.assertEqual(response.status_int, 201, error)
+
     def setUp(self):
         super(MainBaseTest, self).setUp()
 
@@ -153,3 +157,22 @@ class PlaySessionsTest(AuthTest):
         response = self.get(self.URL)
         self.assertOK(response)
 
+
+class ScreenShotUploadTest(AuthTest):
+    URL = '/screen_shot_upload'
+
+    def test_get(self):
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertIn("http://localhost/_ah/upload/", response.body)
+
+    # def test_post(self):
+    #     self.log_in_user()
+    #     response = self.get(self.URL)
+    #     body = response.body
+    #     i = body.index("http://localhost/")
+    #     j = body.index('"', i)
+    #     url = body[i:j]
+    #     self.post(url, {'file': None})
+    #     self.assertRedirects(response, '/')
