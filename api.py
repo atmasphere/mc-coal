@@ -17,7 +17,7 @@ from agar.env import on_production_server
 from restler.serializers import json_response as restler_json_response
 
 from config import coal_config
-from models import Server, LogLine, Location, Player, PlaySession
+from models import Server, LogLine, Location, PlaySession
 from models import CONNECTION_TAG, LOGIN_TAG, LOGOUT_TAG
 from models import CHAT_TAG
 from models import SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG, STOPPING_TAG, STARTING_TAG
@@ -192,7 +192,7 @@ def handle_new_line(line, tz):
 
 @ndb.transactional
 def handle_logged_in(line, timezone):
-    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\].+\((\w.+), (\w.+), (\w.+)\)", line)
+    match = re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] (\w+)\[/([\w.]+):(\w+)\].+\((-?\w.+), (-?\w.+), (-?\w.+)\)", line)
     if match and 'logged in' in line:
         dts = "{0} {1}".format(match.group(1), match.group(2))
         naive_utc_dt = dts_to_naive_utc(dts, timezone)
