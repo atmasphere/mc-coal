@@ -20,6 +20,8 @@ from agar.image import NdbImage as AgarImage
 from config import coal_config
 import search
 
+UNKNOWN_TAG = 'unknown'
+TIMESTAMP_TAG = 'timestamp'
 CONNECTION_TAG = 'connection'
 LOGIN_TAG = 'login'
 LOGOUT_TAG = 'logout'
@@ -287,6 +289,10 @@ class LogLine(UsernameModel):
     def _pre_put_hook(self):
         if self.username:
             Player.get_or_create(self.username)
+        if not self.tags:
+            self.tags = [UNKNOWN_TAG]
+        if TIMESTAMP_TAG not in self.tags and self.timestamp is not None:
+            self.tags.insert(0, TIMESTAMP_TAG)
 
     def _post_put_hook(self, future):
         search.add_log_line(self)

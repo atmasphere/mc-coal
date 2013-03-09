@@ -138,7 +138,7 @@ class LogLineTest(ApiTest):
         log_line = models.LogLine.query().get()
         self.assertEqual(LOG_LINE, log_line.line)
         self.assertEqual(TIME_ZONE, log_line.zone)
-        self.assertEqual([], log_line.tags)
+        self.assertEqual([u'unknown'], log_line.tags)
 
     def test_post_time_stamp_log_line(self):
         params = {'line': TIME_STAMP_LOG_LINE, 'zone': TIME_ZONE}
@@ -152,7 +152,7 @@ class LogLineTest(ApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 7, 20, 10, 9), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
-        self.assertEqual([], log_line.tags)
+        self.assertEqual([u'timestamp', u'unknown'], log_line.tags)
 
     def test_post_server_start_log_line(self):
         params = {'line': SERVER_START_LOG_LINE, 'zone': TIME_ZONE}
