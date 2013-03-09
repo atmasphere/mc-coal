@@ -13,7 +13,7 @@ from pytz.gae import pytz
 try:
     from PIL import Image, ImageFilter
 except ImportError:
-    Image = None
+    Image = ImageFilter = None
 
 from agar.image import NdbImage as AgarImage
 
@@ -438,15 +438,15 @@ class PlaySession(UsernameModel):
     def query_oldest(cls):
         return cls.server_query().order(cls.login_timestamp)
 
+if ImageFilter is not None:
+    class MyGaussianBlur(ImageFilter.Filter):
+        name = "GaussianBlur"
 
-class MyGaussianBlur(ImageFilter.Filter):
-    name = "GaussianBlur"
+        def __init__(self, radius=2):
+            self.radius = radius
 
-    def __init__(self, radius=2):
-        self.radius = radius
-
-    def filter(self, image):
-        return image.gaussian_blur(self.radius)
+        def filter(self, image):
+            return image.gaussian_blur(self.radius)
 
 
 class ScreenShot(AgarImage, UsernameModel):
