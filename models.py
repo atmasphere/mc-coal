@@ -3,7 +3,7 @@ import datetime
 import logging
 import random
 
-from google.appengine.ext import ndb, blobstore
+from google.appengine.ext import ndb, blobstore, deferred
 from google.appengine.api import users, memcache, mail, app_identity
 
 import webapp2_extras.appengine.auth.models as auth_models
@@ -449,6 +449,11 @@ if ImageFilter is not None:
             return image.gaussian_blur(self.radius)
 
 
+def blur(screen_shot_key):
+    screen_shot = ndb.Key(urlsafe=screen_shot_key).get()
+    screen_shot.create_blurred()
+
+
 class ScreenShot(AgarImage, UsernameModel):
     random_id = ndb.FloatProperty()
     blurred_image_key = ndb.KeyProperty(kind=AgarImage)
@@ -492,7 +497,7 @@ class ScreenShot(AgarImage, UsernameModel):
         instance.username = username
         instance.random_id = random.random()
         instance.put()
-        instance.create_blurred()
+        deferred.defer(blur, instance.key.urlsafe())
         return instance
 
     @classmethod

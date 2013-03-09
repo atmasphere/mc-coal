@@ -13,7 +13,7 @@
         {% for screen_shot in screen_shots %}
             <div>Uploaded by {{ screen_shot.username }}
                 <img src="{{ screen_shot.get_serving_url() }}" width="25%", height="25%">
-                <img src="{{ screen_shot.blurred_image_serving_url }}" width="25%", height="25%">
+                <img src="{{ screen_shot.blurred_image_serving_url or '/img/cap/blurring.png' }}" width="25%", height="25%">
                 <form action="{{ uri_for('screen_shot_remove', key=screen_shot.key.urlsafe()) }}" method="POST">
                     <input type="submit" name="submit" value="Remove">
                 </form>
