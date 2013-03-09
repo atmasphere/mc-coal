@@ -56,13 +56,12 @@ class BaseTest(unittest.TestCase):
 
         stub = SearchServiceStub()
         self.testbed._register_stub('search', stub)
-        self.testbed.init_images_stub()
 
-        # try:
-        #     from google.appengine.api.images import images_stub
-        #     self.testbed.init_images_stub()
-        # except ImportError:
-        #     pass
+        try:
+            from google.appengine.api.images import images_stub
+            self.testbed.init_images_stub()
+        except ImportError:
+            pass
 
     def tearDown(self):
         # deactivate testbed; also has effect of clearning any
