@@ -1,15 +1,15 @@
-# Default COAL Configuration
+# Install-specific COAL Configuration
 
-COAL_TITLE = "MC COAL"
+COAL_TITLE = "My Minecraft Community"
 
 COAL_USER_WHITELIST = [
     {
-        'email': 'admin@example.com',
+        'email': 'steve@example.com',
         'username': 'steve',
         'admin': True
     },
     {
-        'email': 'test@example.com',
+        'email': 'bill@example.com',
         'username': 'bill',
         'admin': False
     }
@@ -17,13 +17,8 @@ COAL_USER_WHITELIST = [
 
 COAL_TIMEZONE = 'US/Central'
 
-COAL_RESULTS_PER_PAGE = 50
-
 COAL_API_PASSWORD = 'a_password'
 
 COAL_SECRET_KEY = 'a_secret_string'
 
-try:
-    from mc_coal_config import *
-except ImportError, e:
-    pass
+COAL_RESULTS_PER_PAGE = 50
