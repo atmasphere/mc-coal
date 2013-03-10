@@ -56,6 +56,13 @@ class JinjaHandler(webapp2.RequestHandler):
         self.response.write(self.jinja2.render_template(filename, **context))
 
 
+def get_whitelist_user(email):
+    for wlu in coal_config.USER_WHITELIST:
+        if email == wlu['email']:
+            return wlu
+    return None
+
+
 def get_callback_url(handler, next_url=None):
     if next_url is None:
         next_url = handler.request.path_qs
@@ -66,44 +73,39 @@ def get_callback_url(handler, next_url=None):
 
 
 def get_login_url(handler, next_url=None):
-    callback_url = get_callback_url(handler, next_url=next_url)
-    if users.get_current_user() is None:
-        return users.create_login_url(callback_url)
-    return callback_url
+    return users.create_login_url(get_callback_url(handler, next_url=next_url))
 
 
 def authenticate(handler, required=True, admin=False):
-    user_dict = handler.auth.get_user_by_session()
-    if not user_dict:
-        user = None
-    else:
-        user = handler.auth.store.user_model.get_by_id(user_dict['user_id'])
+    user = handler.user
     if user is not None:
-        allowed = None
-        for wlu in coal_config.USER_WHITELIST:
-            if user.email == wlu['email']:
-                allowed = wlu
-                update = False
-                if not user.active:
-                    user.active = True
-                    update = True
-                if user.admin != allowed['admin']:
-                    user.admin = allowed['admin']
-                    update = True
-                if user.username != allowed['username']:
-                    user.username = allowed['username']
-                    update = True
-                if update:
-                    user.put()
-        if not allowed:
-            user.active = False
+        update = False
+        wlu = get_whitelist_user(user.email)
+        if wlu:
+            if not user.active:
+                user.active = True
+                update = True
+            if user.admin != wlu['admin']:
+                user.admin = wlu['admin']
+                update = True
+            if user.username != wlu['username']:
+                user.username = wlu['username']
+                update = True
+        else:
+            if user.active:
+                user.active = False
+                update = True
+        if update:
             user.put()
-            user = None
-    if required and not user:
-        handler.redirect(get_login_url(handler), abort=True)
+    if required and not (user and user.active):
+        handler.redirect(webapp2.uri_for('home'), abort=True)
     if admin and not user.admin:
-        handler.redirect('/', abort=True)
+        handler.redirect(webapp2.uri_for('home'), abort=True)
     return user
+
+
+def authenticate_public(handler):
+    return authenticate(handler, required=False, admin=False)
 
 
 class UserAwareHandler(JinjaHandler):
@@ -121,19 +123,19 @@ class UserAwareHandler(JinjaHandler):
 
     @webapp2.cached_property
     def user_info(self):
-        user_info = self.auth.get_user_by_session()
-        return user_info
+        return self.auth.get_user_by_session()
 
     @webapp2.cached_property
     def user(self):
-        user = self.auth.store.user_model.get_by_id(self.user_info['user_id']) if self.user_info else None
+        user_info = self.user_info
+        user = self.auth.store.user_model.get_by_id(user_info['user_id']) if user_info else None
         return user
 
     def logged_in(self):
-        return self.auth.get_user_by_session() is not None
+        return self.user is not None
 
     def logout(self, redirect_url=None):
-        redirect_url = redirect_url or '/'
+        redirect_url = redirect_url or webapp2.uri_for('home')
         self.auth.unset_session()
         logout_url = users.create_logout_url(redirect_url)
         self.redirect(logout_url)
@@ -162,46 +164,47 @@ class UserAwareHandler(JinjaHandler):
 class GoogleAppEngineUserAuthHandler(UserAwareHandler):
     def login_callback(self):
         next_url = self.request.params.get('next_url', '')
+        user = None
         gae_user = users.get_current_user()
-        if not gae_user:
-            self.redirect(get_login_url(self, next_url=next_url), abort=True)
-        auth_id = User.get_gae_user_auth_id(gae_user=gae_user)
-        user = self.auth.store.user_model.get_by_auth_id(auth_id)
-        if user:
-            # existing user. just log them in.
-            self.auth.set_session(self.auth.store.user_to_dict(user))
-            # update access for gae admins
-            if users.is_current_user_admin():
-                if not (user.active and user.admin):
-                    user.admin = True
-                    user.put()
-        else:
-            # check whether there's a user currently logged in
-            # then, create a new user if no one is signed in,
-            # otherwise add this auth_id to currently logged in user.
-            if self.logged_in and self.user:
-                u = self.user
-                u.auth_ids.append(auth_id)
-                u.populate(email=gae_user.email(), nickname=gae_user.nickname())
+        if gae_user:
+            auth_id = User.get_gae_user_auth_id(gae_user=gae_user)
+            user = self.auth.store.user_model.get_by_auth_id(auth_id)
+            if user:
+                # existing user. just log them in.
+                self.auth.set_session(self.auth.store.user_to_dict(user))
+                # update access for gae admins
                 if users.is_current_user_admin():
-                    u.admin = True
-                u.put()
+                    if not (user.active and user.admin):
+                        user.admin = True
+                        user.put()
             else:
-                ok, user = self.auth.store.user_model.create_user(
-                    auth_id,
-                    email=gae_user.email(),
-                    nickname=gae_user.nickname(),
-                    admin=users.is_current_user_admin()
-                )
-                if ok:
-                    self.auth.set_session(self.auth.store.user_to_dict(user))
+                # check whether there's a user currently logged in
+                # then, create a new user if no one is signed in,
+                # otherwise add this auth_id to currently logged in user.
+                if self.logged_in and self.user:
+                    u = self.user
+                    if auth_id not in u.auth_ids:
+                        u.auth_ids.append(auth_id)
+                    u.populate(email=gae_user.email(), nickname=gae_user.nickname())
+                    if users.is_current_user_admin():
+                        u.admin = True
+                    u.put()
                 else:
-                    logging.debug('create_user() returned False with strings: %s' % user)
-                    user = None
-                    self.auth.unset_session()
+                    ok, user = self.auth.store.user_model.create_user(
+                        auth_id,
+                        email=gae_user.email(),
+                        nickname=gae_user.nickname(),
+                        admin=users.is_current_user_admin()
+                    )
+                    if ok:
+                        self.auth.set_session(self.auth.store.user_to_dict(user))
+                    else:
+                        logging.debug('create_user() returned False with strings: %s' % user)
+                        user = None
+                        self.auth.unset_session()
         if not (user and user.active):
-            next_url = '/'
-        self.redirect(next_url or '/')
+            next_url = webapp2.uri_for('home')
+        self.redirect(next_url or webapp2.uri_for('home'))
 
 
 class BaseHander(UserAwareHandler):
@@ -211,26 +214,37 @@ class BaseHander(UserAwareHandler):
 
 
 class HomeHandler(BaseHander):
-    @authentication_required(authenticate=authenticate)
+    @authentication_required(authenticate=authenticate_public)
     def get(self):
-        open_sessions_query = PlaySession.query_latest_open()
-        # Get open sessions
-        playing_usernames = []
-        open_sessions = []
-        for open_session in open_sessions_query:
-            if open_session.username and open_session.username not in playing_usernames:
-                playing_usernames.append(open_session.username)
-                open_sessions.append(open_session)
-        # Get new chats
-        new_chats_query = LogLine.query_latest_chats()
-        last_chat_view = self.request.user.last_chat_view
-        if last_chat_view is not None:
-            new_chats_query = new_chats_query.filter(LogLine.timestamp > last_chat_view)
-        new_chats, chats_cursor, more = new_chats_query.fetch_page(20)
-        if new_chats:
-            self.request.user.record_chat_view(new_chats[0].timestamp)
-        # Render with context
-        context = {'open_sessions': open_sessions, 'new_chats': new_chats, 'chats_cursor': chats_cursor}
+        user = self.request.user
+        if user and user.active:
+            open_sessions_query = PlaySession.query_latest_open()
+            # Get open sessions
+            playing_usernames = []
+            open_sessions = []
+            for open_session in open_sessions_query:
+                if open_session.username and open_session.username not in playing_usernames:
+                    playing_usernames.append(open_session.username)
+                    open_sessions.append(open_session)
+            # Get new chats
+            new_chats_query = LogLine.query_latest_chats()
+            last_chat_view = self.request.user.last_chat_view
+            if last_chat_view is not None:
+                new_chats_query = new_chats_query.filter(LogLine.timestamp > last_chat_view)
+            new_chats, chats_cursor, more = new_chats_query.fetch_page(20)
+            if new_chats:
+                self.request.user.record_chat_view(new_chats[0].timestamp)
+            # Render with context
+            context = {
+                'open_sessions': open_sessions,
+                'new_chats': new_chats,
+                'chats_cursor': chats_cursor,
+                'logout_url': webapp2.uri_for('logout')
+            }
+        elif user:  # Logged in, but not on white-list and active
+            context = {'logout_url': webapp2.uri_for('logout')}
+        else:  # Not logged in
+            context = {'login_url': get_login_url(self)}
         self.render_template('home.html', context=context)
 
 

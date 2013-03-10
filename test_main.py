@@ -97,6 +97,12 @@ class AuthTest(MainBaseTest):
             response = self.get(self.URL)
             self.assertRedirects(response)
 
+    def test_get_inactive(self):
+        if self.URL:
+            self.log_in_user(email='hacker@example.com')
+            response = self.get(self.URL)
+            self.assertRedirects(response)
+
     def test_logout(self):
         if self.URL:
             self.log_in_user()
@@ -129,6 +135,41 @@ class HomeTest(AuthTest):
         self.log_in_user()
         response = self.get(self.URL)
         self.assertOK(response)
+
+    def test_get_no_auth(self):
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertIn('Log In', response.body)
+
+    def test_get_inactive(self):
+        self.log_in_user(email='hacker@example.com')
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertIn('Log Out', response.body)
+
+    def test_logout(self):
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+        self.log_out_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertIn('Log In', response.body)
+
+    def test_login_again(self):
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+        self.log_out_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertIn('Log In', response.body)
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
 
 
 class ChatsTest(AuthTest):
