@@ -175,6 +175,7 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
                 # update access for gae admins
                 if users.is_current_user_admin():
                     if not (user.active and user.admin):
+                        user.active = True
                         user.admin = True
                         user.put()
             else:
@@ -194,6 +195,7 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
                         auth_id,
                         email=gae_user.email(),
                         nickname=gae_user.nickname(),
+                        active=users.is_current_user_admin(),
                         admin=users.is_current_user_admin()
                     )
                     if ok:

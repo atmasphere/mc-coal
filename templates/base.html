@@ -28,12 +28,12 @@
         {% block menu %}
         <nav>
             <ul>
-                <li class="user">{{ user.nickname }}</li><a href="{{ uri_for('players') }}"><li {% if nav=="Players" %}class="on"{% endif %}>Players</li></a><a href="{{ uri_for('play_sessions') }}"><li {% if nav=="Sessions" %}class="on"{% endif %}>Sessions</li></a><a href="{{ uri_for('chats') }}"><li {% if nav=="Chats" %}class="on"{% endif %}>Chats</li></a>
+                <li class="user">{{ user.nickname }}{% if user.username %} ({{ user.username }}){% endif %}</li><a href="{{ uri_for('players') }}"><li {% if nav=="Players" %}class="on"{% endif %}>Players</li></a><a href="{{ uri_for('play_sessions') }}"><li {% if nav=="Sessions" %}class="on"{% endif %}>Sessions</li></a><a href="{{ uri_for('chats') }}"><li {% if nav=="Chats" %}class="on"{% endif %}>Chats</li></a>
             </ul>
         </nav>
         {% endblock %}
         </div>
-    </header>
+    </header>03
 
     <div id="main">
         <div id="content">
@@ -44,7 +44,7 @@
     <footer>
         {% block footer %}
         <div id="footer">
-            <span class="copy">&copy; Copyright 2013&nbsp;&nbsp;The MineCraft Community Online Activity Log</span>
+            <span class="copy">&copy; Copyright 2013&nbsp;&nbsp;<a href="http://mc-coal.org">The MineCraft Community Online Activity Log</a></span>
             <span class="right">Code: <a href="http://www.gumption.com">Thomas Bohmbach, Jr.</a>&nbsp;&nbsp;|&nbsp;&nbsp;Design: <a href="http://brentgustafson.com">Brent Gustafson</a></span>
         </div>
         {% endblock %}
