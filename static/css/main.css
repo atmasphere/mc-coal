@@ -13,7 +13,7 @@ html { font-size: 100%; /*IE7*/ -webkit-text-size-adjust: 100%; /*iOS*/ -ms-text
 html, button, input, select, textarea { font-family: sans-serif; text-rendering: optimizeLegibility; }
 body { margin: 0; }
 
-a { color: #00e; } /*IE7*/ 
+a { color: #00e; } /*IE7*/
 a:hover { color: #06e; } /*IE7*/
 a:focus { outline: thin solid; }
 a:hover, a:active { outline: 0; }
@@ -67,7 +67,7 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-a { 
+a {
     color: #059ee6;
     text-decoration: none;
 }
@@ -214,7 +214,7 @@ header div.logo.sprite {
 
 header nav {
     float: right;
-    width: 750px;
+    width: 550px;
 }
 
 header nav a {
@@ -524,18 +524,18 @@ footer .copy {
         width: 700px;
         margin: 0 auto;
     }
-    
+
     .player_list {
         float: none;
         width: 100%;
     }
-    
+
     .player_list.chats.home {
         float: none;
         margin-top: 30px;
         width: 100%;
     }
-    
+
     .sessions .online.playtime {
         width: 100px;
     }
@@ -547,15 +547,15 @@ footer .copy {
     .sessions .online.logout {
         width: 175px;
     }
-    
+
     .chats .chat {
         width: 410px;
     }
-    
+
     .chats.home .chat {
         width: 410px;
     }
-    
+
 }
 
 
