@@ -1,6 +1,7 @@
 from cStringIO import StringIO
 import datetime
 import logging
+import re
 import random
 
 from google.appengine.ext import ndb, blobstore, deferred
@@ -31,6 +32,64 @@ PERFORMANCE_TAG = 'performance'
 OVERLOADED_TAG = 'overloaded'
 STOPPING_TAG = 'stopping'
 STARTING_TAG = 'starting'
+LOGIN_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGIN_TAG]
+LOGOUT_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGOUT_TAG]
+CHAT_TAGS = [TIMESTAMP_TAG, CHAT_TAG]
+OVERLOADED_TAGS = [TIMESTAMP_TAG, SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG]
+STOPPING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STOPPING_TAG]
+STARTING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STARTING_TAG]
+TIMESTAMP_TAGS = [TIMESTAMP_TAG, UNKNOWN_TAG]
+REGEX_TAGS = [
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+)\[/(?P<ip>[\w.]+):(?P<port>\w+)\] logged in.+\((?P<location_x>-?\w.+), (?P<location_y>-?\w.+), (?P<location_z>-?\w.+)\)"
+        ],
+        LOGIN_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) lost connection: disconnect\.quitting"
+        ],
+        LOGOUT_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \<(?P<username>\w+)\> (?P<chat>.+)"
+        ],
+        CHAT_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Can't keep up! Did the system time change, or is the server overloaded\?"
+        ],
+        OVERLOADED_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Stopping server"
+        ],
+        STOPPING_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Starting minecraft server version (?P<server_version>[\S:]+)"
+        ],
+        STARTING_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] .+"
+        ],
+        TIMESTAMP_TAGS
+    )
+]
+
+
+def safe_float_from_string(float_string):
+    try:
+        return float(float_string)
+    except:
+        return None
 
 
 def dts_to_naive_utc(dts, tz):
@@ -306,12 +365,57 @@ class LogLine(UsernameModel):
         search.remove_log_line(key)
 
     @classmethod
+    @ndb.transactional
     def create(cls, line, zone, **kwargs):
-        instance = cls(parent=Server.global_key(), line=line, zone=zone, **kwargs)
-        instance.put()
-        if instance.username:
-            Player.get_or_create(instance.username)
-        return instance
+        try:
+            tz = pytz.timezone(zone)
+        except:
+            tz = pytz.utc
+        zone = tz.zone
+        kwargs['tags'] = [UNKNOWN_TAG]
+        for regexes, tags in REGEX_TAGS:
+            match = None
+            for regex in regexes:
+                match = re.match(regex, line)
+                if match:
+                    gd = match.groupdict()
+                    d = gd.pop('date', None)
+                    t = gd.pop('time', None)
+                    if d and t:
+                        dts = "{0} {1}".format(d, t)
+                        kwargs['timestamp'] = dts_to_naive_utc(dts, tz)
+                    location_x = gd.pop('location_x', None)
+                    location_y = gd.pop('location_y', None)
+                    location_z = gd.pop('location_z', None)
+                    if location_x and location_y and location_z:
+                        kwargs['location'] = Location(
+                            x=safe_float_from_string(location_x),
+                            y=safe_float_from_string(location_y),
+                            z=safe_float_from_string(location_z)
+                        )
+                    kwargs.update(gd)
+                    kwargs['tags'] = tags
+                    break
+            if match:
+                break
+        server_version = kwargs.pop('server_version', None)
+        if server_version is not None:
+            server = Server.global_key().get()
+            server.version = server_version
+            server.put()
+        log_line = cls(parent=Server.global_key(), line=line, zone=zone, **kwargs)
+        log_line.put()
+        if log_line.username:
+            Player.get_or_create(log_line.username)
+        if LOGIN_TAG in log_line.tags:
+            PlaySession.create(log_line.username, log_line.timestamp, zone, log_line.key)
+        if LOGOUT_TAG in log_line.tags:
+            PlaySession.close_current(log_line.username, log_line.timestamp, log_line.key)
+        if STARTING_TAG in log_line.tags or STOPPING_TAG in log_line.tags:
+            open_sessions_query = PlaySession.query_open()
+            for session in open_sessions_query:
+                session.close(log_line.timestamp, log_line.key)
+        return log_line
 
     @classmethod
     def lookup_line(cls, line):

@@ -167,7 +167,7 @@ class LogLineTest(ApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 15, 21, 5), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
-        self.assertEqual(api.STARTING_TAGS, log_line.tags)
+        self.assertEqual(models.STARTING_TAGS, log_line.tags)
 
     def test_post_server_stop_log_line(self):
         params = {'line': SERVER_STOP_LOG_LINE, 'zone': TIME_ZONE}
@@ -181,7 +181,7 @@ class LogLineTest(ApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 15, 21, 26, 11), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
-        self.assertEqual(api.STOPPING_TAGS, log_line.tags)
+        self.assertEqual(models.STOPPING_TAGS, log_line.tags)
 
     def test_post_overloaded_log_line(self):
         params = {'line': OVERLOADED_LOG_LINE, 'zone': TIME_ZONE}
@@ -195,7 +195,7 @@ class LogLineTest(ApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 21, 5, 1, 46), log_line.timestamp)
         self.assertEqual('WARNING', log_line.log_level)
-        self.assertEqual(api.OVERLOADED_TAGS, log_line.tags)
+        self.assertEqual(models.OVERLOADED_TAGS, log_line.tags)
 
     def test_post_chat_log_line(self):
         params = {'line': CHAT_LOG_LINE, 'zone': TIME_ZONE}
@@ -211,7 +211,7 @@ class LogLineTest(ApiTest):
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('vesicular', log_line.username)
         self.assertEqual('yo yo', log_line.chat)
-        self.assertEqual(api.CHAT_TAGS, log_line.tags)
+        self.assertEqual(models.CHAT_TAGS, log_line.tags)
         self.assertEqual(1, models.Player.query().count())
         player = models.Player.lookup(log_line.username)
         self.assertIsNotNone(player)
@@ -229,7 +229,7 @@ class LogLineTest(ApiTest):
         self.assertEqual(datetime.datetime(2012, 10, 10, 1, 50, 8), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
-        self.assertEqual(api.LOGOUT_TAGS, log_line.tags)
+        self.assertEqual(models.LOGOUT_TAGS, log_line.tags)
         self.assertEqual(0, models.PlaySession.query().count())
         play_session = models.PlaySession.current('gumptionthomas')
         self.assertIsNone(play_session)
@@ -250,7 +250,7 @@ class LogLineTest(ApiTest):
         self.assertEqual(datetime.datetime(2012, 10, 10, 0, 52, 55), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
-        self.assertEqual(api.LOGIN_TAGS, log_line.tags)
+        self.assertEqual(models.LOGIN_TAGS, log_line.tags)
         self.assertEqual(1, models.PlaySession.query().count())
         play_session = models.PlaySession.current('gumptionthomas')
         self.assertIsNotNone(play_session)
@@ -274,7 +274,7 @@ class LogLineTest(ApiTest):
         self.assertEqual(datetime.datetime(2013, 3, 9, 3, 6, 34), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
-        self.assertEqual(api.LOGIN_TAGS, log_line.tags)
+        self.assertEqual(models.LOGIN_TAGS, log_line.tags)
         self.assertEqual(2, models.PlaySession.query().count())
         play_session = models.PlaySession.current('gumptionthomas')
         self.assertIsNotNone(play_session)

@@ -9,11 +9,8 @@ for d in os.environ["PATH"].split(":"):
         import dev_appserver
         dev_appserver.fix_sys_path()
 
-from pytz.gae import pytz
-
 from agar.test.base_test import BaseTest
 
-import api
 import main
 import models
 import search
@@ -27,9 +24,8 @@ class SearchTest(BaseTest):
     def setUp(self):
         super(SearchTest, self).setUp()
         self.log_lines = []
-        tz = pytz.timezone('America/Chicago')
         for line in ALL_LOG_LINES:
-            self.log_lines.append(api.handle_new_line(line, tz))
+            self.log_lines.append(models.LogLine.create(line, 'America/Chicago'))
 
     def test_search_log_lines(self):
         results, number_found = search.search_log_lines('gumptionthomas')
