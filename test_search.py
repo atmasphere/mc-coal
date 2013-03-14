@@ -29,11 +29,11 @@ class SearchTest(BaseTest):
 
     def test_search_log_lines(self):
         results, number_found = search.search_log_lines('gumptionthomas')
-        self.assertEqual(3, len(results))
-        self.assertEqual(3, number_found)
+        self.assertEqual(4, len(results))
+        self.assertEqual(4, number_found)
         results, number_found = search.search_log_lines('info')
-        self.assertEqual(7, len(results))
-        self.assertEqual(7, number_found)
+        self.assertEqual(8, len(results))
+        self.assertEqual(8, number_found)
         results, number_found = search.search_log_lines('vesicular')
         self.assertEqual(1, len(results))
         self.assertEqual(1, number_found)
@@ -41,8 +41,8 @@ class SearchTest(BaseTest):
         self.assertEqual(1, len(results))
         self.assertEqual(1, number_found)
         results, number_found = search.search_log_lines(models.CONNECTION_TAG)
-        self.assertEqual(3, len(results))
-        self.assertEqual(3, number_found)
+        self.assertEqual(4, len(results))
+        self.assertEqual(4, number_found)
         results, number_found = search.search_log_lines(models.SERVER_TAG)
         self.assertEqual(3, len(results))
         self.assertEqual(3, number_found)
@@ -55,8 +55,8 @@ class SearchTest(BaseTest):
 
     def test_remove_log_lines(self):
         results, number_found = search.search_log_lines('info')
-        self.assertEqual(7, len(results))
-        self.assertEqual(7, number_found)
+        self.assertEqual(8, len(results))
+        self.assertEqual(8, number_found)
         for result in results:
             result.key.delete()
         results, number_found = search.search_log_lines('info')

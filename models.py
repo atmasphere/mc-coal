@@ -48,7 +48,7 @@ REGEX_TAGS = [
     ),
     (
         [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) lost connection: disconnect\.quitting"
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) lost connection: disconnect.+"
         ],
         LOGOUT_TAGS
     ),

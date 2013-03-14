@@ -29,10 +29,11 @@ SERVER_STOP_LOG_LINE = '2012-10-15 16:26:11 [INFO] Stopping server'
 OVERLOADED_LOG_LINE = "2012-10-21 00:01:46 [WARNING] Can't keep up! Did the system time change, or is the server overloaded?"
 CHAT_LOG_LINE = '2012-10-09 20:46:06 [INFO] <vesicular> yo yo'
 DISCONNECT_LOG_LINE = '2012-10-09 20:50:08 [INFO] gumptionthomas lost connection: disconnect.quitting'
+DISCONNECT_LOG_LINE_2 = "2013-03-13 23:03:39 [INFO] gumptionthomas lost connection: disconnect.genericReason"
 CONNECT_LOG_LINE = '2012-10-09 19:52:55 [INFO] gumptionthomas[/192.168.11.198:59659] logged in with entity id 14698 at (221.41534292614716, 68.0, 239.43154415221068)'
 CONNECT_LOG_LINE_2 = '2013-03-08 21:06:34 [INFO] gumptionthomas[/192.168.11.205:50167] logged in with entity id 3583968 at (1168.5659371692745, 63.0, -779.6390153758603)'
-ALL_LOG_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
-TIMESTAMP_LOG_LINES = [TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
+ALL_LOG_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
+TIMESTAMP_LOG_LINES = [TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
 
 
 class ApiTest(BaseTest, WebTest):
@@ -236,6 +237,27 @@ class LogLineTest(ApiTest):
         player = models.Player.lookup(log_line.username)
         self.assertIsNone(player.last_login_timestamp)
         self.assertIsNone(player.last_session_duration)
+        log_line.key.delete()
+
+        params = {'line': DISCONNECT_LOG_LINE_2, 'zone': TIME_ZONE}
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(0, body)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(DISCONNECT_LOG_LINE_2, log_line.line)
+        self.assertEqual(TIME_ZONE, log_line.zone)
+        self.assertEqual(datetime.datetime(2013, 3, 14, 4, 3, 39), log_line.timestamp)
+        self.assertEqual('INFO', log_line.log_level)
+        self.assertEqual('gumptionthomas', log_line.username)
+        self.assertEqual(models.LOGOUT_TAGS, log_line.tags)
+        self.assertEqual(0, models.PlaySession.query().count())
+        play_session = models.PlaySession.current('gumptionthomas')
+        self.assertIsNone(play_session)
+        player = models.Player.lookup(log_line.username)
+        self.assertIsNone(player.last_login_timestamp)
+        self.assertIsNone(player.last_session_duration)
 
     def test_post_connect_line(self):
         params = {'line': CONNECT_LOG_LINE, 'zone': TIME_ZONE}
@@ -297,7 +319,7 @@ class LogLineTest(ApiTest):
         self.assertEqual(1, models.LogLine.query_by_tags(models.OVERLOADED_TAG).count())
         self.assertEqual(1, models.LogLine.query_latest_chats().count())
         self.assertEqual(2, models.LogLine.query_latest_logins().count())
-        self.assertEqual(1, models.LogLine.query_latest_logouts().count())
+        self.assertEqual(2, models.LogLine.query_latest_logouts().count())
 
     def test_post_log_line_twice(self):
         params = {'line': LOG_LINE, 'zone': TIME_ZONE}
