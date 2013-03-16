@@ -88,10 +88,10 @@ def ping_host(host, password, pidfile, fail=True):
             last_line = body['last_line']
             return last_line
         else:
-            logger.error("UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
-            logger.debug("{0}".format(response.read()))
+            logger.error(u"UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
+            logger.debug(u"{0}".format(response.read()))
     except Exception, e:
-        logger.error("{0}".format(str(e)))
+        logger.error(u"{0}".format(str(e)))
     if fail:
         raise NoPingException()
 
@@ -123,7 +123,7 @@ def post_line(host, line, password, zone, skip_chat):
         "Content-type": "application/x-www-form-urlencoded",
         "Accept": "text/plain"
     }
-    params = urllib.urlencode({'line': line, 'zone': zone})
+    params = urllib.urlencode({'line': line.encode('utf-8', errors='ignore'), 'zone': zone})
     tries = 0
     while True:
         tries = tries - 1
@@ -323,7 +323,7 @@ def main(argv):
         if parse_all:
             last_line = None
         last_ping = datetime.datetime.now()
-        logger.info("Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
+        logger.info(u"Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
         tail(
             coal_host,
             mc_logfile,
@@ -336,20 +336,20 @@ def main(argv):
             mc_pidfile
         )
     except NoPingException:
-        logger.error("Unable to ping '{0}'".format(coal_host))
+        logger.error(u"Unable to ping '{0}'".format(coal_host))
     except pytz.UnknownTimeZoneError:
-        logger.error("Invalid timezone: '{0}'".format(mc_timezone))
+        logger.error(u"Invalid timezone: '{0}'".format(mc_timezone))
     except NoHostException:
-        logger.error("No MC COAL server host name provided.")
+        logger.error(u"No MC COAL server host name provided.")
     except NoPasswordException:
-        logger.error("No MC COAL server API password provided.")
+        logger.error(u"No MC COAL server API password provided.")
     except KeyboardInterrupt:
-        logger.info("Canceled")
+        logger.info(u"Canceled")
     except SystemExit:
-        logger.info("System Exit")
+        logger.info(u"System Exit")
     except Exception, e:
-        logger.error("Unexpected {0}: {1}".format(type(e).__name__, e))
-    logger.info("Shutting down... Goodbye.")
+        logger.error(u"Unexpected {0}: {1}".format(type(e).__name__, e))
+    logger.info(u"Shutting down... Goodbye.")
 
 if __name__ == "__main__":
     main(sys.argv[1:])
