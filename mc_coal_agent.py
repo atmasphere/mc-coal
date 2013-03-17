@@ -91,7 +91,7 @@ def ping_host(host, password, pidfile, fail=True):
             logger.error(u"UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
             logger.debug(u"{0}".format(response.read()))
     except Exception, e:
-        logger.error(u"{0}".format(str(e)))
+        logger.error(u"{0}".format(e))
     if fail:
         raise NoPingException()
 
@@ -138,7 +138,7 @@ def post_line(host, line, password, zone, skip_chat):
                 logger.error(u"UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
                 logger.debug(u"{0}".format(response.read()))
         except Exception, e:
-            logger.error(u"{0}".format(str(e)))
+            logger.error(u"{0}".format(e))
         timeout = 10 if tries < 10 else 30
         logger.info(u"SLEEPING FOR {0} SECONDS...".format(timeout))
         time.sleep(timeout)
