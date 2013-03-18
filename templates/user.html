@@ -6,17 +6,16 @@
 
 {% block content %}
     <div class="player_list players">
-        <h2 class="box">
+        <div class="box">
             <div class="player wrap {% if edit_user.key == user.key %}you{% endif %}">
-                <div class="activity"></div>
-                <div class="avatar" {% if edit_user.username %}style="background-image: url(http://i.mcss.me/{{edit_user.username}}.png)"{% endif %}></div>
+                {% if edit_user.username %}<div class="avatar" style="background-image: url(http://i.mcss.me/{{edit_user.username}}.png)"></div>{% endif %}
                 <div class="name">{{ edit_user.email }}</div>
                 <div class="online">
                     <h4>Last COAL Login</h4>
                     <div class="data">{% if edit_user.last_login %}{{ edit_user.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ edit_user.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>
                 </div>
             </div>
-        </h2>
+        </div>
 
         <div class="box">
             <form action="{{ uri_for('user', key=edit_user.key.urlsafe()) }}" method="post">
