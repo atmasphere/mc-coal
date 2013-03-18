@@ -2,18 +2,7 @@
 
 COAL_TITLE = "MC COAL"
 
-COAL_USER_WHITELIST = [
-    {
-        'email': 'admin@example.com',
-        'username': 'steve',
-        'admin': True
-    },
-    {
-        'email': 'test@example.com',
-        'username': 'bill',
-        'admin': False
-    }
-]
+COAL_USER_WHITELIST = []
 
 COAL_TIMEZONE = 'US/Central'
 

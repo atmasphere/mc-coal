@@ -88,6 +88,9 @@
         </div>
         <br/>
         <div class="box"><a href="{{ uri_for('screen_shots') }}">Screen Shots</a></div>
+        {% if user.admin %}
+            <div class="box"><a href="{{ uri_for('users') }}">Users</a></div>
+        {% endif %}
     {% elif user %}
         <div class="box">
             You don't have permission to see this site. <a href="{{ logout_url }}">Log Out</a>

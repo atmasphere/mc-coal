@@ -1,3 +1,4 @@
+import datetime
 import logging
 import urllib2
 
@@ -12,12 +13,14 @@ import webapp2
 from webapp2_extras import auth, sessions, jinja2
 from webapp2_extras.routes import RedirectRoute
 
+from wtforms import form, fields, validators
+
 from agar.auth import authentication_required
 from agar.env import on_production_server
 
 from config import coal_config
 from filters import FILTERS
-from models import User, Server, Player, LogLine, PlaySession, ScreenShot
+from models import get_whitelist_user, User, Server, Player, LogLine, PlaySession, ScreenShot
 import search
 
 
@@ -56,13 +59,6 @@ class JinjaHandler(webapp2.RequestHandler):
         self.response.write(self.jinja2.render_template(filename, **context))
 
 
-def get_whitelist_user(email):
-    for wlu in coal_config.USER_WHITELIST:
-        if email == wlu['email']:
-            return wlu
-    return None
-
-
 def get_callback_url(handler, next_url=None):
     if next_url is None:
         next_url = handler.request.path_qs
@@ -91,10 +87,6 @@ def authenticate(handler, required=True, admin=False):
             if user.username != wlu['username']:
                 user.username = wlu['username']
                 update = True
-        else:
-            if user.active:
-                user.active = False
-                update = True
         if update:
             user.put()
     if required and not (user and user.active):
@@ -106,6 +98,10 @@ def authenticate(handler, required=True, admin=False):
 
 def authenticate_public(handler):
     return authenticate(handler, required=False, admin=False)
+
+
+def authenticate_admin(handler):
+    return authenticate(handler, required=True, admin=True)
 
 
 class UserAwareHandler(JinjaHandler):
@@ -177,7 +173,8 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
                     if not (user.active and user.admin):
                         user.active = True
                         user.admin = True
-                        user.put()
+                user.last_login = datetime.datetime.now()
+                user.put()
             else:
                 # check whether there's a user currently logged in
                 # then, create a new user if no one is signed in,
@@ -186,7 +183,11 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
                     u = self.user
                     if auth_id not in u.auth_ids:
                         u.auth_ids.append(auth_id)
-                    u.populate(email=gae_user.email(), nickname=gae_user.nickname())
+                    u.populate(
+                        email=gae_user.email(),
+                        nickname=gae_user.nickname(),
+                        last_login=datetime.datetime.now()
+                    )
                     if users.is_current_user_admin():
                         u.admin = True
                     u.put()
@@ -196,7 +197,8 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
                         email=gae_user.email(),
                         nickname=gae_user.nickname(),
                         active=users.is_current_user_admin(),
-                        admin=users.is_current_user_admin()
+                        admin=users.is_current_user_admin(),
+                        last_login=datetime.datetime.now()
                     )
                     if ok:
                         self.auth.set_session(self.auth.store.user_to_dict(user))
@@ -386,6 +388,58 @@ class ScreenShotRemoveHandler(BaseHander):
         self.redirect(webapp2.uri_for('screen_shots'))
 
 
+class UserForm(form.Form):
+    active = fields.BooleanField(u'Active', [validators.Optional()])
+    admin = fields.BooleanField(u'Admin', [validators.Optional()])
+    username = fields.TextField(u'Username', validators=[validators.Optional()])
+
+
+class UsersHandler(PagingHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self):
+        results, previous_cursor, next_cursor = self.get_results_with_cursors(
+            User.query_by_email(), User.query_by_email_reverse(), coal_config.RESULTS_PER_PAGE
+        )
+        context = {'users': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        self.render_template('users.html', context=context)
+
+
+class UserEditHandler(BaseHander):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            user_key = ndb.Key(urlsafe=key)
+            user = user_key.get()
+            if user is None or get_whitelist_user(user.email) is not None:
+                self.abort(404)
+            form = UserForm(obj=user)
+        except Exception, e:
+            logging.error(u"Error POSTing user: {0}".format(e))
+            self.abort(404)
+        context = {'edit_user': user, 'form': form}
+        self.render_template('user.html', context=context)
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        try:
+            user_key = ndb.Key(urlsafe=key)
+            user = user_key.get()
+            if user is None or get_whitelist_user(user.email) is not None:
+                self.abort(404)
+            form = UserForm(self.request.POST, user)
+            if form.validate():
+                user.active = form.active.data
+                user.admin = form.admin.data
+                user.username = form.username.data
+                user.put()
+                self.redirect(webapp2.uri_for('users'))
+        except Exception, e:
+            logging.error(u"Error POSTing user: {0}".format(e))
+            self.abort(404)
+        context = {'edit_user': user, 'form': form}
+        self.render_template('user.html', context=context)
+
+
 application = webapp2.WSGIApplication(
     [
         RedirectRoute('/login_callback', handler='main.GoogleAppEngineUserAuthHandler:login_callback', name='login_callback'),
@@ -398,6 +452,8 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/screen_shot_uploaded', handler=ScreenShotUploadedHandler, strict_slash=True, name="screen_shot_uploaded"),
         RedirectRoute('/screen_shots', handler=ScreenShotsHandler, strict_slash=True, name="screen_shots"),
         RedirectRoute('/screen_shot_remove/<key>', handler=ScreenShotRemoveHandler, strict_slash=True, name="screen_shot_remove"),
+        RedirectRoute('/users', handler=UsersHandler, strict_slash=True, name="users"),
+        RedirectRoute('/user/<key>', handler=UserEditHandler, strict_slash=True, name="user")
     ],
     config={
         'webapp2_extras.sessions': {'secret_key': coal_config.SECRET_KEY},

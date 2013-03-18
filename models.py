@@ -106,12 +106,20 @@ def name_to_timezone(name):
     return timezone
 
 
+def get_whitelist_user(email):
+    for wlu in coal_config.USER_WHITELIST:
+        if email == wlu['email']:
+            return wlu
+    return None
+
+
 class User(auth_models.User):
     active = ndb.BooleanProperty(default=False)
     admin = ndb.BooleanProperty(default=False)
     email = ndb.StringProperty()
     nickname = ndb.StringProperty()
     username = ndb.StringProperty()
+    last_login = ndb.DateTimeProperty()
     last_chat_view = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
@@ -121,6 +129,10 @@ class User(auth_models.User):
         if self.username:
             return Player.get_or_create(self.username)
         return None
+
+    @property
+    def white_list(self):
+        return get_whitelist_user(self.email)
 
     def record_chat_view(self, dt=None):
         if dt is None:
@@ -165,6 +177,14 @@ class User(auth_models.User):
                 query = query.filter(ndb.StringProperty('username') == username)
             return query.get()
         return None
+
+    @classmethod
+    def query_by_email(cls):
+        return cls.query().order(cls.email)
+
+    @classmethod
+    def query_by_email_reverse(cls):
+        return cls.query().order(-cls.email)
 
 
 class Server(ndb.Model):

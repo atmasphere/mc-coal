@@ -5,7 +5,7 @@
         <a href="{{ uri_for_pagination(name, cursor=previous_cursor) }}">Newer</a>
     </div>
     {% endif %}
-    
+
     {% if next_cursor %}
     <div class="page box left">
         <a href="{{ uri_for_pagination(name, cursor=next_cursor) }}">Older</a>
@@ -17,14 +17,25 @@
 {% macro time_elapse(days, secs) -%}
     {% if days %}
         {{ days }}d
-    {% endif %}    
+    {% endif %}
 
     {% set hours = secs // 3600 %}
     {% set mins = secs % 3600 // 60 %}
-    
+
     {% if hours !=0 %}
         {{hours}}h
     {% endif %}
-    
+
     {{mins}}m
 {%- endmacro %}
+
+{% macro with_errors(field) %}
+  <div class="form_field control-group {% if field.errors %}error{% endif %}">
+    {% if field.errors %}
+      {{ field(**kwargs) }}
+      <ul class="help-inline errors">{% for error in field.errors %}<li>{{ error|e }}</li>{% endfor %}</ul>
+    {% else %}
+      {{ field(**kwargs) }}
+    {% endif %}
+  </div>
+{% endmacro %}

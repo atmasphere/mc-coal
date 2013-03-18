@@ -1,3 +1,4 @@
+import datetime
 import os
 import sys
 
@@ -12,27 +13,28 @@ for d in os.environ["PATH"].split(":"):
 from agar.test.base_test import BaseTest
 from agar.test.web_test import WebTest
 
-from config import coal_config
 from models import User
 import main
 
-TEST_USER_EMAIL = coal_config.USER_WHITELIST[0]['email']
+TEST_USER_EMAIL = 'admin@example.com'
 
 
 class MainBaseTest(BaseTest, WebTest):
     APPLICATION = main.application
     URL = None
 
-    def log_in_user(self, email=TEST_USER_EMAIL, is_admin=False):
+    def log_in_user(self, email=TEST_USER_EMAIL, is_active=True, is_admin=False):
         super(MainBaseTest, self).log_in_user(email, is_admin=is_admin)
         response = self.get('/login_callback')
         cookies = response.headers.get('Set-Cookie')
-        self.auth_cookie = cookies[0:cookies.find(';')]
+        self.auth_cookie = cookies[0:cookies.find(';')] if cookies else None
         self.assertRedirects(response, to='/')
         self.current_user = User.lookup(email=email)
+        self.current_user.active = is_active
+        self.current_user.put()
 
     def log_in_admin(self, email=TEST_USER_EMAIL):
-        self.log_in_user(email, is_admin=True)
+        self.log_in_user(email=email, is_admin=True)
 
     def log_out_user(self):
         response = self.get('/logout')
@@ -99,7 +101,7 @@ class AuthTest(MainBaseTest):
 
     def test_get_inactive(self):
         if self.URL:
-            self.log_in_user(email='hacker@example.com')
+            self.log_in_user(email='hacker@example.com', is_active=False)
             response = self.get(self.URL)
             self.assertRedirects(response)
 
@@ -142,7 +144,7 @@ class HomeTest(AuthTest):
         self.assertIn('Log In', response.body)
 
     def test_get_inactive(self):
-        self.log_in_user(email='hacker@example.com')
+        self.log_in_user(email='hacker@example.com', is_active=False)
         response = self.get(self.URL)
         self.assertOK(response)
         self.assertIn('Log Out', response.body)
@@ -217,3 +219,40 @@ class ScreenShotUploadTest(AuthTest):
     #     url = body[i:j]
     #     self.post(url, {'file': None})
     #     self.assertRedirects(response, '/')
+
+
+class UsersTest(AuthTest):
+    URL = '/users'
+
+    def test_get_auth(self):
+        self.log_in_admin()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+
+    def test_login_again(self):
+        self.log_in_admin()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+        self.log_out_user()
+        response = self.get(self.URL)
+        self.assertRedirects(response)
+        self.log_in_admin()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+
+    def test_logout(self):
+        self.log_in_admin()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+        self.log_out_user()
+        response = self.get(self.URL)
+        self.assertRedirects(response)
+
+    def test_get_not_admin(self):
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertRedirects(response)

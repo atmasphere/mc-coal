@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+{% set nav="Users" %}
+
+{% block title %}Users{% endblock %}
+
+{% block content %}
+    <div class="player_list players">
+        <h2 class="box">Users</h2>
+
+        <div class="box">
+        {% for u in users %}
+            {% if u.player %}
+                <div class="player wrap {% if u.player.is_user(user) %}you{% endif %}">
+                    <div class="activity {% if u.player.is_playing %}on{% endif %}"></div>
+                    <div class="avatar" style="background-image: url(http://i.mcss.me/{{u.player.username}}.png)"></div>
+                    <div class="name">{{ u.email }}</div>
+                    <div class="name">{{ u.player.username }}</div>
+                    <div class="name">{% if u.active %}Active{% else %}Inactive{% endif %}</div>
+                    <div class="name">{% if u.admin %}Admin{% else %}Non-Admin{% endif %}</div>
+                    <div class="online">
+                        <h4>Last COAL Login</h4>
+                        <div class="data">{% if u.last_login %}{{ u.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ u.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>
+                    </div>
+                    <div class="name">{% if not u.white_list %}<a href="{{ uri_for('user', key=u.key.urlsafe()) }}">Edit</a>{% else %}Not Editable{% endif %}</div>
+                </div>
+            {% else %}
+                <div class="player wrap {% if user.key == u.key %}you{% endif %}">
+                    <div class="activity"></div>
+                    <div class="avatar" {% if u.username %}style="background-image: url(http://i.mcss.me/{{u.username}}.png)"{% endif %}></div>
+                    <div class="name">{{ u.email }}</div>
+                    <div class="name">{{ u.username }}</div>
+                    <div class="name">{% if u.active %}Active{% else %}Inactive{% endif %}</div>
+                    <div class="name">{% if u.admin %}Admin{% else %}Non-Admin{% endif %}</div>
+                    <div class="online">
+                        <h4>Last COAL Login</h4>
+                        <div class="data">{% if u.last_login %}{{ u.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ u.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>
+                    </div>
+                    <div class="name">{% if not u.white_list %}<a href="{{ uri_for('user', key=u.key.urlsafe()) }}">Edit</a>{% else %}Not Editable{% endif %}</div>
+                </div>
+            {% endif %}
+        {% endfor %}
+        </div>
+    </div>
+
+    {{ macros.previous_next_uri('users', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+{% endblock %}

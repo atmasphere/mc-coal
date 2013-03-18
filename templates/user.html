@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+{% set nav="User" %}
+
+{% block title %}{{ edit_user.email }}{% endblock %}
+
+{% block content %}
+    <div class="player_list players">
+        <h2 class="box">
+            <div class="player wrap {% if edit_user.key == user.key %}you{% endif %}">
+                <div class="activity"></div>
+                <div class="avatar" {% if edit_user.username %}style="background-image: url(http://i.mcss.me/{{edit_user.username}}.png)"{% endif %}></div>
+                <div class="name">{{ edit_user.email }}</div>
+                <div class="online">
+                    <h4>Last COAL Login</h4>
+                    <div class="data">{% if edit_user.last_login %}{{ edit_user.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ edit_user.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>
+                </div>
+            </div>
+        </h2>
+
+        <div class="box">
+            <form action="{{ uri_for('user', key=edit_user.key.urlsafe()) }}" method="post">
+                <label>Username</label>
+                {{ macros.with_errors(form.username, class="span3") }}
+
+                <label>Active</label>
+                {{ macros.with_errors(form.active, class="span3") }}
+
+                <label>Admin</label>
+                {{ macros.with_errors(form.admin, class="span3") }}
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a class="btn" href="{{ uri_for('users') }}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
