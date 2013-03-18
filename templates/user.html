@@ -35,5 +35,10 @@
                 </div>
             </form>
         </div>
+        <div class="box">
+            <form action="{{ uri_for('user_remove', key=edit_user.key.urlsafe()) }}" method="POST">
+                <input type="submit" name="submit" value="Remove">
+            </form>
+        </div>
     </div>
 {% endblock %}

@@ -15,7 +15,7 @@
                     <div class="activity {% if u.player.is_playing %}on{% endif %}"></div>
                     <div class="avatar" style="background-image: url(http://i.mcss.me/{{u.player.username}}.png)"></div>
                     <div class="name">{{ u.email }}</div>
-                    <div class="name">{{ u.player.username }}</div>
+                    <div class="name">&lt;{{ u.player.username }}&gt;</div>
                     <div class="name">{% if u.active %}Active{% else %}Inactive{% endif %}</div>
                     <div class="name">{% if u.admin %}Admin{% else %}Non-Admin{% endif %}</div>
                     <div class="online">
@@ -29,7 +29,7 @@
                     <div class="activity"></div>
                     <div class="avatar" {% if u.username %}style="background-image: url(http://i.mcss.me/{{u.username}}.png)"{% endif %}></div>
                     <div class="name">{{ u.email }}</div>
-                    <div class="name">{{ u.username }}</div>
+                    <div class="name">{{ u.username or '<NONE>' }}</div>
                     <div class="name">{% if u.active %}Active{% else %}Inactive{% endif %}</div>
                     <div class="name">{% if u.admin %}Admin{% else %}Non-Admin{% endif %}</div>
                     <div class="online">

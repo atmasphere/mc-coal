@@ -162,10 +162,12 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
         next_url = self.request.params.get('next_url', '')
         user = None
         gae_user = users.get_current_user()
+        logging.info("GAE_USER: {0}".format(gae_user.email()))
         if gae_user:
             auth_id = User.get_gae_user_auth_id(gae_user=gae_user)
             user = self.auth.store.user_model.get_by_auth_id(auth_id)
             if user:
+                logging.info("EXISTING_USER: {0}".format(user.email))
                 # existing user. just log them in.
                 self.auth.set_session(self.auth.store.user_to_dict(user))
                 # update access for gae admins
@@ -192,6 +194,7 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
                         u.admin = True
                     u.put()
                 else:
+                    logging.info("NEW_USER")
                     ok, user = self.auth.store.user_model.create_user(
                         auth_id,
                         email=gae_user.email(),
@@ -203,7 +206,7 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
                     if ok:
                         self.auth.set_session(self.auth.store.user_to_dict(user))
                     else:
-                        logging.debug('create_user() returned False with strings: %s' % user)
+                        logging.error('create_user() returned False with strings: %s' % user)
                         user = None
                         self.auth.unset_session()
         if not (user and user.active):
@@ -424,8 +427,10 @@ class UserEditHandler(BaseHander):
         try:
             user_key = ndb.Key(urlsafe=key)
             user = user_key.get()
-            if user is None or get_whitelist_user(user.email) is not None:
+            if user is None:
                 self.abort(404)
+            if user.white_list is not None:
+                self.abort(405)  # Method Not Allowed
             form = UserForm(self.request.POST, user)
             if form.validate():
                 user.active = form.active.data
@@ -440,6 +445,22 @@ class UserEditHandler(BaseHander):
         self.render_template('user.html', context=context)
 
 
+class UserRemoveHandler(BaseHander):
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        try:
+            user_key = ndb.Key(urlsafe=key)
+            user = user_key.get()
+            if user is None:
+                self.abort(404)
+            if user.white_list is not None:
+                self.abort(405)  # Method Not Allowed
+            user.key.delete()
+        except Exception, e:
+            logging.error(u"Error removing user: {0}".format(e))
+        self.redirect(webapp2.uri_for('users'))
+
+
 application = webapp2.WSGIApplication(
     [
         RedirectRoute('/login_callback', handler='main.GoogleAppEngineUserAuthHandler:login_callback', name='login_callback'),
@@ -451,9 +472,10 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/screen_shot_upload', handler=ScreenShotUploadHandler, strict_slash=True, name="screen_shot_upload"),
         RedirectRoute('/screen_shot_uploaded', handler=ScreenShotUploadedHandler, strict_slash=True, name="screen_shot_uploaded"),
         RedirectRoute('/screen_shots', handler=ScreenShotsHandler, strict_slash=True, name="screen_shots"),
-        RedirectRoute('/screen_shot_remove/<key>', handler=ScreenShotRemoveHandler, strict_slash=True, name="screen_shot_remove"),
+        RedirectRoute('/screen_shot/<key>/remove', handler=ScreenShotRemoveHandler, strict_slash=True, name="screen_shot_remove"),
         RedirectRoute('/users', handler=UsersHandler, strict_slash=True, name="users"),
-        RedirectRoute('/user/<key>', handler=UserEditHandler, strict_slash=True, name="user")
+        RedirectRoute('/user/<key>', handler=UserEditHandler, strict_slash=True, name="user"),
+        RedirectRoute('/user/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove")
     ],
     config={
         'webapp2_extras.sessions': {'secret_key': coal_config.SECRET_KEY},

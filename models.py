@@ -146,6 +146,15 @@ class User(auth_models.User):
         return False
 
     @classmethod
+    def _pre_delete_hook(cls, key):
+        user = key.get()
+        values = []
+        for auth_id in user.auth_ids:
+            unique = '%s.auth_id:%s' % (user.__class__.__name__, auth_id)
+            values.append(unique)
+        user.unique_model.delete_multi(values)
+
+    @classmethod
     def get_gae_user_auth_id(cls, gae_user_id=None, gae_user=None):
         if not gae_user_id:
             gae_user_id = gae_user.user_id() if gae_user else 'ANON'
