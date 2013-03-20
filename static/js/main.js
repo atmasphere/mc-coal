@@ -19,13 +19,13 @@ $(function() {
         resize_bg();
     });
 
-    $(".avatar").each(function( index ) {
-        var username = this.dataset.username;
-        $.ajax({
-            url: 'https://minotar.net/helm/' + username + '/40',
-            success: function (d) {
-                $(this).css('background-image', 'url(https://minotar.net/helm/' + username + '/40)');
-            }
-        });
-    });
+    // $(".avatar").each(function( index ) {
+    //     var username = this.dataset.username;
+    //     $.ajax({
+    //         url: 'https://minotar.net/helm/' + username + '/40',
+    //         success: function (d) {
+    //             $(this).css('background-image', 'url(https://minotar.net/helm/' + username + '/40)');
+    //         }
+    //     });
+    // });
 });
