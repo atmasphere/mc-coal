@@ -63,7 +63,7 @@ class ApiTest(BaseTest, WebTest):
 
 
 class PingTest(ApiTest):
-    URL = '/api/ping'
+    URL = '/api/agent/ping'
 
     def test_post(self):
         params = {'server_name': 'test'}
@@ -111,7 +111,7 @@ class PingTest(ApiTest):
 
 
 class LogLineTest(ApiTest):
-    URL = '/api/log_line'
+    URL = '/api/agent/log_line'
 
     def test_post_missing_param(self):
         params = {'zone': TIME_ZONE}

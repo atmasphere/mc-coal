@@ -332,6 +332,10 @@ class Player(ServerModel):
         return cls.server_query().order(-cls.last_login_timestamp)
 
     @classmethod
+    def query_by_username(cls):
+        return cls.server_query().order(cls.username)
+
+    @classmethod
     def lookup(cls, username):
         if username is not None:
             parent = Server.global_key()

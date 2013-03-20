@@ -81,7 +81,7 @@ def ping_host(host, password, pidfile, fail=True):
             params['is_server_running'] = running
         params = urllib.urlencode(params)
         conn = httplib.HTTPConnection(host)
-        conn.request("POST", "/api/ping?p={0}".format(password), params, headers)
+        conn.request("POST", "/api/agent/ping?p={0}".format(password), params, headers)
         response = conn.getresponse()
         if response.status == 200:
             body = json.loads(response.read())
@@ -129,7 +129,7 @@ def post_line(host, line, password, zone, skip_chat):
         tries = tries - 1
         try:
             conn = httplib.HTTPConnection(host)
-            conn.request("POST", "/api/log_line?p={0}".format(password), params, headers)
+            conn.request("POST", "/api/agent/log_line?p={0}".format(password), params, headers)
             response = conn.getresponse()
             if response.status == 201 or response.status == 200:
                 logger.debug(u"REPORTED '{0}'".format(line))

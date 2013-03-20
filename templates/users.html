@@ -13,7 +13,7 @@
             {% if u.player %}
                 <div class="player wrap {% if u.player.is_user(user) %}you{% endif %}">
                     <div class="activity {% if u.player.is_playing %}on{% endif %}"></div>
-                    <div class="avatar" style="background-image: url(http://i.mcss.me/{{u.player.username}}.png)"></div>
+                    <div class="avatar" style="background-image: url(https://minotar.net/helm/{{ u.player.username }}/40)"></div>
                     <h3 class="data">{{ u.email }}</h3>
                     <div class="data"><h4>Minecraft Username:</h4>{{ u.player.username }}</div>
                     <div class="data"><h4>Is Active:</h4>{% if u.active %}True{% else %}False{% endif %}</div>
@@ -26,7 +26,7 @@
                 </div>
             {% else %}
                 <div class="player wrap {% if user.key == u.key %}you{% endif %}">
-                    {% if u.username %}<div class="avatar" style="background-image: url(http://i.mcss.me/{{u.username}}.png)"></div>{% endif %}
+                    {% if u.username %}<div class="avatar" style="background-image: url(https://minotar.net/helm/{{ u.username }}/40)"></div>{% endif %}
                     <h3 class="data">{{ u.email }}</h3>
                     <div class="data"><h4>Minecraft Username:</h4>{{ u.player.username or 'NONE' }}</div>
                     <div class="data"><h4>Is Active:</h4>{% if u.active %}True{% else %}False{% endif %}</div>

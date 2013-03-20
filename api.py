@@ -1,13 +1,10 @@
 import datetime
 from functools import wraps
 import logging
-import re
 
 from google.appengine.ext import ndb
 
 import webapp2
-
-from pytz.gae import pytz
 
 from wtforms import form, fields, validators
 
@@ -15,9 +12,10 @@ from agar.auth import authentication_required
 from agar.env import on_production_server
 
 from restler.serializers import json_response as restler_json_response
+from restler.serializers import ModelStrategy
 
 from config import coal_config
-from models import Server, LogLine, Location, PlaySession
+from models import Server, LogLine, Player
 
 
 def validate_params(form_class):
@@ -32,13 +30,13 @@ def validate_params(form_class):
                     form = form_class(request.params)
                     valid = form.validate()
                 except Exception, e:
-                    errors = "Unhandled form parsing exception: {0}".format(str(e))
+                    errors = u"Unhandled form parsing exception: {0}".format(e)
                     handler.json_response({}, status_code=400, errors=errors)
                     logging.error(errors)
                     try:
                         logging.error(handler.request)
                     except Exception, e:
-                        logging.error("Can't log the request: {0}".format(str(e)))
+                        logging.error(u"Can't log the request: {0}".format(e))
                 if valid:
                     handler.request.form = form
                     request_method(handler, *args, **kwargs)
@@ -47,7 +45,7 @@ def validate_params(form_class):
                     try:
                         message = form.errors
                     except:
-                        message = "Exception creating Form"
+                        message = u"Exception creating Form"
                     handler.json_response({}, status_code=400, errors=message)
                     logging.error(message)
                     return
@@ -149,7 +147,7 @@ class MultiPageForm(form.Form):
     cursor = fields.StringField(validators=[validators.Optional()])
 
 
-class MultiPageHandler():
+class MultiPage():
     @property
     def size(self):
         return self.request.form.size.data or self.request.form.size.default
@@ -172,10 +170,32 @@ class MultiPageHandler():
         return response
 
 
+class MultiPageJsonHandler(JsonRequestHandler, MultiPage):
+    pass
+
+
+# PLAYER_FIELDS = ['username', 'last_login_timestamp', 'last_session_duration', 'is_playing']
+# PLAYER_FIELD_FUNCTIONS = [
+#     {'key': lambda o: o.key.urlsafe()},
+#     {'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None}
+# ]
+# PLAYER_STRATEGY = ModelStrategy(Player) + PLAYER_FIELDS
+# PLAYER_STRATEGY += PLAYER_FIELD_FUNCTIONS
+
+
+# class PlayerHandler(MultiPageJsonHandler):
+#     @authentication_required(authenticate=authenticate)
+#     @validate_params(form_class=MultiPageForm)
+#     def get(self):
+#         self.json_response(self.fetch_page(Player.query_by_username(), results_name='players'), PLAYER_STRATEGY)
+
+
 application = webapp2.WSGIApplication(
     [
-        webapp2.Route('/api/ping', PingHandler, name='api_ping'),
-        webapp2.Route('/api/log_line', LogLineHandler, name='api_log_line'),
+        webapp2.Route('/api/agent/ping', PingHandler, name='api_agent_ping'),
+        webapp2.Route('/api/agent/log_line', LogLineHandler, name='api_agent_log_line'),
+
+        # webapp2.Route('/api/user/players', PlayerHandler, name='api_user_players')
     ],
     debug=not on_production_server
 )

@@ -12,7 +12,7 @@
     {% for play_session in play_sessions %}
         <div class="player wrap {% if play_session.is_user(user) %}you{% endif %}">
             <div class="activity {% if not play_session.logout_timestamp %}on{% endif %}"></div>
-            <div class="avatar" style="background-image: url(http://i.mcss.me/{{play_session.username}}.png)"></div>
+            <div class="avatar" style="background-image: url(https://minotar.net/helm/{{play_session.username}}/40)"></div>
             <div class="name">{{ play_session.username }}</div>
 
             <div class="online logout">
