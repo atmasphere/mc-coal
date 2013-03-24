@@ -501,6 +501,7 @@ header nav li.user:hover {
 
 .sound_toggle {
     float: right;
+    width: 90px;
     margin-right: 20px;
     font-size: 14px;
 }
