@@ -19,8 +19,6 @@ from config import coal_config
 import api
 import models
 
-LOGGING_LEVEL = logging.ERROR
-
 TIME_ZONE = 'America/Chicago'
 LOG_LINE = 'Test line'
 TIME_STAMP_LOG_LINE = '2012-10-07 15:10:09 [INFO] Preparing level "world"'
@@ -35,14 +33,21 @@ CONNECT_LOG_LINE_2 = '2013-03-08 21:06:34 [INFO] gumptionthomas[/192.168.11.205:
 ALL_LOG_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
 TIMESTAMP_LOG_LINES = [TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
 
+TEST_USER_EMAIL = 'admin@example.com'
+
+NUM_PLAYER_FIELDS = 6
+NUM_USER_FIELDS = 11
+NUM_SERVER_FIELDS = 5
+NUM_PLAY_SESSION_FIELDS = 11
+
 
 class ApiTest(BaseTest, WebTest):
     APPLICATION = api.application
     URL = None
+    ALLOWED = []
 
     def setUp(self):
         super(ApiTest, self).setUp()
-        logging.disable(LOGGING_LEVEL)
 
     def tearDown(self):
         super(ApiTest, self).tearDown()
@@ -50,20 +55,105 @@ class ApiTest(BaseTest, WebTest):
 
     def get_secure_url(self, url=None):
         url = url or self.URL
-        return url + '?p={0}'.format(coal_config.API_PASSWORD)
+        sep = '?'
+        if '?' in url:
+            sep = '&'
+        return url + '{0}p={1}'.format(sep, coal_config.API_PASSWORD)
+
+    def log_in_user(self, email=TEST_USER_EMAIL, is_active=True, is_admin=False):
+        super(ApiTest, self).log_in_user(email, is_admin=is_admin)
+        response = self.get('/login_callback')
+        cookies = response.headers.get('Set-Cookie')
+        self.auth_cookie = cookies[0:cookies.find(';')] if cookies else None
+        self.assertRedirects(response, to='/')
+        self.current_user = models.User.lookup(email=email)
+        self.current_user.active = is_active
+        self.current_user.put()
+        return self.current_user
+
+    def log_in_admin(self, email=TEST_USER_EMAIL):
+        return self.log_in_user(email=email, is_admin=True)
+
+    def log_out_user(self):
+        response = self.get('/logout')
+        self.assertRedirects(response)
+        self.auth_cookie = None
+        try:
+            del os.environ['USER_EMAIL']
+        except KeyError:
+            pass
+        try:
+            del os.environ['USER_ID']
+        except KeyError:
+            pass
+        try:
+            del os.environ['USER_IS_ADMIN']
+        except KeyError:
+            pass
+        response = self.get('/logout')
+        self.auth_cookie = None
 
     def assertCreated(self, response):
         error = u'Response did not return a 201 CREATED (status code was {0})\nBody: {1}'.format(response.status_int, response.body)
         self.assertEqual(response.status_int, 201, error)
 
+    def assertMethodNotAllowed(self, response):
+        error = u'Response did not return a 405 METHOD NOT ALLOWED (status code was {0})\nBody: {1}'.format(response.status_int, response.body)
+        self.assertEqual(response.status_int, 405, error)
+
+    def test_get_no_auth(self):
+        if self.URL:
+            self.log_out_user()
+            url = getattr(self, 'url', None) or self.URL
+            response = self.get(url)
+            if 'GET' in self.ALLOWED:
+                self.assertForbidden(response)
+            else:
+                self.assertMethodNotAllowed(response)
+
+    def test_get_no_password(self):
+        if self.URL:
+            self.log_in_user()
+            url = getattr(self, 'url', None) or self.URL
+            response = self.get(url)
+            if 'GET' in self.ALLOWED:
+                self.assertOK(response)
+            else:
+                self.assertMethodNotAllowed(response)
+
+    def test_post_no_auth(self):
+        if self.URL:
+            self.log_out_user()
+            url = getattr(self, 'url', None) or self.URL
+            response = self.post(url)
+            if 'POST' in self.ALLOWED:
+                self.assertForbidden(response)
+            else:
+                self.assertMethodNotAllowed(response)
+
     def test_post_no_password(self):
         if self.URL:
-            response = self.post(self.URL)
+            self.log_in_user()
+            url = getattr(self, 'url', None) or self.URL
+            response = self.post(url)
+            if 'POST' in self.ALLOWED:
+                self.assertOK(response)
+            else:
+                self.assertMethodNotAllowed(response)
+
+
+class AgentApiTest(ApiTest):
+    def test_post_no_password(self):
+        if self.URL:
+            self.log_in_user()
+            url = getattr(self, 'url', None) or self.URL
+            response = self.post(url)
             self.assertForbidden(response)
 
 
-class PingTest(ApiTest):
+class PingTest(AgentApiTest):
     URL = '/api/agent/ping'
+    ALLOWED = ['POST']
 
     def test_post(self):
         params = {'server_name': 'test'}
@@ -75,6 +165,7 @@ class PingTest(ApiTest):
         self.assertIsNone(models.Server.global_key().get().is_running)
 
     def test_post_no_server_name(self):
+        logging.disable(logging.ERROR)
         response = self.post(self.get_secure_url())
         self.assertBadRequest(response)
         body = json.loads(response.body)
@@ -110,10 +201,12 @@ class PingTest(ApiTest):
         self.assertEqual(TIME_STAMP_LOG_LINE, body['last_line'])
 
 
-class LogLineTest(ApiTest):
+class LogLineTest(AgentApiTest):
     URL = '/api/agent/log_line'
+    ALLOWED = ['POST']
 
     def test_post_missing_param(self):
+        logging.disable(logging.ERROR)
         params = {'zone': TIME_ZONE}
         response = self.post(self.get_secure_url(), params=params)
         self.assertBadRequest(response)
@@ -361,3 +454,228 @@ class LogLineTest(ApiTest):
         self.assertEqual(1, models.PlaySession.query().count())
         play_session = models.PlaySession.current('gumptionthomas')
         self.assertIsNone(play_session)
+
+
+class MultiPageApiTest(ApiTest):
+    def test_get_invalid_cursor(self):
+        if self.URL:
+            logging.disable(logging.ERROR)
+            response = self.get(self.get_secure_url('{0}?cursor={1}'.format(self.URL, 'invalid_cursor_xxx')))
+            logging.disable(logging.NOTSET)
+            self.assertBadRequest(response)
+            body = json.loads(response.body)
+            errors = body['errors']
+            self.assertEqual({'cursor': 'Invalid cursor invalid_cursor_xxx. Details: Incorrect padding'}, errors)
+
+    def test_get_invalid_size(self):
+        if self.URL:
+            logging.disable(logging.ERROR)
+            response = self.get(self.get_secure_url('{0}?size={1}'.format(self.URL, 0)))
+            logging.disable(logging.NOTSET)
+            self.assertBadRequest(response)
+            body = json.loads(response.body)
+            errors = body['errors']
+            self.assertEqual({'size': ['Number must be between 1 and 50.']}, errors)
+
+    def test_get_empty_size(self):
+        if self.URL:
+            logging.disable(logging.ERROR)
+            response = self.get(self.get_secure_url('{0}?size={1}'.format(self.URL, '')))
+            logging.disable(logging.NOTSET)
+            self.assertBadRequest(response)
+            body = json.loads(response.body)
+            errors = body['errors']
+            self.assertEqual({'size': ['Not a valid integer value', 'Number must be between 1 and 50.']}, errors)
+
+
+class KeyApiTest(ApiTest):
+    def test_get_invalid_key(self):
+        if self.URL:
+            self.url = "{0}/{1}".format(self.URL, 'invalid_key')
+            response = self.get(self.get_secure_url(url=self.url))
+            self.assertNotFound(response)
+
+
+class ServerTest(ApiTest):
+    URL = '/api/data/server'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(ServerTest, self).setUp()
+
+    def test_get(self):
+        response = self.get(self.get_secure_url(url=self.URL))
+        self.assertOK(response)
+        server = json.loads(response.body)
+        self.assertEqual(NUM_SERVER_FIELDS, len(server))
+        self.assertFalse(server['is_running'])
+
+
+class UsersTest(MultiPageApiTest):
+    URL = '/api/data/users'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(UsersTest, self).setUp()
+        self.users = []
+        for i in range(10):
+            user = self.log_in_user(email="user_{0}@test.com".format(i))
+            self.log_out_user()
+            self.users.append(user)
+
+    def test_get(self):
+        response = self.get(self.get_secure_url())
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        reponse_users = body['users']
+        self.assertLength(len(self.users), reponse_users)
+        for i, user in enumerate(reponse_users):
+            self.assertEqual(NUM_USER_FIELDS, len(user))
+            self.assertEqual(self.users[i].username, user['username'])
+            self.assertIsNotNone(user['last_coal_login'])
+
+
+class UserKeyTest(KeyApiTest):
+    URL = '/api/data/user'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(UserKeyTest, self).setUp()
+        self.user = self.log_in_user("user@test.com")
+        self.user.last_login = datetime.datetime.now()
+        self.user.put()
+        self.url = "{0}/{1}".format(self.URL, self.user.key.urlsafe())
+
+    def test_get(self):
+        response = self.get(self.get_secure_url(url=self.url))
+        self.assertOK(response)
+        user = json.loads(response.body)
+        self.assertEqual(NUM_USER_FIELDS, len(user))
+        self.assertEqual(self.user.username, user['username'])
+        self.assertIsNotNone(user['last_coal_login'])
+
+
+class PlayersTest(MultiPageApiTest):
+    URL = '/api/data/players'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(PlayersTest, self).setUp()
+        self.players = []
+        for i in range(10):
+            self.players.append(models.Player.get_or_create("Player_{0}".format(i)))
+            self.players[i].last_login_timestamp = datetime.datetime.now()
+
+    def test_get(self):
+        response = self.get(self.get_secure_url())
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        players = body['players']
+        self.assertLength(len(self.players), players)
+        for i, player in enumerate(players):
+            self.assertEqual(NUM_PLAYER_FIELDS, len(player))
+            self.assertEqual(self.players[i].username, player['username'])
+            self.assertIsNotNone(player['last_login'])
+
+
+class PlayerKeyTest(KeyApiTest):
+    URL = '/api/data/player'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(PlayerKeyTest, self).setUp()
+        self.player = models.Player.get_or_create("Test_Player")
+        self.player.last_login_timestamp = datetime.datetime.now()
+        self.url = "{0}/{1}".format(self.URL, self.player.key.urlsafe())
+
+    def test_get(self):
+        response = self.get(self.get_secure_url(url=self.url))
+        self.assertOK(response)
+        player = json.loads(response.body)
+        self.assertEqual(NUM_PLAYER_FIELDS, len(player))
+        self.assertEqual(self.player.username, player['username'])
+        self.assertIsNotNone(player['last_login'])
+
+
+class PlayerUsernameTest(KeyApiTest):
+    URL = '/api/data/player'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(PlayerUsernameTest, self).setUp()
+        self.player = models.Player.get_or_create("Test_Player")
+        self.player.last_login_timestamp = datetime.datetime.now()
+        self.url = "{0}/{1}".format(self.URL, self.player.username)
+
+    def test_get(self):
+        response = self.get(self.get_secure_url(url=self.url))
+        self.assertOK(response)
+        player = json.loads(response.body)
+        self.assertEqual(NUM_PLAYER_FIELDS, len(player))
+        self.assertEqual(self.player.username, player['username'])
+        self.assertIsNotNone(player['last_login'])
+
+
+class PlaySessionsTest(MultiPageApiTest):
+    URL = '/api/data/play_sessions'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(PlaySessionsTest, self).setUp()
+        now = datetime.datetime.now()
+        self.players = []
+        for i in range(2):
+            self.players.append(models.Player.get_or_create("Player_{0}".format(i)))
+            self.players[i].last_login_timestamp = datetime.datetime.now()
+        self.play_sessions = []
+        for i in range(10):
+            player = self.players[i % 2]
+            play_session = models.PlaySession.create(player.username, now - datetime.timedelta(seconds=10*i), TIME_ZONE, None)
+            self.play_sessions.append(play_session)
+
+    def test_get(self):
+        response = self.get(self.get_secure_url())
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        play_sessions = body['play_sessions']
+        self.assertLength(len(self.play_sessions), play_sessions)
+        for i, play_session in enumerate(play_sessions):
+            self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
+            self.assertEqual(self.play_sessions[i].username, play_session['username'])
+            self.assertIsNotNone(play_session['login_timestamp'])
+
+    def test_get_username(self):
+        username = self.players[0].username
+        url = "{0}?username={1}".format(self.URL, username)
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        play_sessions = body['play_sessions']
+        self.assertLength(len(self.play_sessions) / 2, play_sessions)
+        for i, play_session in enumerate(play_sessions):
+            self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
+            self.assertEqual(username, play_session['username'])
+
+
+class PlaySessionKeyTest(KeyApiTest):
+    URL = '/api/data/play_session'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(PlaySessionKeyTest, self).setUp()
+        self.player = models.Player.get_or_create("Test_Player")
+        self.player.last_login_timestamp = datetime.datetime.now()
+        self.play_session = models.PlaySession.create(self.player.username, datetime.datetime.now(), TIME_ZONE, None)
+        self.url = "{0}/{1}".format(self.URL, self.play_session.key.urlsafe())
+
+    def test_get(self):
+        response = self.get(self.get_secure_url(url=self.url))
+        self.assertOK(response)
+        play_session = json.loads(response.body)
+        self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
+        self.assertEqual(self.play_session.username, play_session['username'])
+        self.assertIsNotNone(play_session['login_timestamp'])

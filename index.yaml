@@ -20,6 +20,21 @@ indexes:
   - name: timestamp
     direction: desc
 
+- kind: LogLine
+  ancestor: yes
+  properties:
+  - name: username
+  - name: timestamp
+    direction: desc
+
+- kind: LogLine
+  ancestor: yes
+  properties:
+  - name: username
+  - name: tags
+  - name: timestamp
+    direction: desc
+
 - kind: PlaySession
   ancestor: yes
   properties:

@@ -19,6 +19,9 @@ except ImportError:
 from agar.image import NdbImage as AgarImage
 
 from config import coal_config
+
+from restler.decorators import ae_ndb_serializer
+
 import search
 
 UNKNOWN_TAG = 'unknown'
@@ -113,6 +116,7 @@ def get_whitelist_user(email):
     return None
 
 
+@ae_ndb_serializer
 class User(auth_models.User):
     active = ndb.BooleanProperty(default=False)
     admin = ndb.BooleanProperty(default=False)
@@ -196,6 +200,7 @@ class User(auth_models.User):
         return cls.query().order(-cls.email)
 
 
+@ae_ndb_serializer
 class Server(ndb.Model):
     name = ndb.StringProperty()
     version = ndb.StringProperty()
@@ -277,6 +282,7 @@ class ServerModel(ndb.Model):
         return cls.query(ancestor=Server.global_key())
 
 
+@ae_ndb_serializer
 class Player(ServerModel):
     username = ndb.StringProperty(required=True)
     last_login_timestamp = ndb.DateTimeProperty()
@@ -284,7 +290,7 @@ class Player(ServerModel):
     @property
     def user(self):
         if self.username:
-            return User.query().filter(username=self.username).get()
+            return User.query().filter(User.username == self.username).get()
         return None
 
     @property
@@ -292,20 +298,9 @@ class Player(ServerModel):
         return PlaySession.current(self.username) is not None
 
     @property
-    def _last_login_timestamp(self):
-        last_session = PlaySession.last(self.username)
-        if last_session is not None:
-            return last_session.login_timestamp
-        return None
-
-    @property
     def last_session_duration(self):
         last_session = PlaySession.last(self.username)
-        if last_session is not None:
-            login_timestamp = last_session.login_timestamp or datetime.datetime.now()
-            logout_timestamp = last_session.logout_timestamp or datetime.datetime.now()
-            return logout_timestamp - login_timestamp
-        return None
+        return last_session.duration if last_session is not None else None
 
     def is_user(self, user):
         if user is not None:
@@ -499,27 +494,28 @@ class LogLine(UsernameModel):
         return cls.query_by_tags(LOGOUT_TAG).order(cls.timestamp)
 
 
+@ae_ndb_serializer
 class PlaySession(UsernameModel):
     login_timestamp = ndb.DateTimeProperty(required=True)
     logout_timestamp = ndb.DateTimeProperty()
     zone = ndb.StringProperty(required=True)
-    login_log_line = ndb.KeyProperty(kind=LogLine)
-    logout_log_line = ndb.KeyProperty(kind=LogLine)
+    login_log_line_key = ndb.KeyProperty(kind=LogLine)
+    logout_log_line_key = ndb.KeyProperty(kind=LogLine)
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
+    # TODO: Legacy. Remove after running conversion script
+    login_log_line = ndb.KeyProperty(kind=LogLine)
+    logout_log_line = ndb.KeyProperty(kind=LogLine)
 
     @property
     def duration(self):
-        if self.login_timestamp is not None:
-            logout_timestamp = self.logout_timestamp
-            if not logout_timestamp:
-                logout_timestamp = datetime.datetime.now()
-            return logout_timestamp - self.login_timestamp
-        return None
+        login_timestamp = self.login_timestamp or datetime.datetime.now()
+        logout_timestamp = self.logout_timestamp or datetime.datetime.now()
+        return logout_timestamp - login_timestamp
 
     def close(self, timestamp, logout_log_line_key):
         self.logout_timestamp = timestamp
-        self.logout_log_line = logout_log_line_key
+        self.logout_log_line_key = logout_log_line_key
         self.put()
 
     @classmethod
@@ -533,7 +529,7 @@ class PlaySession(UsernameModel):
             username=username,
             login_timestamp=timestamp,
             zone=zone,
-            login_log_line=login_log_line_key,
+            login_log_line_key=login_log_line_key,
             **kwargs
         )
         instance.put()
@@ -562,24 +558,27 @@ class PlaySession(UsernameModel):
         return cls.query_open().filter(cls.username == username)
 
     @classmethod
-    def query_last(cls, username):
-        return cls.server_query().filter(cls.username == username).order(-cls.login_timestamp)
-
-    @classmethod
-    def last(cls, username):
-        return cls.query_last(username).get()
-
-    @classmethod
     def current(cls, username):
         return cls.query_current(username).get()
 
     @classmethod
-    def query_latest(cls):
-        return cls.server_query().order(-cls.login_timestamp)
+    def last(cls, username):
+        return cls.query_latest(username=username).get()
 
     @classmethod
-    def query_oldest(cls):
-        return cls.server_query().order(cls.login_timestamp)
+    def query_latest(cls, username=None):
+        query = cls.server_query().order(-cls.login_timestamp)
+        if username:
+            query = query.filter(cls.username == username)
+        return query
+
+    @classmethod
+    def query_oldest(cls, username=None):
+        query = cls.server_query().order(cls.login_timestamp)
+        if username:
+            query = query.filter(cls.username == username)
+        return query
+
 
 if ImageFilter is not None:
     class MyGaussianBlur(ImageFilter.Filter):
