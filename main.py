@@ -18,6 +18,7 @@ from wtforms import form, fields, validators
 from agar.auth import authentication_required
 from agar.env import on_production_server
 
+import channel
 from config import coal_config
 from filters import FILTERS
 from models import get_whitelist_user, User, Server, Player, LogLine, PlaySession, ScreenShot
@@ -305,7 +306,9 @@ class ChatsHandler(PagingHandler):
             results, previous_cursor, next_cursor = self.get_results_with_cursors(
                 LogLine.query_latest_chats(), LogLine.query_oldest_chats(), coal_config.RESULTS_PER_PAGE
             )
-        context = {'chats': results, 'query_string': query_string or '', 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        # Channel
+        channel_token = channel.token_for_user(self.request.user)
+        context = {'chats': results, 'query_string': query_string or '', 'previous_cursor': previous_cursor, 'next_cursor': next_cursor, 'username': self.request.user.username, 'channel_token': channel_token}
         self.render_template('chats.html', context=context)
 
 
