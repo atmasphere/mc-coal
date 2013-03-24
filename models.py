@@ -22,6 +22,7 @@ from config import coal_config
 
 from restler.decorators import ae_ndb_serializer
 
+import channel
 import search
 
 UNKNOWN_TAG = 'unknown'
@@ -382,6 +383,7 @@ class LogLine(UsernameModel):
             self.tags.insert(0, TIMESTAMP_TAG)
 
     def _post_put_hook(self, future):
+        channel.send_log_line(self)
         search.add_log_line(self)
 
     @property
