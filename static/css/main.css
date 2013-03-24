@@ -518,6 +518,10 @@ header nav li.user:hover {
     display: none;
 }
 
+.infinite_scroll {
+    text-align: center;
+}
+
 
 /* FOOTER */
 footer {

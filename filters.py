@@ -1,3 +1,4 @@
+import json
 from pytz.gae import pytz
 
 from config import coal_config
@@ -21,7 +22,12 @@ def username_pronoun_filter(username, user):
     return "YOU" if username == user.username else username
 
 
+def escape_javascript_filter(value):
+    return json.dumps(value).replace("</", "<\\/")
+
+
 FILTERS = {
     'datetimeformat': datetime_filter,
-    'username_pronoun': username_pronoun_filter
+    'username_pronoun': username_pronoun_filter,
+    'escapejs': escape_javascript_filter,
 }

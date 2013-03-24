@@ -35,26 +35,11 @@
     </h3>
 
     <div id="live_events" class="box">
-    {% for chat in chats %}
-        <div class="player wrap {% if chat.is_user(user) %}you{% endif %}">
-            <div class="avatar" style="background-image: url(https://minotar.net/helm/{{chat.username}}/20)"></div>
-            <div class="name">{{ chat.username }}</div>
-
-            <div class="chat">
-                {{ chat.chat }}
-            </div>
-
-            <div class="online">
-                <div class="data">
-                    {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%I:%M%p') }}
-                </div>
-            </div>
-        </div>
-    {% endfor %}
+        {% include "_chats.html" %}
     </div>
 </div>
 
-    {{ macros.previous_next_uri('chats', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+{{ macros.infinite_scroll_uri('chats', next_cursor=next_cursor) }}
 {% endblock %}
 
 {% block js %}

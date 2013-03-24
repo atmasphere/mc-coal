@@ -306,9 +306,30 @@ class ChatsHandler(PagingHandler):
             results, previous_cursor, next_cursor = self.get_results_with_cursors(
                 LogLine.query_latest_chats(), LogLine.query_oldest_chats(), coal_config.RESULTS_PER_PAGE
             )
-        # Channel
+
+        context = {'chats': results, 'query_string': query_string or ''}
+
+        if self.request.is_xhr:
+            self.render_xhr_response(context, next_cursor)
+        else:
+            self.render_html_response(context, next_cursor, previous_cursor)
+
+    def render_xhr_response(self, context, next_cursor):
+        if next_cursor:
+            context.update({
+                'next_uri': uri_for_pagination('chats', cursor=next_cursor)
+            })
+        self.response.headers['Content-Type'] = 'text/javascript'
+        self.render_template('chats.js', context=context)
+
+    def render_html_response(self, context, next_cursor, previous_cursor):
         channel_token = channel.token_for_user(self.request.user)
-        context = {'chats': results, 'query_string': query_string or '', 'previous_cursor': previous_cursor, 'next_cursor': next_cursor, 'username': self.request.user.username, 'channel_token': channel_token}
+        context.update({
+            'next_cursor': next_cursor,
+            'previous_cursor': previous_cursor,
+            'channel_token': channel_token,
+            'username': self.request.user.username,
+        })
         self.render_template('chats.html', context=context)
 
 

@@ -14,6 +14,14 @@
     </div>
 {%- endmacro %}
 
+{% macro infinite_scroll_uri(name, next_cursor, size=20) -%}
+    {% if next_cursor %}
+    <h3 class="box infinite_scroll" data-url="{{ uri_for_pagination(name, cursor=next_cursor) }}">
+        Loading...
+    </h3>
+    {% endif %}
+{%- endmacro %}
+
 {% macro time_elapse(days, secs) -%}
     {% if days %}
         {{ days }}d

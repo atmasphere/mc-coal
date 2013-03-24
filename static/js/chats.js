@@ -96,6 +96,36 @@ var chats = {
     }
 };
 
+var scroller = {
+    init: function() {
+        if ($('.infinite_scroll').length) {
+            $(window).scroll(function() {
+                scroller.didScroll = true;
+            });
+
+            setInterval(function() {
+                if (scroller.didScroll) {
+                    scroller.didScroll = false;
+                    if ($(window).scrollTop() > $(document).height() - $(window).height() - 300) {
+                        scroller.loadMore();
+                    }
+                }
+            }, 250);
+
+            $(window).scroll();
+        }
+    },
+
+    loadMore: function() {
+        var url = $('.infinite_scroll').data('url');
+        if (url) {
+            $('.infinite_scroll').data('url', '');
+            $.getScript(url);
+        }
+    }
+};
+
 $(function() {
     chats.init();
+    scroller.init();
 });
