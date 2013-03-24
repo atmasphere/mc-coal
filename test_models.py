@@ -1,6 +1,7 @@
 import base64
 import os
 import sys
+import minimock
 
 for d in os.environ["PATH"].split(":"):
     dev_appserver_path = os.path.join(d, "dev_appserver.py")
@@ -10,10 +11,11 @@ for d in os.environ["PATH"].split(":"):
         import dev_appserver
         dev_appserver.fix_sys_path()
 
-from google.appengine.ext import blobstore, testbed, deferred
+from google.appengine.ext import blobstore, testbed, deferred, ndb
 
 from agar.test.base_test import BaseTest
 
+import channel
 import main
 import models
 
@@ -97,3 +99,19 @@ if Image is not None:
             screen_shot.key.delete()
             self.assertEqual(5, models.ScreenShot.query().count())
             self.assertEqual(0, models.AgarImage.query().count())
+
+
+class LogLineTest(BaseTest):
+
+    def cleanUp(self):
+        super(LogLineTest, self).cleanUp()
+        minimock.restore()
+
+    def test_post_put_hook_sends_log_line_to_channel(self):
+        tracker = minimock.TraceTracker()
+        minimock.mock('channel.send_log_line', tracker=tracker)
+        models.LogLine(key=ndb.Key('LogLine', 'line'), line='my line', zone='my zone').put()
+        trace = tracker.dump()
+        self.assertTrue("""Called channel.send_log_line(
+    LogLine(key=Key('LogLine', 'line'), created=""" in trace)
+        self.assertTrue("line=u'my line'" in trace)

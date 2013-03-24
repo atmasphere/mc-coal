@@ -19,6 +19,7 @@ except ImportError:
 from agar.image import NdbImage as AgarImage
 
 from config import coal_config
+import channel
 import search
 
 UNKNOWN_TAG = 'unknown'
@@ -387,6 +388,7 @@ class LogLine(UsernameModel):
             self.tags.insert(0, TIMESTAMP_TAG)
 
     def _post_put_hook(self, future):
+        channel.send_log_line(self)
         search.add_log_line(self)
 
     @property
