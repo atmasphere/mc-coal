@@ -187,30 +187,24 @@ class ChatsTest(AuthTest):
         response = self.get(self.URL)
         self.assertEqual('text/html', response.content_type)
 
-    def test_infinite_scroll_request_returns_200_OK_with_javascript_content(self):
-        self.log_in_user()
-        response = self.get(self.URL, headers={'X-Requested-With': 'XMLHttpRequest'})
-        self.assertOK(response)
-        self.assertEqual('text/javascript', response.content_type)
-
-    def test_infinite_scroll_response_appends_event_rows(self):
-        self.log_in_user()
-        response = self.get(self.URL, headers={'X-Requested-With': 'XMLHttpRequest'})
-        response.mustcontain("""$('#live_events').append""")
-
 
 class ChatsInfiniteScrollTest(AuthTest):
     URL = '/chats'
 
-    def test_get(self):
+    def test_returns_status_OK(self):
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get(self.URL, headers={'X-Requested-With': 'XMLHttpRequest'})
         self.assertOK(response)
 
-    def test_returns_html_content(self):
+    def test_returns_javascript_content(self):
         self.log_in_user()
-        response = self.get(self.URL)
-        self.assertEqual('text/html', response.content_type)
+        response = self.get(self.URL, headers={'X-Requested-With': 'XMLHttpRequest'})
+        self.assertEqual('text/javascript', response.content_type)
+
+    def test_response_appends_event_rows(self):
+        self.log_in_user()
+        response = self.get(self.URL, headers={'X-Requested-With': 'XMLHttpRequest'})
+        response.mustcontain("""$('#live_events').append""")
 
 
 class PlayersTest(AuthTest):
