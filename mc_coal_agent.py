@@ -164,7 +164,7 @@ def post_line(host, line, password, zone, skip_chat):
 
 def line_reader(logfile, last_ping, host, password, pidfile, commandfifo):
     while True:
-        if datetime.datetime.now() > last_ping + datetime.timedelta(minutes=1):
+        if datetime.datetime.now() > last_ping + datetime.timedelta(seconds=5):
             ping_host(host, password, pidfile, commandfifo, fail=False)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
