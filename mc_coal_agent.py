@@ -78,9 +78,9 @@ def execute_commands(commandfifo, commands):
                 if len(c) <= 5:
                     c = None
                 elif u:
-                    c = "/say <{0}> {1}".format(u, c[5:])
+                    c = u"/say <{0}> {1}".format(u, c[5:])
             if c:
-                command_fifo.write(c+'\n')
+                command_fifo.write(c+u'\n')
 
 
 def ping_host(host, password, pidfile, commandfifo, fail=True):

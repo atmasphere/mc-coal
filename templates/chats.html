@@ -22,7 +22,12 @@
 <div class="player_list chats">
     <h2 class="box wrap">
         <div class="left">Chats</div>
-        <form action="/chats" method="GET" id="search">
+
+        <form action="{{ uri_for('chats') }}" method="POST" id="chatinput">
+            <input type="text" name="chat"/>
+        </form>
+
+        <form action="{{ uri_for('chats') }}" method="GET" id="search">
             <input type="text" name="q" class="sprite" value="{{ query_string }}"/>
         </form>
         <div class="sound_toggle">

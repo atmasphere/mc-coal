@@ -47,6 +47,8 @@ button[disabled], input[disabled] { cursor: default; }
 input[type="checkbox"], input[type="radio"] { box-sizing: border-box; /*IE8/9*/ padding: 0; /*IE8/9*/ *width: 13px; /*IE7*/ *height: 13px; /*IE7*/ }
 input[type="search"] { -webkit-appearance: textfield; /*S5,C*/ -webkit-box-sizing: content-box; /*S5,C*/ -moz-box-sizing: content-box; /*FF*/ box-sizing: content-box; }
 input[type="search"]::-webkit-search-decoration, input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; /*S5,C*/ }
+input[type="chatinput"] { -webkit-appearance: textfield; /*S5,C*/ -webkit-box-sizing: content-box; /*S5,C*/ -moz-box-sizing: content-box; /*FF*/ box-sizing: content-box; }
+input[type="chatinput"]::-webkit-search-decoration, input[type="chatinput"]::-webkit-search-cancel-button { -webkit-appearance: none; /*S5,C*/ }
 button::-moz-focus-inner, input::-moz-focus-inner { border: 0; padding: 0; } /*FF3/4*/
 textarea { overflow: auto; /*IE7/8/9*/ vertical-align: top; resize: vertical; }
 
@@ -489,6 +491,17 @@ header nav li.user:hover {
 }
 
 #search input[type="text"] {
+    height: 16px;
+    width: 200px;
+    padding-right: 20px;
+    background-position: 200px -109px;
+}
+
+#chatinput {
+    float: left;
+}
+
+#chatinput input[type="text"] {
     height: 16px;
     width: 200px;
     padding-right: 20px;

@@ -21,7 +21,7 @@ from agar.env import on_production_server
 import channel
 from config import coal_config
 from filters import FILTERS
-from models import get_whitelist_user, User, Server, Player, LogLine, PlaySession, ScreenShot
+from models import get_whitelist_user, User, Server, Player, LogLine, PlaySession, ScreenShot, Command
 import search
 
 
@@ -283,6 +283,10 @@ class PagingHandler(BaseHander):
         return results, previous_cursor, next_cursor
 
 
+class ChatForm(form.Form):
+    chat = fields.TextField(u'Chat', validators=[validators.DataRequired()])
+
+
 class ChatsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
@@ -331,6 +335,20 @@ class ChatsHandler(PagingHandler):
             'username': self.request.user.username,
         })
         self.render_template('chats.html', context=context)
+
+    @authentication_required(authenticate=authenticate)
+    def post(self):
+        try:
+            user = self.request.user
+            if not (user and user.active):
+                self.abort(404)
+            form = ChatForm(self.request.POST)
+            if form.validate():
+                chat = u"/say {0}".format(form.chat.data)
+                Command.push(user.username, chat)
+        except Exception, e:
+            logging.error(u"Error POSTing chat: {0}".format(e))
+        self.redirect(webapp2.uri_for('chats'))
 
 
 class PlayersHandler(PagingHandler):
