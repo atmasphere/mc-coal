@@ -58,7 +58,9 @@ REGEX_TAGS = [
     ),
     (
         [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \<(?P<username>\w+)\> (?P<chat>.+)"
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \<(?P<username>\w+)\> (?P<chat>.+)",
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \[Server\] \<(?P<username>\w+)\> (?P<chat>.+)",
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \[Server\] (?P<chat>.+)"
         ],
         CHAT_TAGS
     ),
@@ -494,6 +496,38 @@ class LogLine(UsernameModel):
     @classmethod
     def query_oldest_logouts(cls):
         return cls.query_by_tags(LOGOUT_TAG).order(cls.timestamp)
+
+
+@ae_ndb_serializer
+class Command(UsernameModel):
+    command = ndb.StringProperty(required=True)
+    created = ndb.DateTimeProperty(auto_now_add=True)
+    updated = ndb.DateTimeProperty(auto_now=True)
+
+    @property
+    def to_dict(self):
+        return {'username': self.username, 'command': self.command}
+
+    @classmethod
+    def push(cls, username, command, **kwargs):
+        instance = cls(
+            parent=Server.global_key(),
+            username=username,
+            command=command,
+            **kwargs
+        )
+        instance.put()
+        return instance
+
+    @classmethod
+    @ndb.transactional
+    def pop_all(cls):
+        commands = []
+        query = cls.server_query().order(cls.created)
+        for command in query:
+            commands.append(command.to_dict)
+            command.key.delete()
+        return commands
 
 
 @ae_ndb_serializer

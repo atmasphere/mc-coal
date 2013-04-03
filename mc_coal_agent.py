@@ -24,6 +24,7 @@ except ImportError:
 DEFAULT_AGENT_LOGFILE = 'agent.log'
 DEFAULT_MC_LOGFILE = '../server.log'
 DEFAULT_MC_PIDFILE = '../server.pid'
+DEFAULT_MC_COMMAND_FIFO = '../command-fifo'
 
 
 class AgentException(Exception):
@@ -68,7 +69,21 @@ def is_server_running(pidfile):
     return is_running
 
 
-def ping_host(host, password, pidfile, fail=True):
+def execute_commands(commandfifo, commands):
+    with open(commandfifo, "a") as command_fifo:
+        for command in commands:
+            c = command.get('command', None)
+            u = command.get('username', None)
+            if c and c.startswith('/say '):
+                if len(c) <= 5:
+                    c = None
+                elif u:
+                    c = "/say <{0}> {1}".format(u, c[5:])
+            if c:
+                command_fifo.write(c+'\n')
+
+
+def ping_host(host, password, pidfile, commandfifo, fail=True):
     logger = logging.getLogger('ping')
     try:
         headers = {
@@ -86,6 +101,9 @@ def ping_host(host, password, pidfile, fail=True):
         if response.status == 200:
             body = json.loads(response.read())
             last_line = body['last_line']
+            commands = body['commands']
+            if commands:
+                execute_commands(commandfifo, commands)
             return last_line
         else:
             logger.error(u"UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
@@ -144,10 +162,10 @@ def post_line(host, line, password, zone, skip_chat):
         time.sleep(timeout)
 
 
-def line_reader(logfile, last_ping, host, password, pidfile):
+def line_reader(logfile, last_ping, host, password, pidfile, commandfifo):
     while True:
         if datetime.datetime.now() > last_ping + datetime.timedelta(minutes=1):
-            ping_host(host, password, pidfile, fail=False)
+            ping_host(host, password, pidfile, commandfifo, fail=False)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()
@@ -160,7 +178,7 @@ def line_reader(logfile, last_ping, host, password, pidfile):
             yield line, last_ping
 
 
-def tail(host, filename, password, zone, parse_history, skip_chat, last_line, last_ping, pidfile):
+def tail(host, filename, password, zone, parse_history, skip_chat, last_line, last_ping, pidfile, commandfifo):
     logger = logging.getLogger('main')
     with open(filename, 'r') as logfile:
         st_results = os.stat(filename)
@@ -174,7 +192,7 @@ def tail(host, filename, password, zone, parse_history, skip_chat, last_line, la
             st_size = st_results[6]
             logfile.seek(st_size)
             read_last_line = True
-        for line, last_ping in line_reader(logfile, last_ping, host, password, pidfile):
+        for line, last_ping in line_reader(logfile, last_ping, host, password, pidfile, commandfifo):
             if read_last_line:
                 post_line(host, line, password, zone, skip_chat)
                 if skip_chat:
@@ -282,6 +300,11 @@ def main(argv):
         help="The Minecraft server PID filename (default: '{0}')".format(DEFAULT_MC_PIDFILE)
     )
     parser.add_argument(
+        '--mc_commandfifo',
+        default=DEFAULT_MC_COMMAND_FIFO,
+        help="The Minecraft server command fifo filename (default: '{0}')".format(DEFAULT_MC_COMMAND_FIFO)
+    )
+    parser.add_argument(
         '--parse_mc_history',
         action='store_true',
         help="Set this flag to parse and report on the Minecraft server log from the beginning (or where parsing left off last time) rather than just new entries."
@@ -314,11 +337,12 @@ def main(argv):
             raise NoPasswordException()
         mc_logfile = args.mc_logfile
         mc_pidfile = args.mc_pidfile
+        mc_commandfile = args.mc_commandfifo
         parse_mc_history = args.parse_mc_history
         skip_chat_history = args.skip_chat_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
-        last_line = ping_host(coal_host, coal_password, mc_pidfile)
+        last_line = ping_host(coal_host, coal_password, mc_pidfile, mc_commandfile)
         parse_all = args.parse_all
         if parse_all:
             last_line = None
@@ -333,7 +357,8 @@ def main(argv):
             skip_chat_history,
             last_line,
             last_ping,
-            mc_pidfile
+            mc_pidfile,
+            mc_commandfile
         )
     except NoPingException:
         logger.error(u"Unable to ping '{0}'".format(coal_host))

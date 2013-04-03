@@ -19,7 +19,7 @@ from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
 
 from config import coal_config
-from models import Server, User, Player, PlaySession, LogLine
+from models import Server, User, Player, PlaySession, LogLine, Command
 
 
 def validate_params(form_class):
@@ -122,7 +122,10 @@ class PingHandler(JsonRequestHandler):
         server = Server.global_key().get()
         server.update_is_running(is_server_running, last_ping=datetime.datetime.now())
         last_log_line = LogLine.get_last_line_with_timestamp()
-        response = {'last_line': last_log_line.line if last_log_line is not None else None}
+        response = {
+            'last_line': last_log_line.line if last_log_line is not None else None,
+            'commands': Command.pop_all()
+        }
         self.json_response(response, status_code=200)
 
 
