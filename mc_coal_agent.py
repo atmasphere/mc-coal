@@ -70,12 +70,10 @@ def is_server_running(pidfile):
 
 
 def execute_commands(commandfifo, commands):
-    logger = logging.getLogger('ping')
     with open(commandfifo, "a") as command_fifo:
         for command in commands:
             c = command.get('command', None)
             u = command.get('username', None)
-            logger.info([c, u])
             if c and c.startswith(u'/say '):
                 if len(c) <= 5:
                     c = None
@@ -83,7 +81,6 @@ def execute_commands(commandfifo, commands):
                     c = u"/say <{0}> {1}".format(u, c[5:])
             if c:
                 c += u'\n'
-                logger.info(c)
                 command_fifo.write(c.encode('ISO-8859-2'))
 
 
