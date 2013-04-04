@@ -81,7 +81,7 @@ def execute_commands(commandfifo, commands):
                     c = u"/say <{0}> {1}".format(u, c[5:])
             if c:
                 c += u'\n'
-                command_fifo.write(c.encode('ISO-8859-2'))
+                command_fifo.write(c.encode('utf-8'))
 
 
 def ping_host(host, password, pidfile, commandfifo, fail=True):
