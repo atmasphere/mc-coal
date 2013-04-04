@@ -23,8 +23,9 @@
     <h2 class="box wrap">
         <div class="left">Chats</div>
 
-        <form action="{{ uri_for('chats') }}" method="POST" id="chatinput">
+        <form action="{{ uri_for('chats') }}" method="POST" id="chatform">
             <input type="text" name="chat"/>
+            <input type="submit" value="Chat"/>
         </form>
 
         <form action="{{ uri_for('chats') }}" method="GET" id="search">

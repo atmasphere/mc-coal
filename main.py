@@ -348,7 +348,8 @@ class ChatsHandler(PagingHandler):
                 Command.push(user.username, chat)
         except Exception, e:
             logging.error(u"Error POSTing chat: {0}".format(e))
-        self.redirect(webapp2.uri_for('chats'))
+            self.abort(500)
+        self.response.set_status(201)
 
 
 class PlayersHandler(PagingHandler):
