@@ -216,7 +216,7 @@ header div.logo.sprite {
 
 header nav {
     float: right;
-    width: 550px;
+    width: 765px;
 }
 
 header nav a {
@@ -497,15 +497,9 @@ header nav li.user:hover {
     background-position: 200px -109px;
 }
 
-#chatinput {
-    float: left;
-}
-
-#chatinput input[type="text"] {
-    height: 16px;
-    width: 200px;
-    padding-right: 20px;
-    background-position: 200px -109px;
+#chatform input[type="text"] {
+    height: 14px;
+    width: 660px;
 }
 
 .event_template {
@@ -535,6 +529,14 @@ header nav li.user:hover {
     text-align: center;
 }
 
+img.screenshot {
+    float: left;
+    margin-right: 10px;
+}
+
+#screenshot_uploader {
+    float: left;
+}
 
 /* FOOTER */
 footer {
@@ -571,6 +573,10 @@ footer .copy {
         margin: 0 auto;
     }
 
+    #content {
+        margin-top: 90px;
+    }
+
     .player_list {
         float: none;
         width: 100%;
@@ -599,6 +605,10 @@ footer .copy {
     }
 
     .chats.home .chat {
+        width: 410px;
+    }
+
+    #chatform input[type="text"] {
         width: 410px;
     }
 

@@ -126,26 +126,23 @@ var scroller = {
 };
 
 function enableFormSubmission(form) {
-    form.find('input[type="submit"]').on('click', function(e) {
+    form.on('submit', function(e) {
         e.preventDefault();
         submitForm(form);
     });
 }
 
 function submitForm(form) {
-    form.find('input[type="submit"]').attr('disabled', 'disabled');
     var url = form.attr('action');
     $.ajax({
         type: 'POST',
         url: url,
         data: form.serialize(),
         success: function(result) {
-            form.find('input[type="submit"]').removeAttr('disabled');
             form.find('input[type="text"]').val('');
         }
     });
 }
-
 
 $(function() {
     chats.init();

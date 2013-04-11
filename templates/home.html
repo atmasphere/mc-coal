@@ -87,17 +87,19 @@
         </div>
         </div>
         <br/>
-        <div class="box"><a href="{{ uri_for('screen_shots') }}">Screen Shots</a></div>
-        {% if user.admin %}
-            <div class="box"><a href="{{ uri_for('users') }}">Users</a></div>
-        {% endif %}
     {% elif user %}
         <div class="box">
-            You don't have permission to see this site. <a href="{{ logout_url }}">Log Out</a>
+            <div class="pad">
+                <p>You don't have permission to see this site.</p>
+                <p><a href="{{ logout_url }}">Log Out</a></p>
+            </div>
         </div>
     {% else %}
         <div class="box">
-            You aren't logged in. <a href="{{ login_url }}">Log In</a>
+            <div class="pad">
+                <p>You aren't logged in.</p>
+                <p><a href="{{ login_url }}">Log In</a></p>
+            </div>
         </div>
     {% endif %}
 {% endblock %}
