@@ -115,3 +115,44 @@ class LogLineTest(BaseTest):
         self.assertTrue("""Called channel.send_log_line(
     LogLine(key=Key('LogLine', 'line'), created=""" in trace)
         self.assertTrue("line=u'my line'" in trace)
+
+
+class LookupChannelersTest(BaseTest):
+
+    def test_returns_emtpy_list_if_no_entity(self):
+        self.assertEqual([], models.Lookup.channelers())
+
+
+class LookupAddChannelerTest(BaseTest):
+
+    def test_adds_client_id_to_lookup_store_despite_missing_lookup_entity(self):
+        models.Lookup.add_channeler('client-id')
+        self.assertEqual(['client-id'], models.Lookup.channelers())
+
+    def test_adds_client_id_to_existing_lookup_store(self):
+        models.Lookup.add_channeler('client-id-1')
+        models.Lookup.add_channeler('client-id-2')
+        self.assertEqual(['client-id-1', 'client-id-2'], models.Lookup.channelers())
+
+    def test_does_not_add_client_id_to_lookup_store_if_already_exists_there(self):
+        models.Lookup.add_channeler('client-id')
+        models.Lookup.add_channeler('client-id')
+        self.assertEqual(['client-id'], models.Lookup.channelers())
+
+
+class LookupRemoveChannelerTest(BaseTest):
+
+    def test_removes_client_id_from_lookup_store(self):
+        models.Lookup.add_channeler('client-id-1')
+        models.Lookup.add_channeler('client-id-2')
+        models.Lookup.remove_channeler('client-id-1')
+        self.assertEqual(['client-id-2'], models.Lookup.channelers())
+
+    def test_no_ops_if_missing_lookup_entity(self):
+        models.Lookup.remove_channeler('client-id')
+        self.assertEqual([], models.Lookup.channelers())
+
+    def test_no_ops_if_client_id_is_not_in_lookup_store(self):
+        models.Lookup.add_channeler('client-id-1')
+        models.Lookup.remove_channeler('client-id-2')
+        self.assertEqual(['client-id-1'], models.Lookup.channelers())

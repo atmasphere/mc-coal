@@ -22,7 +22,6 @@ from config import coal_config
 
 from restler.decorators import ae_ndb_serializer
 
-import channel
 import search
 
 UNKNOWN_TAG = 'unknown'
@@ -385,6 +384,7 @@ class LogLine(UsernameModel):
             self.tags.insert(0, TIMESTAMP_TAG)
 
     def _post_put_hook(self, future):
+        import channel
         channel.send_log_line(self)
         search.add_log_line(self)
 
@@ -397,7 +397,6 @@ class LogLine(UsernameModel):
         search.remove_log_line(key)
 
     @classmethod
-    @ndb.transactional
     def create(cls, line, zone, **kwargs):
         try:
             tz = pytz.timezone(zone)
@@ -700,3 +699,40 @@ class ScreenShot(AgarImage, UsernameModel):
     @classmethod
     def query_oldest(cls):
         return cls.server_query().order(cls.created)
+
+
+class Lookup(ndb.Model):
+    value = ndb.StringProperty(repeated=True)
+
+    @classmethod
+    def _channelers_key(cls):
+        return ndb.Key('Lookup', 'channelers')
+
+    @classmethod
+    def channelers(cls):
+        lookup = cls._channelers_key().get()
+        if lookup is not None:
+            return lookup.value
+        else:
+            return []
+
+    @classmethod
+    def add_channeler(cls, client_id):
+        lookup = cls._channelers_key().get()
+
+        if lookup is None:
+            lookup = cls(key=cls._channelers_key())
+        if client_id not in lookup.value:
+            lookup.value.append(client_id)
+            lookup.put()
+
+    @classmethod
+    def remove_channeler(cls, client_id):
+        lookup = cls._channelers_key().get()
+
+        if lookup is not None:
+            try:
+                lookup.value.remove(client_id)
+                lookup.put()
+            except ValueError:
+                pass
