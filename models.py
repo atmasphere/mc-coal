@@ -227,6 +227,7 @@ class Server(ndb.Model):
             self.is_running = is_running
             if last_ping is not None:
                 self.last_ping = last_ping
+            # TODO: Only record on change or every minute
             self.put()
             if was_running != is_running:
                 if is_running == True:
