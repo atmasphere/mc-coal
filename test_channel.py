@@ -12,7 +12,6 @@ for d in os.environ["PATH"].split(":"):
         dev_appserver.fix_sys_path()
 
 from google.appengine.api import channel
-from google.appengine.api import memcache
 from agar.test.base_test import BaseTest
 from agar.test.web_test import WebTest
 
@@ -30,7 +29,7 @@ class SendLogLineTest(BaseTest):
         self.interesting_log_line = models.LogLine.create(self.INTERESTING_LOG_LINE, 'US/Central')
         self.uninteresting_log_line = models.LogLine.create(self.UNINTERESTING_LOG_LINE, 'US/Central')
         self.tracker = minimock.TraceTracker()
-        minimock.mock('memcache.get', returns=['client_id'], tracker=None)
+        minimock.mock('models.Lookup.channelers', returns=['client_id'], tracker=None)
         minimock.mock('channel.send_message', tracker=self.tracker)
 
     def tearDown(self):
@@ -48,7 +47,7 @@ class SendLogLineTest(BaseTest):
         self.assertTrue('Called channel.send_message' not in trace)
 
     def test_sends_message_to_all_connected_clients(self):
-        minimock.mock('memcache.get', returns=['client_1', 'client_2'], tracker=None)
+        minimock.mock('models.Lookup.channelers', returns=['client_1', 'client_2'], tracker=None)
         coal_channel.send_log_line(self.interesting_log_line)
         trace = self.tracker.dump()
         self.assertTrue('client_1' in trace)
@@ -74,6 +73,10 @@ class ChannelHandlerTest(BaseTest, WebTest):
 
     APPLICATION = coal_channel.application
 
+    def tearDown(self):
+        super(ChannelHandlerTest, self).tearDown()
+        minimock.restore()
+
 
 class ConnectedHandlerTest(ChannelHandlerTest):
 
@@ -81,42 +84,25 @@ class ConnectedHandlerTest(ChannelHandlerTest):
         response = self.post('/_ah/channel/connected/', params={'from': 'client-id'})
         self.assertOK(response)
 
-    def test_saves_client_id_in_memcache_despite_missing_memcache_key(self):
-        memcache.delete('channelers')
+    def test_adds_client_id_to_lookup_store(self):
+        tracker = minimock.TraceTracker()
+        minimock.mock('models.Lookup.add_channeler', tracker=tracker)
         self.post('/_ah/channel/connected/', params={'from': 'client-id'})
-        self.assertEqual(['client-id'], memcache.get('channelers'))
-
-    def test_saves_client_id_in_memcache(self):
-        memcache.set('channelers', ['client-id-1'])
-        self.post('/_ah/channel/connected/', params={'from': 'client-id-2'})
-        self.assertEqual(['client-id-1', 'client-id-2'], memcache.get('channelers'))
-
-    def test_does_not_save_client_id_in_memcache_if_already_exists_there(self):
-        memcache.set('channelers', ['client-id-1', 'client-id-2'])
-        self.post('/_ah/channel/connected/', params={'from': 'client-id-2'})
-        self.assertEqual(['client-id-1', 'client-id-2'], memcache.get('channelers'))
+        self.assertTrue(
+            tracker.check("Called models.Lookup.add_channeler(u'client-id')")
+        )
 
 
 class DisconnectedHandlerTest(ChannelHandlerTest):
-
-    def setUp(self):
-        super(DisconnectedHandlerTest, self).setUp()
 
     def test_returns_200_OK(self):
         response = self.post('/_ah/channel/disconnected/', params={'from': 'client-id'})
         self.assertOK(response)
 
-    def test_removes_client_id_from_memcache(self):
-        memcache.set('channelers', ['client-id-1', 'client-id-2'])
+    def test_removes_client_id_from_lookup_store(self):
+        tracker = minimock.TraceTracker()
+        minimock.mock('models.Lookup.remove_channeler', tracker=tracker)
         self.post('/_ah/channel/disconnected/', params={'from': 'client-id-1'})
-        self.assertEqual(['client-id-2'], memcache.get('channelers'))
-
-    def test_no_ops_if_memcache_key_is_missing(self):
-        memcache.delete('channelers')
-        self.post('/_ah/channel/disconnected/', params={'from': 'client-id-1'})
-        self.assertIsNone(memcache.get('channelers'))
-
-    def test_no_ops_if_client_id_is_not_in_memcache(self):
-        memcache.set('channelers', ['client-id-1'])
-        self.post('/_ah/channel/disconnected/', params={'from': 'client-id-2'})
-        self.assertEqual(['client-id-1'], memcache.get('channelers'))
+        self.assertTrue(
+            tracker.check("Called models.Lookup.remove_channeler(u'client-id-1')")
+        )

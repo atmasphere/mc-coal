@@ -2,17 +2,19 @@
 {% import 'macros.html' as macros %}
 {% set nav="UploadScreenShot" %}
 
-{% block title %}Upload Screen Shot{% endblock %}
+{% block title %}Upload Screenshot{% endblock %}
 
 {% block content %}
     <div class="upload screenshot">
-        <h2 class="box">Screen Shot</h2>
+        <h2 class="box">Screenshot</h2>
 
         <div class="box">
-            <form action="{{ upload_url }}" method="POST" enctype="multipart/form-data">
-                Choose File: <input type="file" name="file"><br/>
-                <input type="submit" name="submit" value="Submit">
-            </form>
+            <div class="pad">
+                <form action="{{ upload_url }}" method="POST" enctype="multipart/form-data">
+                    Choose File: <input type="file" name="file">
+                    <input type="submit" name="submit" value="Submit">
+                </form>
+            </div>
         </div>
     </div>
 {% endblock %}

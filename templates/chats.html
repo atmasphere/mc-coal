@@ -23,11 +23,6 @@
     <h2 class="box wrap">
         <div class="left">Chats</div>
 
-        <form action="{{ uri_for('chats') }}" method="POST" id="chatform">
-            <input type="text" name="chat"/>
-            <input type="submit" value="Chat"/>
-        </form>
-
         <form action="{{ uri_for('chats') }}" method="GET" id="search">
             <input type="text" name="q" class="sprite" value="{{ query_string }}"/>
         </form>
@@ -40,6 +35,18 @@
         Live updates have been <strong>disconnected</strong>!<br><a href="/chats">Reload</a> to reconnect.
     </h3>
 
+    <div class="box">
+        <div class="player say wrap">
+            <div class="avatar" style="background-image: url(https://minotar.net/helm/{{username}}/20)"></div>
+            <div class="name">{{ username }}</div>
+
+            <div class="chat">
+                <form action="{{ uri_for('chats') }}" method="POST" id="chatform">
+                    <input type="text" name="chat" placeholder="Say something..."/>
+                </form>
+            </div>
+        </div>
+    </div>
     <div id="live_events" class="box">
         {% include "_chats.html" %}
     </div>

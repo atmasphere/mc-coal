@@ -2,21 +2,30 @@
 {% import 'macros.html' as macros %}
 {% set nav="ScreenShots" %}
 
-{% block title %}Screen Shots{% endblock %}
+{% block title %}Screenshots{% endblock %}
 
 {% block content %}
     <div class="screen_shot_list screenshots">
-        <h2 class="box">Screen Shots</h2>
+        <h2 class="box">Screenshots</h2>
 
-        <div class="box"><a href="{{ uri_for('screen_shot_upload') }}">Upload Screen Shot</a></div>
+        <div class="box">
+            <div class="pad">
+                <a href="{{ uri_for('screen_shot_upload') }}">Upload Screenshot</a>
+            </div>
+        </div>
 
         {% for screen_shot in screen_shots %}
-            <div>Uploaded by {{ screen_shot.username }}
-                <img src="{{ screen_shot.get_serving_url() }}" width="25%", height="25%">
-                <img src="{{ screen_shot.blurred_image_serving_url or '/img/cap/blurring.png' }}" width="25%", height="25%">
-                <form action="{{ uri_for('screen_shot_remove', key=screen_shot.key.urlsafe()) }}" method="POST">
-                    <input type="submit" name="submit" value="Remove">
-                </form>
+            <div class="box">
+                <div class="pad">
+                    <img class="screenshot" src="{{ screen_shot.get_serving_url() }}" width="25%", height="25%">
+                    <img class="screenshot" src="{{ screen_shot.blurred_image_serving_url or '/img/cap/blurring.png' }}" width="25%", height="25%">
+                    <div class="wrap">
+                        <div class="screenshot_uploader">Uploaded by {{ screen_shot.username }}</div>
+                        <form id="remove_screenshot_form" action="{{ uri_for('screen_shot_remove', key=screen_shot.key.urlsafe()) }}" method="POST">
+                            <input type="submit" name="submit" value="Remove">
+                        </form>
+                    </div>
+                </div>
             </div>
         {% endfor %}
     </div>

@@ -4,10 +4,10 @@ import time
 from webapp2 import WSGIApplication, RequestHandler, Route
 from webapp2_extras.json import json
 from google.appengine.api import channel
-from google.appengine.api import memcache
 from filters import datetime_filter
+import models
 
-CHANNELERS_KEY = 'channelers'
+
 INTERESTING_TAGS = ['login', 'logout', 'chat']
 
 
@@ -28,7 +28,7 @@ def send_log_line(log_line):
     if tags_set.isdisjoint(interesting_tags_set):
         return
 
-    channelers = memcache.get(CHANNELERS_KEY)
+    channelers = models.Lookup.channelers()
     if channelers is not None and len(channelers) > 0:
         tag = list(tags_set.intersection(interesting_tags_set))[0]
         message_data = {
@@ -49,25 +49,7 @@ class ConnectedHandler(RequestHandler):
     def post(self):
         channeler_id = self.request.get('from')
         logging.info(u'channel client %s connected!' % channeler_id)
-
-        memcache_client = memcache.Client()
-        while True:
-            channelers = memcache_client.gets(CHANNELERS_KEY)
-            if channelers is None:
-                ## memcache.Client.cas() always fails and returns False when
-                ## trying to set a key that didn't previously exist in
-                ## memcache...so I guess I just have to hope I don't
-                ## overwrite it if someone else sneaks one in right before
-                ## me...?? (Or is that a bug in dev_appserver?)
-                memcache_client.set(CHANNELERS_KEY, [channeler_id])
-                break
-
-            if channeler_id in channelers:
-                break
-
-            channelers.append(channeler_id)
-            if memcache_client.cas(CHANNELERS_KEY, channelers):
-                break
+        models.Lookup.add_channeler(channeler_id)
 
 
 class DisconnectedHandler(RequestHandler):
@@ -75,17 +57,7 @@ class DisconnectedHandler(RequestHandler):
     def post(self):
         channeler_id = self.request.get('from')
         logging.info(u'channel client %s disconnected!' % channeler_id)
-
-        memcache_client = memcache.Client()
-        while True:
-            channelers = memcache_client.gets(CHANNELERS_KEY)
-            if channelers is None:
-                break
-            if channeler_id not in channelers:
-                break
-            channelers.remove(channeler_id)
-            if memcache_client.cas(CHANNELERS_KEY, channelers):
-                break
+        models.Lookup.remove_channeler(channeler_id)
 
 
 application = WSGIApplication(
