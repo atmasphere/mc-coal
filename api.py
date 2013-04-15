@@ -444,12 +444,12 @@ application = webapp2.WSGIApplication(
         webapp2.Route('/logout', handler='api.GoogleAppEngineUserAuthHandler:logout', name='logout'),
 
         webapp2.Route('/api/data/server', ServerHandler, name='api_data_server'),
-        webapp2.Route('/api/data/users', UsersHandler, name='api_data_users'),
         webapp2.Route('/api/data/user/<key>', UserKeyHandler, name='api_data_user_key'),
-        webapp2.Route('/api/data/players', PlayersHandler, name='api_data_players'),
+        webapp2.Route('/api/data/user', UsersHandler, name='api_data_user'),
         webapp2.Route('/api/data/player/<key_username>', PlayerKeyUsernameHandler, name='api_data_player_key_username'),
-        webapp2.Route('/api/data/play_sessions', PlaySessionsHandler, name='api_data_play_sessions'),
+        webapp2.Route('/api/data/player', PlayersHandler, name='api_data_player'),
         webapp2.Route('/api/data/play_session/<key>', PlaySessionKeyHandler, name='api_data_play_session_key'),
+        webapp2.Route('/api/data/play_session', PlaySessionsHandler, name='api_data_play_session'),
     ],
     config={
         'webapp2_extras.sessions': {'secret_key': coal_config.SECRET_KEY},

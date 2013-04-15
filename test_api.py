@@ -570,7 +570,7 @@ class ServerTest(ApiTest):
 
 
 class UsersTest(MultiPageApiTest):
-    URL = '/api/data/users'
+    URL = '/api/data/user'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -615,7 +615,7 @@ class UserKeyTest(KeyApiTest):
 
 
 class PlayersTest(MultiPageApiTest):
-    URL = '/api/data/players'
+    URL = '/api/data/player'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -677,7 +677,7 @@ class PlayerUsernameTest(KeyApiTest):
 
 
 class PlaySessionsTest(MultiPageApiTest):
-    URL = '/api/data/play_sessions'
+    URL = '/api/data/play_session'
     ALLOWED = ['GET']
 
     def setUp(self):
