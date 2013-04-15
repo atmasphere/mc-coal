@@ -344,8 +344,8 @@ Player
     :Player: - **key** -- The player key.
              - **username** -- The player's minecraft username.
              - **user_key** -- The player's user key. ``null`` if the player isn't mapped to a user.
-             - **last_login** -- The timestamp of the player's last minecraft login.
-             - **last_session_duration** -- The player's last session duration in seconds.
+             - **last_login** -- The timestamp of the player's last minecraft login. ``null`` if the player hasn't logged in.
+             - **last_session_duration** -- The player's last session duration in seconds. ``null`` if the player hasn't logged in.
              - **is_playing** -- A boolean indicating whether the player is currently logged into the minecraft server.
 
   **Example request**:
@@ -369,14 +369,14 @@ Player
           "username": "gumptionthomas",
           "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
           "last_login": "2013-04-13 20:50:34 CDT [-0500]",
-          "last_session_duration": 124,
+          "last_session_duration": 8126,
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
           "is_playing": false
         },
           "username": "quazifene",
           "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchiBfQw",
           "last_login": "2013-04-13 21:21:30 CDT [-0500]",
-          "last_session_duration": 1203,
+          "last_session_duration": 6821,
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIuCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIJcXVhemlmZW5lDA",
           "is_playing": false
         }
@@ -418,7 +418,7 @@ Player
       "username": "gumptionthomas",
       "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
       "last_login": "2013-04-13 20:50:34 CDT [-0500]",
-      "last_session_duration": {},
+      "last_session_duration": 8126,
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
       "is_playing": false
     }

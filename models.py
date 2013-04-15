@@ -303,7 +303,7 @@ class Player(ServerModel):
     @property
     def last_session_duration(self):
         last_session = PlaySession.last(self.username)
-        return last_session.duration.total_seconds() if last_session is not None else None
+        return last_session.duration if last_session is not None else None
 
     def is_user(self, user):
         if user is not None:

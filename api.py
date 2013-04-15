@@ -357,11 +357,12 @@ class UserKeyHandler(UserAwareHandler):
         self.json_response(user, USER_STRATEGY)
 
 
-PLAYER_FIELDS = ['username', 'last_session_duration', 'is_playing']
+PLAYER_FIELDS = ['username', 'is_playing']
 PLAYER_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
-    'last_login': lambda o: api_datetime(o.last_login_timestamp)
+    'last_login': lambda o: api_datetime(o.last_login_timestamp),
+    'last_session_duration': lambda o: o.last_session_duration.total_seconds() if o.last_session_duration is not None else None
 }
 PLAYER_STRATEGY = ModelStrategy(Player).include(*PLAYER_FIELDS).include(**PLAYER_FIELD_FUNCTIONS)
 
