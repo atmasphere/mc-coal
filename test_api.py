@@ -707,7 +707,7 @@ class PlaySessionsTest(MultiPageApiTest):
 
     def test_get_username(self):
         username = self.players[0].username
-        url = "{0}?username={1}".format(self.URL, username)
+        url = "/api/data/player/{0}/session".format(username)
         response = self.get(self.get_secure_url(url=url))
         self.assertOK(response)
         body = json.loads(response.body)

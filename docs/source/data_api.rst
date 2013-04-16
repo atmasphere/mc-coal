@@ -397,13 +397,13 @@ Player
 
   .. sourcecode:: http
 
-    GET /api/data/player/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM HTTP/1.1
+    GET /api/data/player/gumptionthomas HTTP/1.1
 
   **OR**
 
   .. sourcecode:: http
 
-    GET /api/data/player/gumptionthomas HTTP/1.1
+    GET /api/data/player/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM HTTP/1.1
 
   **Example response**:
 
@@ -447,8 +447,8 @@ Play Session
                    - **username** -- The minecraft username associated with the play session.
                    - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
                    - **user_key** -- The user key. ``null`` if the username is not mapped to a player or the player is not mapped to a user.
-                   - **login_timestamp** -- The timestamp of the play session start.
-                   - **logout_timestamp** -- The timestamp of the play session end.
+                   - **login_timestamp** -- The timestamp of the play session start. It will be reported in the agent's timezone.
+                   - **logout_timestamp** -- The timestamp of the play session end. It will be reported in the agent's timezone.
                    - **duration** -- The length of the play session in seconds.
                    - **login_log_line_key** -- The login log line key. May be ``null``.
                    - **logout_log_line_key** -- The logout log line key. May be ``null``.
@@ -538,4 +538,64 @@ Play Session
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw",
       "duration": 8126,
       "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
+    }
+
+.. http:get:: /api/data/player/(key_username)/session
+
+  Get a :ref:`list <list>` of a player's minecraft play sessions ordered by descending login timestamp.
+
+  :query size: The number of results to return per call (Default: 10. Maximum: 50).
+  :query cursor: The cursor string signifying where to start the results.
+
+  :status 200: Successfully queried the play sessions.
+
+    :Response Data: - **play_sessions** -- The list of the player's play sessions.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+
+    Each entry in **play_sessions** is a dictionary of the player's play session information. See :ref:`Play session response data <play_session_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/player/gumptionthomas/session HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "play_sessions": [
+        {
+            "username": "gumptionthomas",
+            "updated": "2013-04-15 23:30:41 CDT-0500",
+            "logout_timestamp": "2013-04-15 23:30:40 CDT-0500",
+            "login_timestamp": "2013-04-15 22:35:49 CDT-0500",
+            "created": "2013-04-15 22:35:50 CDT-0500",
+            "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+            "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+            "login_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYs4EkDA",
+            "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGLqoJAw",
+            "duration": 3291,
+            "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYjJEkDA"
+        },
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-13 23:06:01 CDT-0500",
+          "logout_timestamp": "2013-04-13 23:06:00 CDT-0500",
+          "login_timestamp": "2013-04-13 20:50:34 CDT-0500",
+          "created": "2013-04-13 20:50:35 CDT-0500",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "login_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw",
+          "duration": 8126,
+          "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
+        }
+      ]
     }

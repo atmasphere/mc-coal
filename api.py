@@ -412,10 +412,24 @@ class PlaySessionsForm(MultiPageForm):
 
 
 class PlaySessionsHandler(MultiPageUserAwareHandler):
+    def get_player_by_key_or_username(self, key_username, abort_404=True):
+        try:
+            player_key = ndb.Key(urlsafe=key_username)
+            player = player_key.get()
+        except Exception:
+            player = Player.lookup(key_username)
+        if abort_404 and not player:
+            self.abort(404)
+        return player
+
     @authentication_required(authenticate=authenticate_user_or_password)
     @validate_params(form_class=PlaySessionsForm)
-    def get(self):
-        query = PlaySession.query_latest(username=self.request.form.username.data)
+    def get(self, key_username=None):
+        username = None
+        if key_username:
+            player = self.get_player_by_key_or_username(key_username)
+            username = player.username
+        query = PlaySession.query_latest(username=username)
         self.json_response(self.fetch_page(query, results_name='play_sessions'), PLAY_SESSION_STRATEGY)
 
 
@@ -447,6 +461,7 @@ application = webapp2.WSGIApplication(
         webapp2.Route('/api/data/server', ServerHandler, name='api_data_server'),
         webapp2.Route('/api/data/user/<key>', UserKeyHandler, name='api_data_user_key'),
         webapp2.Route('/api/data/user', UsersHandler, name='api_data_user'),
+        webapp2.Route('/api/data/player/<key_username>/session', PlaySessionsHandler, name='api_data_player_key_username'),
         webapp2.Route('/api/data/player/<key_username>', PlayerKeyUsernameHandler, name='api_data_player_key_username'),
         webapp2.Route('/api/data/player', PlayersHandler, name='api_data_player'),
         webapp2.Route('/api/data/play_session/<key>', PlaySessionKeyHandler, name='api_data_play_session_key'),
