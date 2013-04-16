@@ -237,7 +237,7 @@ class GoogleAppEngineUserAuthHandler(webapp2.RequestHandler):
         self.redirect('/')
 
 
-def api_datetime(dt, zone=None, dt_format=u"%Y-%m-%d %H:%M:%S", tz_format=u"%Z [%z]"):
+def api_datetime(dt, zone=None, dt_format=u"%Y-%m-%d %H:%M:%S", tz_format=u"%Z%z"):
     if dt:
         utc_dt = pytz.UTC.localize(dt)
         try:
