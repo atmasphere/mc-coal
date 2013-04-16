@@ -408,7 +408,8 @@ PLAY_SESSION_STRATEGY = ModelStrategy(PlaySession).include(*PLAY_SESSION_FIELDS)
 
 
 class PlaySessionsForm(MultiPageForm):
-    username = fields.StringField(validators=[validators.Optional()])
+    since = fields.DateTimeField(validators=[validators.Optional()])
+    before = fields.DateTimeField(validators=[validators.Optional()])
 
 
 class PlaySessionsHandler(MultiPageUserAwareHandler):
@@ -429,7 +430,9 @@ class PlaySessionsHandler(MultiPageUserAwareHandler):
         if key_username:
             player = self.get_player_by_key_or_username(key_username)
             username = player.username
-        query = PlaySession.query_latest(username=username)
+        since = self.request.form.since.data or None
+        before = self.request.form.before.data or None
+        query = PlaySession.query_latest(username=username, since=since, before=before)
         self.json_response(self.fetch_page(query, results_name='play_sessions'), PLAY_SESSION_STRATEGY)
 
 

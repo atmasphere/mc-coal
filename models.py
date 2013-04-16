@@ -602,10 +602,14 @@ class PlaySession(UsernameModel):
         return cls.query_latest(username=username).get()
 
     @classmethod
-    def query_latest(cls, username=None):
+    def query_latest(cls, username=None, since=None, before=None):
         query = cls.server_query().order(-cls.login_timestamp)
         if username:
             query = query.filter(cls.username == username)
+        if since:
+            query = query.filter(cls.login_timestamp >= since)
+        if before:
+            query = query.filter(cls.login_timestamp < before)
         return query
 
     @classmethod

@@ -682,7 +682,7 @@ class PlaySessionsTest(MultiPageApiTest):
 
     def setUp(self):
         super(PlaySessionsTest, self).setUp()
-        now = datetime.datetime.now()
+        self.now = datetime.datetime.now()
         self.players = []
         for i in range(2):
             self.players.append(models.Player.get_or_create("Player_{0}".format(i)))
@@ -690,7 +690,7 @@ class PlaySessionsTest(MultiPageApiTest):
         self.play_sessions = []
         for i in range(10):
             player = self.players[i % 2]
-            play_session = models.PlaySession.create(player.username, now - datetime.timedelta(seconds=10*i), TIME_ZONE, None)
+            play_session = models.PlaySession.create(player.username, self.now - datetime.timedelta(seconds=10*i), TIME_ZONE, None)
             self.play_sessions.append(play_session)
 
     def test_get(self):
@@ -717,6 +717,48 @@ class PlaySessionsTest(MultiPageApiTest):
         for i, play_session in enumerate(play_sessions):
             self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
             self.assertEqual(username, play_session['username'])
+
+    def test_get_since_before(self):
+        url = "{0}?since={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        play_sessions = body['play_sessions']
+        self.assertLength(1, play_sessions)
+        for i, play_session in enumerate(play_sessions):
+            self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
+            self.assertEqual(self.play_sessions[i].username, play_session['username'])
+            self.assertIsNotNone(play_session['login_timestamp'])
+        url = "{0}?before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        play_sessions = body['play_sessions']
+        self.assertLength(9, play_sessions)
+        for i, play_session in enumerate(play_sessions):
+            self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
+            self.assertEqual(self.play_sessions[i+1].username, play_session['username'])
+            self.assertIsNotNone(play_session['login_timestamp'])
+        url = "{0}?since={1}&before={2}".format(self.URL, self.play_sessions[9].login_timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        play_sessions = body['play_sessions']
+        self.assertLength(9, play_sessions)
+        for i, play_session in enumerate(play_sessions):
+            self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
+            self.assertEqual(self.play_sessions[i+1].username, play_session['username'])
+            self.assertIsNotNone(play_session['login_timestamp'])
+        url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        play_sessions = body['play_sessions']
+        self.assertLength(0, play_sessions)
 
 
 class PlaySessionKeyTest(KeyApiTest):

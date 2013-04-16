@@ -433,6 +433,8 @@ Play Session
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
+  :query since: Return sessions with a login datetime since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return sessions with a login datetime before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
   :status 200: Successfully queried the play sessions.
 
@@ -572,17 +574,17 @@ Play Session
     {
       "play_sessions": [
         {
-            "username": "gumptionthomas",
-            "updated": "2013-04-15 23:30:41 CDT-0500",
-            "logout_timestamp": "2013-04-15 23:30:40 CDT-0500",
-            "login_timestamp": "2013-04-15 22:35:49 CDT-0500",
-            "created": "2013-04-15 22:35:50 CDT-0500",
-            "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
-            "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
-            "login_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYs4EkDA",
-            "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGLqoJAw",
-            "duration": 3291,
-            "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYjJEkDA"
+          "username": "gumptionthomas",
+          "updated": "2013-04-15 22:31:43 CDT-0500",
+          "logout_timestamp": "2013-04-15 22:31:42 CDT-0500",
+          "login_timestamp": "2013-04-15 22:31:18 CDT-0500",
+          "created": "2013-04-15 22:31:19 CDT-0500",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "login_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYlOIjDA",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGIWpHAw",
+          "duration": 24,
+          "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYhZEkDA"
         },
         {
           "username": "gumptionthomas",
