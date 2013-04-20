@@ -617,7 +617,19 @@ class UserKeyTest(KeyApiTest):
         self.assertOK(response)
         user = json.loads(response.body)
         self.assertEqual(NUM_USER_FIELDS, len(user))
+        self.assertEqual(self.user.key.urlsafe(), user['key'])
         self.assertEqual(self.user.username, user['username'])
+        self.assertIsNotNone(user['last_coal_login'])
+
+    def test_get_self(self):
+        self.log_out_user()
+        self.user = self.log_in_user("example@example.com")
+        self.url = "{0}/{1}".format(self.URL, 'self')
+        response = self.get(url=self.url)
+        self.assertOK(response)
+        user = json.loads(response.body)
+        self.assertEqual(NUM_USER_FIELDS, len(user))
+        self.assertEqual(self.user.key.urlsafe(), user['key'])
         self.assertIsNotNone(user['last_coal_login'])
 
 

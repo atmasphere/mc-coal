@@ -402,14 +402,19 @@ class UsersHandler(MultiPageUserAwareHandler):
 
 
 class UserKeyHandler(UserAwareHandler):
-    def get_user_by_key(self, key, abort_404=True):
-        try:
-            user_key = ndb.Key(urlsafe=key)
-            user = user_key.get()
-        except Exception:
-            user = None
-        if abort_404 and not user:
-            self.abort(404)
+    def get_user_by_key(self, key, abort=True):
+        fail_code = 404
+        if key == 'self':
+            fail_code = 403
+            user = self.request.user
+        else:
+            try:
+                user_key = ndb.Key(urlsafe=key)
+                user = user_key.get()
+            except Exception:
+                user = None
+        if abort and not user:
+            self.abort(fail_code)
         return user
 
     @authentication_required(authenticate=authenticate_user_or_password)

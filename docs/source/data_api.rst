@@ -347,6 +347,43 @@ User
       "email": "t@gmail.com"
     }
 
+.. http:get:: /api/data/user/self
+
+  Get the information for the current user as authenicated via session cookie or oauth. If no valid authentication credentials are provided, a :http:statuscode:`403` will result.
+
+  :status 200: Successfully read the current user.
+
+    :Response Data: See :ref:`User response data <user_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/user/self HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "username": "gumptionthomas",
+      "updated": "2013-04-14 18:37:35 CDT-0500",
+      "created": "2013-03-04 15:05:52 CST-0600",
+      "admin": true,
+      "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+      "last_chat_view": "2013-04-14 18:37:35 CDT-0500",
+      "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+      "active": true,
+      "last_coal_login": "2013-04-13 14:03:33 CDT-0500",
+      "nickname": "thomas",
+      "email": "t@gmail.com"
+    }
+
 
 ------
 Player
