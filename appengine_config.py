@@ -1,8 +1,5 @@
 # Default COAL Configuration
 
-###############
-# COAL SETTINGS
-###############
 COAL_TITLE = "MC COAL"
 
 COAL_USER_WHITELIST = []
