@@ -514,6 +514,13 @@ class LogLineTest(AgentApiTest):
         self.assertIsNone(play_session)
 
 
+class OAuthTestTest(ApiTest):
+    def test_get(self):
+        response = self.get("/api/data/oauth_test")
+        self.assertOK(response)
+        self.assertIn('Consumer Key', response)
+
+
 class MultiPageApiTest(ApiTest):
     def test_get_invalid_cursor(self):
         if self.URL:

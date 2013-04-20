@@ -5,7 +5,16 @@ Data API
 --------------
 Authentication
 --------------
-Calls to services can be authenticated via login session cookie (via a browser) or the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter.
+Calls to services can be authenticated via a normal login session cookie (via a browser) or valid Google Account OAuth credentials. Both of these authentication schemes require calls be made using HTTPS. If your mc-coal instance is mapped to a custom domain, you'll need to make calls to your application's ``appspot.com`` domain rather than your custom domain.
+
+Unless otherwise indicated, services don't actually require authenicating a user. In these cases, the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter can be used in lieu of the session cookie or oauth.
+
+See these links for more information on authenticating via oauth:
+
+* `OAuth for Python Overview <https://developers.google.com/appengine/docs/python/oauth/overview>`_
+* `Setting up an OAuth provider on Google App Engine <http://ikaisays.com/2011/05/26/setting-up-an-oauth-provider-on-google-app-engine/>`_
+* `StackOverflow: google app engine oauth2 provider <http://stackoverflow.com/questions/7810607/google-app-engine-oauth2-provider>`_
+
 
 -------------------------
 Common Request Parameters
@@ -548,6 +557,8 @@ Play Session
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
+  :query since: Return sessions with a login datetime since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return sessions with a login datetime before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
   :status 200: Successfully queried the play sessions.
 

@@ -2,7 +2,7 @@ import datetime
 from functools import wraps
 import logging
 
-from google.appengine.api import users
+from google.appengine.api import users, oauth
 from google.appengine.ext import ndb
 
 from pytz.gae import pytz
@@ -250,11 +250,72 @@ def api_datetime(dt, zone=None, dt_format=u"%Y-%m-%d %H:%M:%S", tz_format=u"%Z%z
     return None
 
 
+def get_consumer_key(handler):
+    request = getattr(handler, 'request', None)
+    consumer_key = None
+    try:
+        consumer_key = oauth.get_oauth_consumer_key()
+    except oauth.InvalidOAuthParametersError:
+        consumer_key = request.get('oauth_consumer_key')
+    return consumer_key
+
+
+def authenticate_oauth(handler):
+    user = None
+    try:
+        gae_user = oauth.get_current_user()
+        auth_id = User.get_gae_user_auth_id(gae_user=gae_user)
+        user = User.get_by_auth_id(auth_id)
+    except Exception:
+        pass
+    return user
+
+
 def authenticate_user_or_password(handler):
+    # Check session cookie
     user = handler.user
+    if not user:
+        # Check oauth
+        user = authenticate_oauth(handler)
     if not (user and user.active):
+        # Check password
         return authenticate(handler)
-    return None
+    return user
+
+
+def authenticate_user_required(handler):
+    # Check session cookie
+    user = handler.user
+    if not user:
+        # Check oauth
+        user = authenticate_oauth(handler)
+    if not (user and user.active):
+        handler.abort(403)
+    return user
+
+
+class OAuthTestHandler(JsonRequestHandler):
+    def get(self):
+        try:
+            user = oauth.get_current_user()
+            if user:
+                self.response.out.write("Request:\n%s\n\n" % self.request)
+                self.response.out.write("Current User Nickname: %s\n" % user.nickname())
+                self.response.out.write("Current User Email: %s\n" % user.email())
+            else:
+                self.response.out.write("No user")
+            try:
+                consumer_key = oauth.get_oauth_consumer_key()
+                self.response.out.write("Consumer Key: %s\n" % consumer_key)
+            except oauth.InvalidOAuthParametersError:
+                consumer_key = self.request.get('oauth_consumer_key')
+                self.response.out.write("Consumer Key (from params): %s\n" % consumer_key)
+        except oauth.InvalidOAuthParametersError:
+            self.response.out.write("Invalid OAuth parameters\n")
+        except oauth.InvalidOAuthTokenError:
+            self.response.out.write("Invalid OAuth token\n")
+        except Exception, e:
+            self.response.out.write("EXCEPTION: %s\n" % e)
 
 
 class UserAwareHandler(JsonRequestHandler):
@@ -460,6 +521,8 @@ application = webapp2.WSGIApplication(
 
         webapp2.Route('/login_callback', handler='api.GoogleAppEngineUserAuthHandler:login_callback', name='login_callback'),
         webapp2.Route('/logout', handler='api.GoogleAppEngineUserAuthHandler:logout', name='logout'),
+
+        webapp2.Route('/api/data/oauth_test', OAuthTestHandler, name='api_data_oauth_test'),
 
         webapp2.Route('/api/data/server', ServerHandler, name='api_data_server'),
         webapp2.Route('/api/data/user/<key>', UserKeyHandler, name='api_data_user_key'),
