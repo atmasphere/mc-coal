@@ -15,6 +15,23 @@ See these links for more information on authenticating via oauth:
 * `Setting up an OAuth provider on Google App Engine <http://ikaisays.com/2011/05/26/setting-up-an-oauth-provider-on-google-app-engine/>`_
 * `StackOverflow: google app engine oauth2 provider <http://stackoverflow.com/questions/7810607/google-app-engine-oauth2-provider>`_
 
+An oauth test endpoint is provided to simplify developing consumer applications:
+
+.. http:get:: /api/data/oauth_test
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+
+    Request:
+    GET /api/data/oauth_test?oauth_body_hash=2jmj7l5rSw0yVb%2FvlWAYkK%2FYBwk%3D&oauth_nonce=49307393&oauth_timestamp=1366478308&oauth_consumer_key=my.consumer.com&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&oauth_token=1%2F6UptVLjvsKTr2CAF6t5GFCwL6I8s-24pBxi4bJoIPGQ&oauth_signature=%2FbCvttoC3y82LGYX7onyjuZmNrg%3D HTTP/1.1
+
+    Current User Nickname: thomasbohmbach
+    Current User Email: t@gmail.com
+    Consumer Key (from params): my.consumer.com
+
 
 -------------------------
 Common Request Parameters
