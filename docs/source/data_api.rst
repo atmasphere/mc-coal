@@ -609,6 +609,8 @@ Play Session
 
   Get a :ref:`list <list>` of a player's minecraft play sessions ordered by descending login timestamp.
 
+  :arg key_username: The requested player's key or minecraft username. (*required*)
+
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
   :query since: Return sessions with a login timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
@@ -675,25 +677,27 @@ Log Line
 
   Get a :ref:`list <list>` of all minecraft log lines ordered by descending timestamp.
 
-  :query tag: A tag to limit the type of log line results. Possible values are:
+  :query tag: A tag to limit the type of log line results.
 
-              - ``unknown``
-              - ``timestamp``
-              - ``connection``
-              - ``login``
-              - ``logout``
-              - ``chat``
-              - ``server``
-              - ``performance``
-              - ``overloaded``
-              - ``stopping``
-              - ``starting``
+    .. _log_line_tag_options:
+
+    :Tag Options: - ``unknown``
+                  - ``timestamp``
+                  - ``connection``
+                  - ``login``
+                  - ``logout``
+                  - ``chat``
+                  - ``server``
+                  - ``performance``
+                  - ``overloaded``
+                  - ``stopping``
+                  - ``starting``
 
   :query q: A search string to limit the results to.
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
-  :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC. If combined with the ``q`` parameter, only the date portion of the datetime will be compared.
-  :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC. If combined with the ``q`` parameter, only the date portion of the datetime will be compared.
+  :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
   :status 200: Successfully queried the log lines.
 
@@ -713,7 +717,7 @@ Log Line
                - **log_level** -- The log level of the log line. May be ``null``.
                - **ip** -- The ip address recorded with the log line. May be ``null``.
                - **port** -- The port recorded with the log line. May be ``null``.
-               - **location** -- The location of the log line. May be ``null``.
+               - **location** -- The location of the log line as a dictionary containing ``x``, ``y``, and ``z`` keys with float values. May be ``null``.
                - **chat** -- The chat text of the log line. May be ``null``.
                - **tags** -- A list of the log line's tags. May be an empty list.
                - **created** -- The creation timestamp.
@@ -736,6 +740,45 @@ Log Line
 
     {
       "log_lines": [
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-19 10:32:56 CDT-0500",
+          "log_level": "INFO",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "timestamp": "2013-04-19 10:32:55 CDT-0500",
+          "tags": [
+              "timestamp",
+              "chat"
+          ],
+          "ip": null,
+          "created": "2013-04-19 10:32:56 CDT-0500",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "location": null,
+          "chat": "hey guys",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys",
+          "port": null
+        },
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-19 00:26:53 CDT-0500",
+          "log_level": "INFO",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYlL4iDA",
+          "timestamp": "2013-04-19 00:26:53 CDT-0500",
+          "tags": [
+              "timestamp",
+              "connection",
+              "logout"
+          ],
+          "ip": null,
+          "created": "2013-04-19 00:26:53 CDT-0500",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "location": null,
+          "chat": null,
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "line": "2013-04-19 00:26:53 [INFO] gumptionthomas lost connection: disconnect.quitting",
+          "port": null
+        }
       ]
     }
 
@@ -753,7 +796,7 @@ Log Line
 
   .. sourcecode:: http
 
-    GET /api/data/log_line/asdasdasdasdasdassd HTTP/1.1
+    GET /api/data/log_line/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -765,31 +808,38 @@ Log Line
   .. sourcecode:: javascript
 
     {
+      "username": "gumptionthomas",
+      "updated": "2013-04-19 10:32:56 CDT-0500",
+      "log_level": "INFO",
+      "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+      "timestamp": "2013-04-19 10:32:55 CDT-0500",
+      "tags": [
+          "timestamp",
+          "chat"
+      ],
+      "ip": null,
+      "created": "2013-04-19 10:32:56 CDT-0500",
+      "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+      "location": null,
+      "chat": "hey guys",
+      "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+      "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys",
+      "port": null
     }
 
 .. http:get:: /api/data/player/(key_username)/log_line
 
   Get a :ref:`list <list>` of a player's minecraft log lines ordered by descending login timestamp.
 
-  :query tag: A tag to limit the type of log line results. Possible values are:
+  :arg key_username: The requested player's key or minecraft username. (*required*)
 
-              - ``unknown``
-              - ``timestamp``
-              - ``connection``
-              - ``login``
-              - ``logout``
-              - ``chat``
-              - ``server``
-              - ``performance``
-              - ``overloaded``
-              - ``stopping``
-              - ``starting``
+  :query tag: A tag to limit the type of log line results. For possible values see :ref:`Log line tag options <log_line_tag_options>`
 
   :query q: A search string to limit the results to.
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
-  :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC. If combined with the ``q`` parameter, only the date portion of the datetime will be compared.
-  :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC. If combined with the ``q`` parameter, only the date portion of the datetime will be compared.
+  :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
   :status 200: Successfully queried the log lines.
 
@@ -815,5 +865,68 @@ Log Line
 
     {
       "log_lines": [
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-19 10:32:56 CDT-0500",
+          "log_level": "INFO",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "timestamp": "2013-04-19 10:32:55 CDT-0500",
+          "tags": [
+              "timestamp",
+              "chat"
+          ],
+          "ip": null,
+          "created": "2013-04-19 10:32:56 CDT-0500",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "location": null,
+          "chat": "hey guys",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys",
+          "port": null
+        },
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-19 00:26:53 CDT-0500",
+          "log_level": "INFO",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYlL4iDA",
+          "timestamp": "2013-04-19 00:26:53 CDT-0500",
+          "tags": [
+              "timestamp",
+              "connection",
+              "logout"
+          ],
+          "ip": null,
+          "created": "2013-04-19 00:26:53 CDT-0500",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "location": null,
+          "chat": null,
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "line": "2013-04-19 00:26:53 [INFO] gumptionthomas lost connection: disconnect.quitting",
+          "port": null
+        },
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-13 08:11:27 CDT-0500",
+          "log_level": "INFO",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY5dYfDA",
+          "timestamp": "2013-04-13 08:11:26 CDT-0500",
+          "tags": [
+              "timestamp",
+              "connection",
+              "login"
+          ],
+          "ip": "192.168.0.1",
+          "created": "2013-04-19 08:11:27 CDT-0500",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "location": {
+              "y": 72,
+              "x": 221.3000000119209,
+              "z": 240.68847388602495
+          },
+          "chat": null,
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "line": "2013-04-13 08:11:26 [INFO] gumptionthomas[/192.168.0.1:52142] logged in with entity id 1372 at (221.3000000119209, 72.0, 240.68847388602495)",
+          "port": "52142"
+        }
       ]
     }

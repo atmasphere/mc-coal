@@ -90,6 +90,12 @@ REGEX_TAGS = [
 ]
 
 
+def seconds_since_epoch(dt):
+    if not dt:
+        return None
+    return (dt - datetime.datetime(1970, 1, 1)).total_seconds()
+
+
 def safe_float_from_string(float_string):
     try:
         return float(float_string)
@@ -305,6 +311,10 @@ class Player(ServerModel):
         last_session = PlaySession.last(self.username)
         return last_session.duration if last_session is not None else None
 
+    @property
+    def last_login_timestamp_sse(self):
+        return seconds_since_epoch(self.last_login_timestamp)
+
     def is_user(self, user):
         if user is not None:
             return user.username == self.username
@@ -395,6 +405,10 @@ class LogLine(UsernameModel):
     @property
     def timezone(self):
         return name_to_timezone(self.zone)
+
+    @property
+    def timestamp_sse(self):
+        return seconds_since_epoch(self.timestamp)
 
     @classmethod
     def _post_delete_hook(cls, key, future):
@@ -525,9 +539,9 @@ class LogLine(UsernameModel):
         if tag is not None:
             query_string = "{0} tags:{1}".format(query_string, tag)
         if since is not None:
-            query_string = '{0} timestamp >= {1}'.format(query_string, since.strftime('%Y-%m-%d'))
+            query_string = '{0} timestamp_sse >= {1}'.format(query_string, seconds_since_epoch(since))
         if before is not None:
-            query_string = '{0} timestamp < {1}'.format(query_string, before.strftime('%Y-%m-%d'))
+            query_string = '{0} timestamp_sse < {1}'.format(query_string, seconds_since_epoch(before))
         results, _, next_cursor = search.search_log_lines(query_string, limit=size or coal_config.RESULTS_PER_PAGE, cursor=cursor)
         return results, next_cursor if next_cursor else None
 

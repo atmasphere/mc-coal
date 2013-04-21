@@ -26,8 +26,9 @@ def add_to_index(index, key, fields):
 def add_log_line(log_line):
     fields = [search.TextField(name='line', value=log_line.line)]
     if log_line.timestamp is not None:
-        fields.append(search.DateField(name='timestamp', value=log_line.timestamp.date()))
+        fields.append(search.DateField(name='timestamp', value=log_line.timestamp.date() if log_line.timestamp else None))
         fields.append(search.TextField(name='timestamp_string', value=log_line.timestamp.strftime('%Y-%m-%d %H:%M:%S')))
+        fields.append(search.NumberField(name='timestamp_sse', value=log_line.timestamp_sse))
     if log_line.log_level:
         fields.append(search.TextField(name='log_level', value=log_line.log_level))
     if log_line.username:
@@ -49,6 +50,8 @@ def add_player(player):
     fields = [search.TextField(name='username', value=player.username)]
     if player.last_login_timestamp is not None:
         fields.append(search.DateField(name='last_login_timestamp', value=player.last_login_timestamp.date()))
+        fields.append(search.TextField(name='last_login_timestamp_string', value=player.last_login_timestamp.strftime('%Y-%m-%d %H:%M:%S')))
+        fields.append(search.NumberField(name='last_login_timestamp_sse', value=player.last_login_timestamp_sse))
     return add_to_index(player_index, player.key, fields)
 
 

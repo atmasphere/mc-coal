@@ -897,7 +897,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.now = datetime.datetime.now()
         self.log_lines = []
         for i in range(25):
-            dt = self.now - datetime.timedelta(days=i)
+            dt = self.now - datetime.timedelta(minutes=i)
             chat_log_line = '{0} [INFO] <gumptionthomas> foobar {1}'.format(dt.strftime("%Y-%m-%d %H:%M:%S"), i)
             log_line = models.LogLine.create(chat_log_line, TIME_ZONE)
             self.log_lines.append(log_line)
