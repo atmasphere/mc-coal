@@ -5,7 +5,11 @@ Data API
 --------------
 Authentication
 --------------
-Calls to services can be authenticated via a normal login session cookie (via a browser) or valid Google Account OAuth credentials. Both of these authentication schemes require calls be made using HTTPS. If your mc-coal instance is mapped to a custom domain, you'll need to make calls to your application's ``appspot.com`` domain rather than your custom domain.
+Calls to services can be authenticated via a normal login session cookie (via a browser) or valid Google Account OAuth credentials and provide an authenticated user to the service.
+
+.. sidebar:: User Authentication
+
+  Both of the user authentication schemes require calls be made using HTTPS. If your mc-coal instance is mapped to a custom domain, you'll need to make calls to your application's ``appspot.com`` domain rather than your custom domain.
 
 Unless otherwise indicated, services don't actually require authenicating a user. In these cases, the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter can be used in lieu of the session cookie or oauth.
 
@@ -38,11 +42,9 @@ Common Request Parameters
 -------------------------
 .. http:get:: /api/data/(service)
 
-.. http:post:: /api/data/(service)
+  :query p: The ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py``.
 
-  :query p: The ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py``. An incorrect password will result in a :http:statuscode:`403`.
-
-  :status 403: No or invalid authentication provided.
+  :status 403: No autheticated user and/or invalid password provided.
 
   **Examples**:
 
@@ -50,9 +52,15 @@ Common Request Parameters
 
     GET /api/data/(service)?p=a_password HTTP/1.1
 
+.. http:post:: /api/data/(service)
+
+  :status 403: No autheticated user.
+
+  **Examples**:
+
   .. sourcecode:: http
 
-    POST /api/data/(service)?p=a_password HTTP/1.1
+    POST /api/data/(service)?oauth_body_hash=2jmj7l5rSw0yVb%2FvlWAYkK%2FYBwk%3D&oauth_nonce=49307393&oauth_timestamp=1366478308&oauth_consumer_key=my.consumer.com&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&oauth_token=1%2F6UptVLjvsKTr2CAF6t5GFCwL6I8s-24pBxi4bJoIPGQ&oauth_signature=%2FbCvttoC3y82LGYX7onyjuZmNrg%3D HTTP/1.1
 
 ----------------
 Common Responses
@@ -349,11 +357,13 @@ User
 
 .. http:get:: /api/data/user/self
 
-  Get the information for the current user as authenicated via session cookie or oauth. If no valid authentication credentials are provided, a :http:statuscode:`403` will result.
+  Get the information for the authenticated user.
 
   :status 200: Successfully read the current user.
 
     :Response Data: See :ref:`User response data <user_response_data>`
+
+  :status 403: No authenticated user.
 
   **Example request**:
 
@@ -670,6 +680,207 @@ Play Session
     }
 
 
+----
+Chat
+----
+.. http:get:: /api/data/chat
+
+  Get a :ref:`list <list>` of all minecraft chats ordered by descending timestamp.
+
+  :query q: A search string to limit the chat results to.
+  :query size: The number of results to return per call (Default: 10. Maximum: 50).
+  :query cursor: The cursor string signifying where to start the results.
+  :query since: Return chats with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return chats with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+
+  :status 200: Successfully queried the chats.
+
+    :Response Data: - **chats** -- The list of chats.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+
+    Each entry in **chats** is a dictionary of the chat information.
+
+    .. _chat_response_data:
+
+    :Chat: - **key** -- The chat log line key.
+           - **chat** -- The chat text. May be ``null``.
+           - **username** -- The minecraft username associated with the chat. May be ``null``.
+           - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
+           - **user_key** -- The user key. ``null`` if the username is not mapped to a player or the player is not mapped to a user.
+           - **timestamp** -- The timestamp of the chat. It will be reported in the agent's timezone.
+           - **line** -- The complete raw chat log line text.
+           - **created** -- The creation timestamp.
+           - **updated** -- The updated timestamp.
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/chat HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "chats": [
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-19 10:33:56 CDT-0500",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nXV",
+          "timestamp": "2013-04-19 10:33:55 CDT-0500",
+          "created": "2013-04-19 10:33:56 CDT-0500",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "chat": "what's up?",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "line": "2013-04-19 10:33:55 [INFO] <gumptionthomas> what's up?"
+        },
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-19 10:32:56 CDT-0500",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "timestamp": "2013-04-19 10:32:55 CDT-0500",
+          "created": "2013-04-19 10:32:56 CDT-0500",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "chat": "hey guys",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys"
+        }
+      ]
+    }
+
+.. http:post:: /api/data/chat
+
+  Queue a new chat from the authenticated user. In game, the chat will appear as a "Server" chat with the user's minecraft username in angle brackets (much like a normal chat)::
+
+    [Server] <gumptionthomas> Hello world...
+
+  If the API user does not have an associated minecraft username, the user's email address will be used instead::
+
+    [Server] <t@gmail.com> Hello world...
+
+  :formparam chat: The chat text.
+
+  :status 201: Successfully queued the chat. It will be sent to the agent on the next ping.
+  :status 403: No authenticated user.
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    POST /api/data/chat HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 201 OK
+    Content-Type: application/json
+
+.. http:get:: /api/data/chat/(key)
+
+  Get the information for the chat (`key`).
+
+  :arg key: The requested chat's log line key. (*required*)
+
+  :status 200: Successfully read the chat.
+
+    :Response Data: See :ref:`Chat response data <chat_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/chat/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "username": "gumptionthomas",
+      "updated": "2013-04-19 10:32:56 CDT-0500",
+      "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+      "timestamp": "2013-04-19 10:32:55 CDT-0500",
+      "created": "2013-04-19 10:32:56 CDT-0500",
+      "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+      "chat": "hey guys",
+      "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+      "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys"
+    }
+
+.. http:get:: /api/data/player/(key_username)/chat
+
+  Get a :ref:`list <list>` of a player's minecraft chats ordered by descending timestamp.
+
+  :arg key_username: The requested player's key or minecraft username. (*required*)
+
+  :query q: A search string to limit the chat results to.
+  :query size: The number of results to return per call (Default: 10. Maximum: 50).
+  :query cursor: The cursor string signifying where to start the results.
+  :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+
+  :status 200: Successfully queried the chats.
+
+    :Response Data: - **chats** -- The list of the player's chats.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+
+    Each entry in **chats** is a dictionary of the player's log line information. See :ref:`Chat response data <chat_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/player/gumptionthomas/chat HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "chats": [
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-19 10:33:56 CDT-0500",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nXV",
+          "timestamp": "2013-04-19 10:33:55 CDT-0500",
+          "created": "2013-04-19 10:33:56 CDT-0500",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "chat": "what's up?",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "line": "2013-04-19 10:33:55 [INFO] <gumptionthomas> what's up?"
+        },
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-19 10:32:56 CDT-0500",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "timestamp": "2013-04-19 10:32:55 CDT-0500",
+          "created": "2013-04-19 10:32:56 CDT-0500",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "chat": "hey guys",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys"
+        }
+      ]
+    }
+
+
 --------
 Log Line
 --------
@@ -829,7 +1040,7 @@ Log Line
 
 .. http:get:: /api/data/player/(key_username)/log_line
 
-  Get a :ref:`list <list>` of a player's minecraft log lines ordered by descending login timestamp.
+  Get a :ref:`list <list>` of a player's minecraft log lines ordered by descending timestamp.
 
   :arg key_username: The requested player's key or minecraft username. (*required*)
 

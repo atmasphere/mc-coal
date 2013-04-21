@@ -533,15 +533,15 @@ class LogLine(UsernameModel):
 
     @classmethod
     def search_api(cls, q, size=None, username=None, tag=None, since=None, before=None, cursor=None):
-        query_string = "line:{0}".format(q)
+        query_string = u"{0}".format(q)
         if username is not None:
-            query_string = "{0} username:{1}".format(query_string, username)
+            query_string = u"{0} username:{1}".format(query_string, username)
         if tag is not None:
-            query_string = "{0} tags:{1}".format(query_string, tag)
+            query_string = u"{0} tags:{1}".format(query_string, tag)
         if since is not None:
-            query_string = '{0} timestamp_sse >= {1}'.format(query_string, seconds_since_epoch(since))
+            query_string = u"{0} timestamp_sse >= {1}".format(query_string, seconds_since_epoch(since))
         if before is not None:
-            query_string = '{0} timestamp_sse < {1}'.format(query_string, seconds_since_epoch(before))
+            query_string = u"{0} timestamp_sse < {1}".format(query_string, seconds_since_epoch(before))
         results, _, next_cursor = search.search_log_lines(query_string, limit=size or coal_config.RESULTS_PER_PAGE, cursor=cursor)
         return results, next_cursor if next_cursor else None
 

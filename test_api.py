@@ -27,7 +27,7 @@ SERVER_STOP_LOG_LINE = '2012-10-15 16:26:11 [INFO] Stopping server'
 OVERLOADED_LOG_LINE = "2012-10-21 00:01:46 [WARNING] Can't keep up! Did the system time change, or is the server overloaded?"
 CHAT_LOG_LINE = '2012-10-09 20:46:06 [INFO] <vesicular> yo yo'
 CHAT_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] [Server] hello'
-CHAT_LOG_LINE_3 = '2012-10-09 20:46:06 [INFO] [Server] <vesicular> yo yo'
+CHAT_LOG_LINE_3 = '2012-10-09 20:46:05 [INFO] [Server] <vesicular> yo yo'
 DISCONNECT_LOG_LINE = '2012-10-09 20:50:08 [INFO] gumptionthomas lost connection: disconnect.quitting'
 DISCONNECT_LOG_LINE_2 = '2013-03-13 23:03:39 [INFO] gumptionthomas lost connection: disconnect.genericReason'
 CONNECT_LOG_LINE = '2012-10-09 19:52:55 [INFO] gumptionthomas[/192.168.11.198:59659] logged in with entity id 14698 at (221.41534292614716, 68.0, 239.43154415221068)'
@@ -35,6 +35,7 @@ CONNECT_LOG_LINE_2 = '2013-03-08 21:06:34 [INFO] gumptionthomas[/192.168.11.205:
 ALL_LOG_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, CHAT_LOG_LINE_2, CHAT_LOG_LINE_3, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
 TIMESTAMP_LOG_LINES = [TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, CHAT_LOG_LINE_2, CHAT_LOG_LINE_3, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
 TIMESTAMP_LOG_LINES_CRON = [CHAT_LOG_LINE_2, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE_2, OVERLOADED_LOG_LINE, SERVER_STOP_LOG_LINE, SERVER_START_LOG_LINE, DISCONNECT_LOG_LINE, CHAT_LOG_LINE, CHAT_LOG_LINE_3, CONNECT_LOG_LINE, TIME_STAMP_LOG_LINE]
+CHAT_LOG_LINES_CRON = [CHAT_LOG_LINE_2, CHAT_LOG_LINE, CHAT_LOG_LINE_3]
 
 TEST_USER_EMAIL = 'admin@example.com'
 
@@ -43,6 +44,7 @@ NUM_USER_FIELDS = 11
 NUM_SERVER_FIELDS = 5
 NUM_PLAY_SESSION_FIELDS = 11
 NUM_LOG_LINE_FIELDS = 14
+NUM_CHAT_FIELDS = 9
 
 
 class ApiTest(BaseTest, WebTest):
@@ -361,7 +363,7 @@ class LogLineTest(AgentApiTest):
         log_line = models.LogLine.query().get()
         self.assertEqual(CHAT_LOG_LINE_3, log_line.line)
         self.assertEqual(TIME_ZONE, log_line.zone)
-        self.assertEqual(datetime.datetime(2012, 10, 10, 1, 46, 6), log_line.timestamp)
+        self.assertEqual(datetime.datetime(2012, 10, 10, 1, 46, 5), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('vesicular', log_line.username)
         self.assertEqual('yo yo', log_line.chat)
@@ -800,6 +802,243 @@ class PlaySessionKeyTest(KeyApiTest):
         self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
         self.assertEqual(self.play_session.username, play_session['username'])
         self.assertIsNotNone(play_session['login_timestamp'])
+
+
+class ChatTest(MultiPageApiTest):
+    URL = '/api/data/chat'
+    ALLOWED = ['GET', 'POST']
+
+    def setUp(self):
+        super(ChatTest, self).setUp()
+        self.now = datetime.datetime.now()
+        self.players = []
+        self.players.append(models.Player.get_or_create("gumptionthomas"))
+        self.players.append(models.Player.get_or_create("vesicular"))
+        self.log_lines = []
+        for i in range(len(CHAT_LOG_LINES_CRON)):
+            log_line = models.LogLine.create(CHAT_LOG_LINES_CRON[i], TIME_ZONE)
+            self.log_lines.append(log_line)
+        log_line = models.LogLine.create(TIME_STAMP_LOG_LINE, TIME_ZONE)
+
+    def test_get(self):
+        response = self.get(self.get_secure_url('{0}?size={1}'.format(self.URL, 50)))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(len(self.log_lines), log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertEqual(self.log_lines[i].chat, log_line['chat'])
+            self.assertEqual(self.log_lines[i].username, log_line['username'])
+            self.assertIsNotNone(log_line['timestamp'])
+
+    def test_get_username(self):
+        username = "vesicular"
+        url = "/api/data/player/{0}/chat".format(username)
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(2, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertEqual(username, log_line['username'])
+
+    def test_get_since_before(self):
+        url = "{0}?since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        url = "{0}?before={1}".format(self.URL, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(len(self.log_lines)-2, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        url = "{0}?since={1}&before={2}".format(self.URL, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(0, log_lines)
+
+    def test_post(self):
+        user = self.log_in_user()
+        username = "gumptionthomas"
+        self.player = models.Player.get_or_create(username)
+        user.username = username
+        user.put()
+        chat = u'Hello world...'
+        params = {'chat': chat}
+        response = self.post(self.URL, params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.Command.query().count())
+        command = models.Command.query().get()
+        self.assertEqual(username, command.username)
+        self.assertEqual(u'/say {0}'.format(chat), command.command)
+
+    def test_post_no_player(self):
+        user = self.log_in_user()
+        chat = u'Hello world...'
+        params = {'chat': chat}
+        response = self.post(self.URL, params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.Command.query().count())
+        command = models.Command.query().get()
+        self.assertEqual(user.email, command.username)
+        self.assertEqual(u'/say {0}'.format(chat), command.command)
+
+    def test_post_no_password(self):
+            self.log_in_user()
+            url = getattr(self, 'url', None) or self.URL
+            response = self.post(url, {'chat': u"Hello world..."})
+            if 'POST' in self.ALLOWED:
+                self.assertCreated(response)
+            else:
+                self.assertMethodNotAllowed(response)
+
+
+class ChatQueryTest(ChatTest):
+    def setUp(self):
+        super(ChatQueryTest, self).setUp()
+        self.now = datetime.datetime.now()
+        self.log_lines = []
+        for i in range(25):
+            dt = self.now - datetime.timedelta(minutes=i)
+            chat_log_line = '{0} [INFO] <gumptionthomas> foobar {1}'.format(dt.strftime("%Y-%m-%d %H:%M:%S"), i)
+            log_line = models.LogLine.create(chat_log_line, TIME_ZONE)
+            self.log_lines.append(log_line)
+
+    def test_get(self):
+        response = self.get(self.get_secure_url('{0}?q={1}'.format(self.URL, 'yo')))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(2, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertIn('yo', log_line['line'])
+            self.assertIsNotNone(log_line['timestamp'])
+
+    def test_get_username(self):
+        url = "/api/data/player/gumptionthomas/chat?q=foobar"
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        log_lines = body['chats']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+
+    def test_get_multi(self):
+        response = self.get(self.get_secure_url('{0}?q={1}'.format(self.URL, 'foobar')))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        next_cursor = body['cursor']
+        log_lines = body['chats']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+            self.assertEqual('foobar {0}'.format(i), log_line['chat'])
+        response = self.get(self.get_secure_url('{0}?q={1}&cursor={2}'.format(self.URL, 'foobar', next_cursor)))
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        next_cursor = body['cursor']
+        log_lines = body['chats']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+            self.assertEqual('foobar {0}'.format(i+10), log_line['chat'])
+        response = self.get(self.get_secure_url('{0}?q={1}&cursor={2}'.format(self.URL, 'foobar', next_cursor)))
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(5, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+            self.assertEqual('foobar {0}'.format(i+20), log_line['chat'])
+
+    def test_get_since_before(self):
+        url = "{0}?q=foobar&since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        url = "{0}?q=foobar&before={1}&size=50".format(self.URL, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(len(self.log_lines)-2, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        url = "{0}?q=foobar&since={1}&before={2}".format(self.URL, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(3, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        url = "{0}?q=foobar&since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(0, log_lines)
+
+
+class ChatKeyTest(KeyApiTest):
+    URL = '/api/data/chat'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(ChatKeyTest, self).setUp()
+        self.player = models.Player.get_or_create("vesicular")
+        self.log_line = models.LogLine.create(CHAT_LOG_LINE, TIME_ZONE)
+        self.url = "{0}/{1}".format(self.URL, self.log_line.key.urlsafe())
+
+    def test_get(self):
+        response = self.get(self.get_secure_url(url=self.url))
+        self.assertOK(response)
+        log_line = json.loads(response.body)
+        self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        self.assertEqual(self.log_line.key.urlsafe(), log_line['key'])
+        self.assertEqual(self.log_line.username, log_line['username'])
 
 
 class LogLineDataTest(MultiPageApiTest):
