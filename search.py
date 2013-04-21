@@ -75,10 +75,12 @@ def remove_player(player_key):
 
 def search_index(index, query_string, sort_options=None, limit=1000, offset=None, cursor=None):
     query_string = query_string.strip()
+    if offset is None:
+        cursor = search.Cursor(web_safe_string=cursor) if cursor is not None else search.Cursor()
     options = search.QueryOptions(
         limit=limit,
         offset=offset,
-        cursor=search.Cursor(web_safe_string=cursor) if cursor is not None else search.Cursor(),
+        cursor=cursor,
         sort_options=sort_options
     )
     query = search.Query(query_string=query_string, options=options)
