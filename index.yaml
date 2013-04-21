@@ -35,6 +35,15 @@ indexes:
   - name: timestamp
     direction: desc
 
+- kind: LogLine
+  ancestor: yes
+  properties:
+  - name: has_timestamp
+  - name: username
+  - name: tags
+  - name: timestamp
+    direction: desc
+
 - kind: PlaySession
   ancestor: yes
   properties:

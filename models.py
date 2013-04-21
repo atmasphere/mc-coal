@@ -335,12 +335,14 @@ class Player(ServerModel):
 
     @classmethod
     def lookup(cls, username):
+        key = None
         if username is not None:
             parent = Server.global_key()
             key = ndb.Key(cls, username, parent=parent)
         return key.get() if key is not None else None
 
 
+@ae_ndb_serializer
 class Location(ndb.Model):
     x = ndb.FloatProperty()
     y = ndb.FloatProperty()
@@ -362,6 +364,7 @@ class UsernameModel(ServerModel):
         return self.username == user.username if user else False
 
 
+@ae_ndb_serializer
 class LogLine(UsernameModel):
     line = ndb.StringProperty(required=True)
     zone = ndb.StringProperty(required=True)
@@ -470,6 +473,10 @@ class LogLine(UsernameModel):
         return cls.query_latest_with_timestamp().get()
 
     @classmethod
+    def query_latest_username(cls, username):
+        return cls.query_latest_with_timestamp().filter(cls.username == username)
+
+    @classmethod
     def query_by_tags(cls, tags):
         return cls.server_query().filter(cls.tags == tags)
 
@@ -496,6 +503,33 @@ class LogLine(UsernameModel):
     @classmethod
     def query_oldest_logouts(cls):
         return cls.query_by_tags(LOGOUT_TAG).order(cls.timestamp)
+
+    @classmethod
+    def query_api(cls, username=None, tag=None, since=None, before=None):
+        query = cls.query_latest_with_timestamp()
+        if username:
+            query = query.filter(cls.username == username)
+        if tag:
+            query = query.filter(cls.tags == tag)
+        if since:
+            query = query.filter(cls.timestamp >= since)
+        if before:
+            query = query.filter(cls.timestamp < before)
+        return query
+
+    @classmethod
+    def search_api(cls, q, size=None, username=None, tag=None, since=None, before=None, cursor=None):
+        query_string = "line:{0}".format(q)
+        if username is not None:
+            query_string = "{0} username:{1}".format(query_string, username)
+        if tag is not None:
+            query_string = "{0} tags:{1}".format(query_string, tag)
+        if since is not None:
+            query_string = '{0} timestamp >= {1}'.format(query_string, since.strftime('%Y-%m-%d'))
+        if before is not None:
+            query_string = '{0} timestamp < {1}'.format(query_string, before.strftime('%Y-%m-%d'))
+        results, _, next_cursor = search.search_log_lines(query_string, limit=size or coal_config.RESULTS_PER_PAGE, cursor=cursor)
+        return results, next_cursor if next_cursor else None
 
 
 @ae_ndb_serializer

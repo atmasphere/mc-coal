@@ -460,7 +460,7 @@ class PlayerKeyUsernameHandler(UserAwareHandler):
 PLAY_SESSION_FIELDS = ['username']
 PLAY_SESSION_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
-    'player_key': lambda o: o.player.key.urlsafe() if o.user is not None else None,
+    'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
     'login_timestamp': lambda o: api_datetime(o.login_timestamp, zone=o.zone),
     'logout_timestamp': lambda o: api_datetime(o.logout_timestamp, zone=o.zone),
@@ -519,6 +519,78 @@ class PlaySessionKeyHandler(UserAwareHandler):
         self.json_response(play_session, PLAY_SESSION_STRATEGY)
 
 
+LOG_LINE_FIELDS = ['username', 'line', 'log_level', 'ip', 'port', 'location', 'chat', 'tags']
+LOG_LINE_FIELD_FUNCTIONS = {
+    'key': lambda o: o.key.urlsafe(),
+    'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
+    'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
+    'timestamp': lambda o: api_datetime(o.timestamp, zone=o.zone),
+    'created': lambda o: api_datetime(o.created),
+    'updated': lambda o: api_datetime(o.updated)
+}
+LOG_LINE_STRATEGY = ModelStrategy(LogLine).include(*LOG_LINE_FIELDS).include(**LOG_LINE_FIELD_FUNCTIONS)
+
+
+class LogLineForm(MultiPageForm):
+    q = fields.StringField(validators=[validators.Optional()])
+    tag = fields.StringField(validators=[validators.Optional()])
+    since = fields.DateTimeField(validators=[validators.Optional()])
+    before = fields.DateTimeField(validators=[validators.Optional()])
+
+
+class LogLinesHandler(MultiPageUserAwareHandler):
+    def get_player_by_key_or_username(self, key_username, abort_404=True):
+        try:
+            player_key = ndb.Key(urlsafe=key_username)
+            player = player_key.get()
+        except Exception:
+            player = Player.lookup(key_username)
+        if abort_404 and not player:
+            self.abort(404)
+        return player
+
+    @authentication_required(authenticate=authenticate_user_or_password)
+    @validate_params(form_class=LogLineForm)
+    def get(self, key_username=None):
+        username = None
+        if key_username:
+            player = self.get_player_by_key_or_username(key_username)
+            username = player.username
+        since = self.request.form.since.data or None
+        before = self.request.form.before.data or None
+        q = self.request.form.q.data or None
+        tag = self.request.form.tag.data or None
+        if q:
+            cursor = self.request.form.cursor.data or None
+            results, next_cursor = LogLine.search_api(q, size=self.size, username=username, tag=tag, since=since, before=before, cursor=cursor)
+            response = {'log_lines': results}
+            if next_cursor is not None:
+                results, _ = LogLine.search_api(q, size=self.size, username=username, tag=tag, since=since, before=before, cursor=next_cursor)
+                if results:
+                    response['cursor'] = next_cursor
+            self.json_response(response, LOG_LINE_STRATEGY)
+        else:
+            query = LogLine.query_api(username=username, tag=tag, since=since, before=before)
+            self.json_response(self.fetch_page(query, results_name='log_lines'), LOG_LINE_STRATEGY)
+
+
+class LogLineKeyHandler(UserAwareHandler):
+    def get_log_line_by_key(self, key, abort_404=True):
+        try:
+            log_line_key = ndb.Key(urlsafe=key)
+            log_line = log_line_key.get()
+        except Exception:
+            log_line = None
+        if abort_404 and not log_line:
+            self.abort(404)
+        return log_line
+
+    @authentication_required(authenticate=authenticate_user_or_password)
+    def get(self, key):
+        log_line = self.get_log_line_by_key(key)
+        self.json_response(log_line, LOG_LINE_STRATEGY)
+
+
 application = webapp2.WSGIApplication(
     [
         webapp2.Route('/api/agent/ping', PingHandler, name='api_agent_ping'),
@@ -533,10 +605,13 @@ application = webapp2.WSGIApplication(
         webapp2.Route('/api/data/user/<key>', UserKeyHandler, name='api_data_user_key'),
         webapp2.Route('/api/data/user', UsersHandler, name='api_data_user'),
         webapp2.Route('/api/data/player/<key_username>/session', PlaySessionsHandler, name='api_data_player_key_username'),
+        webapp2.Route('/api/data/player/<key_username>/log_line', LogLinesHandler, name='api_data_player_key_username'),
         webapp2.Route('/api/data/player/<key_username>', PlayerKeyUsernameHandler, name='api_data_player_key_username'),
         webapp2.Route('/api/data/player', PlayersHandler, name='api_data_player'),
         webapp2.Route('/api/data/play_session/<key>', PlaySessionKeyHandler, name='api_data_play_session_key'),
         webapp2.Route('/api/data/play_session', PlaySessionsHandler, name='api_data_play_session'),
+        webapp2.Route('/api/data/log_line/<key>', LogLineKeyHandler, name='api_data_play_session_key'),
+        webapp2.Route('/api/data/log_line', LogLinesHandler, name='api_data_play_session'),
     ],
     config={
         'webapp2_extras.sessions': {'secret_key': coal_config.SECRET_KEY},

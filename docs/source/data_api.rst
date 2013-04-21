@@ -496,8 +496,8 @@ Play Session
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
-  :query since: Return sessions with a login datetime since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
-  :query before: Return sessions with a login datetime before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query since: Return sessions with a login timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return sessions with a login timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
   :status 200: Successfully queried the play sessions.
 
@@ -611,8 +611,8 @@ Play Session
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
-  :query since: Return sessions with a login datetime since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
-  :query before: Return sessions with a login datetime before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query since: Return sessions with a login timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return sessions with a login timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
   :status 200: Successfully queried the play sessions.
 
@@ -664,5 +664,156 @@ Play Session
           "duration": 8126,
           "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
         }
+      ]
+    }
+
+
+--------
+Log Line
+--------
+.. http:get:: /api/data/log_line
+
+  Get a :ref:`list <list>` of all minecraft log lines ordered by descending timestamp.
+
+  :query tag: A tag to limit the type of log line results. Possible values are:
+
+              - ``unknown``
+              - ``timestamp``
+              - ``connection``
+              - ``login``
+              - ``logout``
+              - ``chat``
+              - ``server``
+              - ``performance``
+              - ``overloaded``
+              - ``stopping``
+              - ``starting``
+
+  :query q: A search string to limit the results to.
+  :query size: The number of results to return per call (Default: 10. Maximum: 50).
+  :query cursor: The cursor string signifying where to start the results.
+  :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC. If combined with the ``q`` parameter, only the date portion of the datetime will be compared.
+  :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC. If combined with the ``q`` parameter, only the date portion of the datetime will be compared.
+
+  :status 200: Successfully queried the log lines.
+
+    :Response Data: - **log_lines** -- The list of log lines.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+
+    Each entry in **log_lines** is a dictionary of the log line information.
+
+    .. _log_line_response_data:
+
+    :Log Line: - **key** -- The log line key.
+               - **line** -- The complete raw log line text.
+               - **username** -- The minecraft username associated with the log line. May be ``null``.
+               - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
+               - **user_key** -- The user key. ``null`` if the username is not mapped to a player or the player is not mapped to a user.
+               - **timestamp** -- The timestamp of the log line. It will be reported in the agent's timezone.
+               - **log_level** -- The log level of the log line. May be ``null``.
+               - **ip** -- The ip address recorded with the log line. May be ``null``.
+               - **port** -- The port recorded with the log line. May be ``null``.
+               - **location** -- The location of the log line. May be ``null``.
+               - **chat** -- The chat text of the log line. May be ``null``.
+               - **tags** -- A list of the log line's tags. May be an empty list.
+               - **created** -- The creation timestamp.
+               - **updated** -- The updated timestamp.
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/log_line HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "log_lines": [
+      ]
+    }
+
+.. http:get:: /api/data/log_line/(key)
+
+  Get the information for the log line (`key`).
+
+  :arg key: The requested log line's key. (*required*)
+
+  :status 200: Successfully read the log line.
+
+    :Response Data: See :ref:`Log line response data <log_line_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/log_line/asdasdasdasdasdassd HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+    }
+
+.. http:get:: /api/data/player/(key_username)/log_line
+
+  Get a :ref:`list <list>` of a player's minecraft log lines ordered by descending login timestamp.
+
+  :query tag: A tag to limit the type of log line results. Possible values are:
+
+              - ``unknown``
+              - ``timestamp``
+              - ``connection``
+              - ``login``
+              - ``logout``
+              - ``chat``
+              - ``server``
+              - ``performance``
+              - ``overloaded``
+              - ``stopping``
+              - ``starting``
+
+  :query q: A search string to limit the results to.
+  :query size: The number of results to return per call (Default: 10. Maximum: 50).
+  :query cursor: The cursor string signifying where to start the results.
+  :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC. If combined with the ``q`` parameter, only the date portion of the datetime will be compared.
+  :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC. If combined with the ``q`` parameter, only the date portion of the datetime will be compared.
+
+  :status 200: Successfully queried the log lines.
+
+    :Response Data: - **log_lines** -- The list of the player's log lines.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+
+    Each entry in **log_lines** is a dictionary of the player's log line information. See :ref:`Log line response data <log_line_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/player/gumptionthomas/log_line HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "log_lines": [
       ]
     }

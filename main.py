@@ -299,7 +299,7 @@ class ChatsHandler(PagingHandler):
             if cursor and cursor.startswith('PAGE_'):
                 page = int(cursor.strip()[5:])
             offset = page*coal_config.RESULTS_PER_PAGE
-            results, number_found = search.search_log_lines('chat:{0}'.format(query_string), limit=coal_config.RESULTS_PER_PAGE, offset=offset)
+            results, number_found, _ = search.search_log_lines('chat:{0}'.format(query_string), limit=coal_config.RESULTS_PER_PAGE, offset=offset)
             previous_cursor = next_cursor = None
             if page > 0:
                 previous_cursor = u'PAGE_{0}&q={1}'.format(page - 1 if page > 0 else 0, query_string)

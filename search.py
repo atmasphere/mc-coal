@@ -73,11 +73,12 @@ def remove_player(player_key):
     remove_from_index(player_index, player_key)
 
 
-def search_index(index, query_string, sort_options=None, limit=1000, offset=0):
+def search_index(index, query_string, sort_options=None, limit=1000, offset=None, cursor=None):
     query_string = query_string.strip()
     options = search.QueryOptions(
         limit=limit,
         offset=offset,
+        cursor=search.Cursor(web_safe_string=cursor) if cursor is not None else search.Cursor(),
         sort_options=sort_options
     )
     query = search.Query(query_string=query_string, options=options)
@@ -94,18 +95,19 @@ def search_index(index, query_string, sort_options=None, limit=1000, offset=0):
                 logging.error(u"Couldn't search index: {0}".format(e))
                 raise e
             retries += 1
-    return instances, results.number_found
+    next_cursor = results.cursor.web_safe_string if results.cursor else None
+    return instances, results.number_found, next_cursor
 
 
-def search_log_lines(query_string, limit=1000, offset=0):
-    chat_desc = search.SortExpression(
+def search_log_lines(query_string, limit=1000, offset=None, cursor=None):
+    timestamp_desc = search.SortExpression(
         expression='timestamp_string',
         direction=search.SortExpression.DESCENDING,
         default_value=''
     )
-    sort_options = search.SortOptions(expressions=[chat_desc], limit=limit)
-    return search_index(log_line_index, query_string, sort_options=sort_options, limit=limit, offset=offset)
+    sort_options = search.SortOptions(expressions=[timestamp_desc], limit=limit)
+    return search_index(log_line_index, query_string, sort_options=sort_options, limit=limit, offset=offset, cursor=cursor)
 
 
-def search_players(query_string, limit=1000, offset=0):
+def search_players(query_string, limit=1000, offset=None):
     return search_index(player_index, query_string, limit=limit, offset=offset)
