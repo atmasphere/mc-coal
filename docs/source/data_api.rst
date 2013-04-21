@@ -44,7 +44,7 @@ Common Request Parameters
 
   :query p: The ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py``.
 
-  :status 403: No autheticated user and/or invalid password provided.
+  :status 403: No authenticated user and/or invalid password provided.
 
   **Examples**:
 
@@ -54,7 +54,7 @@ Common Request Parameters
 
 .. http:post:: /api/data/(service)
 
-  :status 403: No autheticated user.
+  :status 403: No authenticated user.
 
   **Examples**:
 
