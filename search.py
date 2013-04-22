@@ -106,7 +106,7 @@ def search_index(index, query_string, sort_options=None, limit=1000, offset=None
 
 def search_log_lines(query_string, limit=1000, offset=None, cursor=None):
     timestamp_desc = search.SortExpression(
-        expression='timestamp_string',
+        expression='timestamp_sse',
         direction=search.SortExpression.DESCENDING,
         default_value=''
     )

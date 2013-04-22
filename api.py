@@ -19,7 +19,7 @@ from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
 
 from config import coal_config
-from models import Server, User, Player, PlaySession, LogLine, Command
+from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
 from models import CHAT_TAG
 
 
@@ -678,6 +678,65 @@ class LogLineKeyHandler(UserAwareHandler):
         self.json_response(log_line, LOG_LINE_STRATEGY)
 
 
+SCREEN_SHOT_FIELDS = ['username', 'random_id']
+SCREEN_SHOT_FIELD_FUNCTIONS = {
+    'key': lambda o: o.key.urlsafe(),
+    'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
+    'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
+    'original_url': lambda o: o.get_serving_url(),
+    'blurred_url': lambda o: o.blurred_image_serving_url,
+    'created': lambda o: api_datetime(o.created),
+    'updated': lambda o: api_datetime(o.updated)
+}
+SCREEN_SHOT_STRATEGY = ModelStrategy(ScreenShot).include(*SCREEN_SHOT_FIELDS).include(**SCREEN_SHOT_FIELD_FUNCTIONS)
+
+
+class ScreenShotForm(MultiPageForm):
+    since = fields.DateTimeField(validators=[validators.Optional()])
+    before = fields.DateTimeField(validators=[validators.Optional()])
+
+
+class ScreenShotsHandler(MultiPageUserAwareHandler):
+    def get_player_by_key_or_username(self, key_username, abort_404=True):
+        try:
+            player_key = ndb.Key(urlsafe=key_username)
+            player = player_key.get()
+        except Exception:
+            player = Player.lookup(key_username)
+        if abort_404 and not player:
+            self.abort(404)
+        return player
+
+    @authentication_required(authenticate=authenticate_user_or_password)
+    @validate_params(form_class=ScreenShotForm)
+    def get(self, key_username=None):
+        username = None
+        if key_username:
+            player = self.get_player_by_key_or_username(key_username)
+            username = player.username
+        since = self.request.form.since.data or None
+        before = self.request.form.before.data or None
+        query = ScreenShot.query_latest(username=username, since=since, before=before)
+        self.json_response(self.fetch_page(query, results_name='screenshots'), SCREEN_SHOT_STRATEGY)
+
+
+class ScreenShotKeyHandler(UserAwareHandler):
+    def get_screen_shot_by_key(self, key, abort_404=True):
+        try:
+            screen_shot_key = ndb.Key(urlsafe=key)
+            screen_shot = screen_shot_key.get()
+        except Exception:
+            screen_shot = None
+        if abort_404 and not screen_shot:
+            self.abort(404)
+        return screen_shot
+
+    @authentication_required(authenticate=authenticate_user_or_password)
+    def get(self, key):
+        screen_shot = self.get_screen_shot_by_key(key)
+        self.json_response(screen_shot, SCREEN_SHOT_STRATEGY)
+
+
 application = webapp2.WSGIApplication(
     [
         webapp2.Route('/api/agent/ping', PingHandler, name='api_agent_ping'),
@@ -694,6 +753,7 @@ application = webapp2.WSGIApplication(
         webapp2.Route('/api/data/player/<key_username>/session', PlaySessionsHandler, name='api_data_player_session'),
         webapp2.Route('/api/data/player/<key_username>/log_line', LogLinesHandler, name='api_data_player_log_line'),
         webapp2.Route('/api/data/player/<key_username>/chat', ChatHandler, name='api_data_player_chat'),
+        webapp2.Route('/api/data/player/<key_username>/screenshot', ScreenShotsHandler, name='api_data_player_screen_shot'),
         webapp2.Route('/api/data/player/<key_username>', PlayerKeyUsernameHandler, name='api_data_player_key_username'),
         webapp2.Route('/api/data/player', PlayersHandler, name='api_data_player'),
         webapp2.Route('/api/data/play_session/<key>', PlaySessionKeyHandler, name='api_data_play_session_key'),
@@ -702,6 +762,8 @@ application = webapp2.WSGIApplication(
         webapp2.Route('/api/data/chat', ChatHandler, name='api_data_chat'),
         webapp2.Route('/api/data/log_line/<key>', LogLineKeyHandler, name='api_data_log_line_key'),
         webapp2.Route('/api/data/log_line', LogLinesHandler, name='api_data_log_line'),
+        webapp2.Route('/api/data/screenshot/<key>', ScreenShotKeyHandler, name='api_data_screen_shot_key'),
+        webapp2.Route('/api/data/screenshot', ScreenShotsHandler, name='api_data_screen_shot'),
     ],
     config={
         'webapp2_extras.sessions': {'secret_key': coal_config.SECRET_KEY},

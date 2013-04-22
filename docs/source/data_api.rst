@@ -1141,3 +1141,121 @@ Log Line
         }
       ]
     }
+
+
+------------
+Screenshots
+------------
+.. http:get:: /api/data/screenshot
+
+  Get a :ref:`list <list>` of all screenshots ordered by descending create timestamp.
+
+  :query size: The number of results to return per call (Default: 10. Maximum: 50).
+  :query cursor: The cursor string signifying where to start the results.
+  :query since: Return screenshots with a create timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return screenshots with a create timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+
+  :status 200: Successfully queried the screenshot.
+
+    :Response Data: - **screenshots** -- The list of screenshots.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+
+    Each entry in **screenshots** is a dictionary of the screenshot information.
+
+    .. _screenshot_response_data:
+
+    :Screenshot: - **key** -- The screenshot key.
+                 - **username** -- The minecraft username that uploaded the screenshot. May be ``null``.
+                 - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
+                 - **user_key** -- The user key. ``null`` if the username is not mapped to a player or the player is not mapped to a user.
+                 - **random_id** -- A random float attached to the screenshot at creation time.
+                 - **original_url** -- The URL of the original screenshot.
+                 - **blurred_url** -- The URL of the blurred version of the screenshot. ``null`` if the blurred version isn't ready.
+                 - **created** -- The creation timestamp.
+                 - **updated** -- The updated timestamp.
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/screenshot HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "screenshots": [
+      ]
+    }
+
+.. http:get:: /api/data/screenshot/(key)
+
+  Get the information for the screenshot (`key`).
+
+  :arg key: The requested screenshot's key. (*required*)
+
+  :status 200: Successfully read the screenshot.
+
+    :Response Data: See :ref:`Screenshot response data <screenshot_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/screenshot/xxxxxxxxxxxxxxxxxxxxxxx HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+    }
+
+.. http:get:: /api/data/player/(key_username)/screenshot
+
+  Get a :ref:`list <list>` of a player's uploaded screenshots ordered by descending create timestamp.
+
+  :arg key_username: The requested player's key or minecraft username. (*required*)
+
+  :query size: The number of results to return per call (Default: 10. Maximum: 50).
+  :query cursor: The cursor string signifying where to start the results.
+  :query since: Return log lines with a create timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+  :query before: Return log lines with a create timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
+
+  :status 200: Successfully queried the screenshot.
+
+    :Response Data: - **screenshots** -- The list of the player's uploaded screenshots.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+
+    Each entry in **screenshots** is a dictionary of the player's uploaded screenshot information. See :ref:`Log line response data <screenshot_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/data/player/gumptionthomas/screenshot HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "screenshots": [
+      ]
+    }

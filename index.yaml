@@ -91,6 +91,13 @@ indexes:
   - name: created
     direction: desc
 
+- kind: ScreenShot
+  ancestor: yes
+  properties:
+  - name: username
+  - name: created
+    direction: desc
+
 - kind: Command
   ancestor: yes
   properties:

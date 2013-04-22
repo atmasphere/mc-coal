@@ -684,6 +684,7 @@ def blur(screen_shot_key):
     screen_shot.create_blurred()
 
 
+@ae_ndb_serializer
 class ScreenShot(AgarImage, UsernameModel):
     random_id = ndb.FloatProperty()
     blurred_image_key = ndb.KeyProperty(kind=AgarImage)
@@ -746,8 +747,15 @@ class ScreenShot(AgarImage, UsernameModel):
         return screen_shot
 
     @classmethod
-    def query_latest(cls):
-        return cls.server_query().order(-cls.created)
+    def query_latest(cls, username=None, since=None, before=None):
+        query = cls.server_query().order(-cls.created)
+        if username:
+            query = query.filter(cls.username == username)
+        if since:
+            query = query.filter(cls.created >= since)
+        if before:
+            query = query.filter(cls.created < before)
+        return query
 
     @classmethod
     def query_oldest(cls):
