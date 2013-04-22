@@ -775,6 +775,10 @@ Chat
 
     POST /api/data/chat HTTP/1.1
 
+  .. sourcecode:: http
+
+    chat=Hello+world...
+
   **Example response**:
 
   .. sourcecode:: http
@@ -1191,6 +1195,28 @@ Screenshots
 
     {
       "screenshots": [
+        {
+          "username": "quazifene",
+          "updated": "2013-04-13 11:12:20 CDT-0500",
+          "created": "2013-04-13 11:12:05 CDT-0500",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchiBfQw",
+          "original_url": "http://lh5.ggpht.com/AMWDO-e5cK153ejlWn0ExDv1DuUACRpyM0kYEgAJKqTjs8a65v055NapS9EFwzMNwijA290_ABNgnDdi5WI2UCycKOnrLkHw9A",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIuCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIJcXVhemlmZW5lDA",
+          "random_id": 0.23893109322623773,
+          "blurred_url": "http://lh4.ggpht.com/j8qNAEjoxIubBdRNZgjj629-2vjFOzWfSgkGPOmvR8VHiIBYTLjlrHfDMmu2-_tm1-6T86eokuXxqugWSDyx-IZjQtFQMCrs3A",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYxrQgDA"
+        },
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-07 01:52:11 CDT-0500",
+          "created": "2013-04-07 01:50:57 CDT-0500",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "original_url": "http://lh3.ggpht.com/IFQVCSjpctTvNkJQhqj-j7anoaApZmawMe-Qy1LVqV2GKS9k_AkyaG0I8z-Ri2gDQFIxRL3NanEonqX4LK2mfjEpRUPvj7RKwA",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "random_id": 0.6780209099707669,
+          "blurred_url": "http://lh6.ggpht.com/x0BKS8tbI88RRkhUX6vJ7MmzjhBaZShbKf51Th5oghUYtezZbD94SHu4nYQjYQhoAyJVcgThprqvZSmKE1M5uqf5JQLu0miL",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA"
+        }
       ]
     }
 
@@ -1208,7 +1234,7 @@ Screenshots
 
   .. sourcecode:: http
 
-    GET /api/data/screenshot/xxxxxxxxxxxxxxxxxxxxxxx HTTP/1.1
+    GET /api/data/screenshot/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA HTTP/1.1
 
   **Example response**:
 
@@ -1220,6 +1246,15 @@ Screenshots
   .. sourcecode:: javascript
 
     {
+      "username": "gumptionthomas",
+      "updated": "2013-04-07 01:52:11 CDT-0500",
+      "created": "2013-04-07 01:50:57 CDT-0500",
+      "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+      "original_url": "http://lh3.ggpht.com/IFQVCSjpctTvNkJQhqj-j7anoaApZmawMe-Qy1LVqV2GKS9k_AkyaG0I8z-Ri2gDQFIxRL3NanEonqX4LK2mfjEpRUPvj7RKwA",
+      "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+      "random_id": 0.6780209099707669,
+      "blurred_url": "http://lh6.ggpht.com/x0BKS8tbI88RRkhUX6vJ7MmzjhBaZShbKf51Th5oghUYtezZbD94SHu4nYQjYQhoAyJVcgThprqvZSmKE1M5uqf5JQLu0miL",
+      "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA"
     }
 
 .. http:get:: /api/data/player/(key_username)/screenshot
@@ -1257,5 +1292,27 @@ Screenshots
 
     {
       "screenshots": [
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-04-07 01:52:11 CDT-0500",
+          "created": "2013-04-07 01:50:57 CDT-0500",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "original_url": "http://lh3.ggpht.com/IFQVCSjpctTvNkJQhqj-j7anoaApZmawMe-Qy1LVqV2GKS9k_AkyaG0I8z-Ri2gDQFIxRL3NanEonqX4LK2mfjEpRUPvj7RKwA",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "random_id": 0.6780209099707669,
+          "blurred_url": "http://lh6.ggpht.com/x0BKS8tbI88RRkhUX6vJ7MmzjhBaZShbKf51Th5oghUYtezZbD94SHu4nYQjYQhoAyJVcgThprqvZSmKE1M5uqf5JQLu0miL",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA"
+        },
+        {
+          "username": "gumptionthomas",
+          "updated": "2013-03-25 18:39:36 CDT-0500",
+          "created": "2013-03-25 18:39:22 CDT-0500",
+          "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "original_url": "http://lh6.ggpht.com/TFqVUT4hZwgz0sImwFMI9J7rJ-AXCqwM9-K5s66v9UnXy_iwPBpBEpzASVKla6xf6mnO486085NtzZOP1qrROPpkrxdw1D30-A",
+          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "random_id": 0.07680268292837988,
+          "blurred_url": "http://lh5.ggpht.com/B-pQmMTlp6vZ7ke48-19e7YdUclpRUE30y4L_DS45a9dUt9QjJIiniONIKB_-P80RL54YM0Qk4-zqHB9SEpEG52Wlkfjkak",
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QY8MAPDA"
+        }
       ]
     }
