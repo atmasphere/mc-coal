@@ -1,17 +1,27 @@
-========
-Data API
-========
+*********
+Data APIs
+*********
 
---------------
+======
+Common
+======
+
+-------
+Request
+-------
+
+^^^^^^^^^^^^^^
 Authentication
---------------
-Calls to services can be authenticated via a normal login session cookie (via a browser) or valid Google Account OAuth credentials and provide an authenticated user to the service.
+^^^^^^^^^^^^^^
 
-.. sidebar:: User Authentication
+Calls to services can be user authenticated via a normal login session cookie (via a browser) or valid Google Account OAuth credentials and provide an authenticated user to the service.
 
-  Both of the user authentication schemes require calls be made using HTTPS. If your mc-coal instance is mapped to a custom domain, you'll need to make calls to your application's ``appspot.com`` domain rather than your custom domain.
+Unless otherwise indicated, most services don't actually require authenicating a user. In these cases, the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter can be used in lieu of user authentication.
 
-Unless otherwise indicated, services don't actually require authenicating a user. In these cases, the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter can be used in lieu of the session cookie or oauth.
+"""""
+OAuth
+"""""
+The OAuth user authentication scheme requires calls be made using HTTPS. If your mc-coal instance is mapped to a custom domain, you'll need to make calls to your application's ``appspot.com`` domain rather than your custom domain.
 
 See these links for more information on authenticating via oauth:
 
@@ -36,10 +46,10 @@ An oauth test endpoint is provided to simplify developing consumer applications:
     Current User Email: t@gmail.com
     Consumer Key (from params): my.consumer.com
 
+^^^^^^^^^^
+Parameters
+^^^^^^^^^^
 
--------------------------
-Common Request Parameters
--------------------------
 .. http:get:: /api/data/(service)
 
   :query p: The ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py``.
@@ -62,19 +72,13 @@ Common Request Parameters
 
     POST /api/data/(service)?oauth_body_hash=2jmj7l5rSw0yVb%2FvlWAYkK%2FYBwk%3D&oauth_nonce=49307393&oauth_timestamp=1366478308&oauth_consumer_key=my.consumer.com&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&oauth_token=1%2F6UptVLjvsKTr2CAF6t5GFCwL6I8s-24pBxi4bJoIPGQ&oauth_signature=%2FbCvttoC3y82LGYX7onyjuZmNrg%3D HTTP/1.1
 
-----------------
-Common Responses
-----------------
+--------
+Response
+--------
 
-^^^^^^^^^^
-Timestamps
-^^^^^^^^^^
-
-  Unless otherwise specified, all timestamps are of the form ``%Y-%m-%d %H:%M:%S %Z%z`` (see `Python strftime formatting <http://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_) and converted to the ``COAL_TIMEZONE`` as defined in ``mc_coal_config.py`` or UTC if not defined.
-
-^^^^^^^^^^^^^^
-Response Codes
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^
+Status Codes
+^^^^^^^^^^^^
 
 - :http:statuscode:`200`
 
@@ -127,6 +131,12 @@ Response Codes
     }
 
   The ``errors`` string is service and error specific.
+
+^^^^^^^^^^
+Timestamps
+^^^^^^^^^^
+
+  Unless otherwise specified, all timestamps are of the form ``%Y-%m-%d %H:%M:%S %Z%z`` (see `Python strftime formatting <http://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_) and converted to the ``COAL_TIMEZONE`` as defined in ``mc_coal_config.py`` or UTC if not defined.
 
 .. _list:
 
@@ -185,9 +195,9 @@ Some services return a list of results that can span requests. These services al
     }
 
 
-------
-Server
-------
+==========
+Server API
+==========
 .. http:get:: /api/data/server
 
   Get the minecraft server information.
@@ -226,9 +236,9 @@ Server
     }
 
 
-----
-User
-----
+========
+User API
+========
 .. http:get:: /api/data/user
 
   Get a :ref:`list <list>` of all users ordered by email.
@@ -395,9 +405,9 @@ User
     }
 
 
-------
-Player
-------
+==========
+Player API
+==========
 .. http:get:: /api/data/player
 
   Get a :ref:`list <list>` of all minecraft players ordered by username.
@@ -497,9 +507,9 @@ Player
     }
 
 
-------------
-Play Session
-------------
+================
+Play Session API
+================
 .. http:get:: /api/data/play_session
 
   Get a :ref:`list <list>` of all minecraft play sessions ordered by descending login timestamp.
@@ -680,9 +690,9 @@ Play Session
     }
 
 
-----
-Chat
-----
+========
+Chat API
+========
 .. http:get:: /api/data/chat
 
   Get a :ref:`list <list>` of all minecraft chats ordered by descending timestamp.
@@ -884,10 +894,9 @@ Chat
       ]
     }
 
-
---------
-Log Line
---------
+============
+Log Line API
+============
 .. http:get:: /api/data/log_line
 
   Get a :ref:`list <list>` of all minecraft log lines ordered by descending timestamp.
@@ -1147,9 +1156,9 @@ Log Line
     }
 
 
-------------
-Screenshots
-------------
+==============
+Screenshot API
+==============
 .. http:get:: /api/data/screenshot
 
   Get a :ref:`list <list>` of all screenshots ordered by descending create timestamp.

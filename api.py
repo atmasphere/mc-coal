@@ -298,25 +298,26 @@ def authenticate_user_required(handler):
 class OAuthTestHandler(JsonRequestHandler):
     def get(self):
         try:
+            body = u"No response"
             user = oauth.get_current_user()
             if user:
-                self.response.out.write("Request:\n%s\n\n" % self.request)
-                self.response.out.write("Current User Nickname: %s\n" % user.nickname())
-                self.response.out.write("Current User Email: %s\n" % user.email())
+                body = u"Request:\n{0}\n\nCurrent User Nickname: {1}\nCurrent User Email: {2}".format(self.request, user.nickname(), user.email())
             else:
-                self.response.out.write("No user")
+                body = u"No user"
             try:
                 consumer_key = oauth.get_oauth_consumer_key()
-                self.response.out.write("Consumer Key: %s\n" % consumer_key)
+                body = u"{0}\nConsumer Key: {1}".format(body, consumer_key)
             except oauth.InvalidOAuthParametersError:
                 consumer_key = self.request.get('oauth_consumer_key')
-                self.response.out.write("Consumer Key (from params): %s\n" % consumer_key)
-        except oauth.InvalidOAuthParametersError:
-            self.response.out.write("Invalid OAuth parameters\n")
-        except oauth.InvalidOAuthTokenError:
-            self.response.out.write("Invalid OAuth token\n")
+                body = u"{0}\nConsumer Key (from params): {1}".format(body, consumer_key)
+        except oauth.InvalidOAuthParametersError, pe:
+            body = u"Invalid OAuth parameters: {0}".format(pe)
+        except oauth.InvalidOAuthTokenError, te:
+            body = u"Invalid OAuth token: {0}".format(te)
         except Exception, e:
-            self.response.out.write("EXCEPTION: %s\n" % e)
+            body = u"EXCEPTION: {0}".format(e)
+        logging.info(body)
+        self.response.out.write(body)
 
 
 class UserAwareHandler(JsonRequestHandler):
