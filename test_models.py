@@ -1,4 +1,5 @@
 import base64
+import datetime
 import os
 import sys
 import minimock
@@ -99,6 +100,26 @@ if Image is not None:
             screen_shot.key.delete()
             self.assertEqual(5, models.ScreenShot.query().count())
             self.assertEqual(0, models.AgarImage.query().count())
+
+
+class ServerTest(BaseTest):
+    def setUp(self):
+        super(ServerTest, self).setUp()
+        self.server = models.Server.global_key().get()
+        self.now = datetime.datetime.now()
+
+    def test_update_is_running(self):
+        self.server.update_is_running(True, self.now)
+        self.assertTrue(self.server.is_running)
+        self.assertEqual(self.now, self.server.last_ping)
+        ping_time = self.now + datetime.timedelta(seconds=30)
+        self.server.update_is_running(True, ping_time)
+        self.assertTrue(self.server.is_running)
+        self.assertEqual(self.now, self.server.last_ping)
+        ping_time = self.now + datetime.timedelta(seconds=61)
+        self.server.update_is_running(True, ping_time)
+        self.assertTrue(self.server.is_running)
+        self.assertEqual(ping_time, self.server.last_ping)
 
 
 class LogLineTest(BaseTest):

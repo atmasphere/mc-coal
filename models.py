@@ -228,11 +228,14 @@ class Server(ndb.Model):
 
     def update_is_running(self, is_running, last_ping=None):
         was_running = self.is_running
-        if was_running != is_running or last_ping is not None:
+        record_ping = None
+        if last_ping is not None:
+            if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):
+                record_ping = last_ping
+        if was_running != is_running or record_ping is not None:
             self.is_running = is_running
-            if last_ping is not None:
-                self.last_ping = last_ping
-            # TODO: Only record on change or every minute
+            if record_ping is not None:
+                self.last_ping = record_ping
             self.put()
             if was_running != is_running:
                 if is_running == True:
