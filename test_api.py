@@ -54,8 +54,8 @@ FALLING_DEATH_LOG_LINE_4 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell out o
 FALLING_DEATH_LOG_LINE_5 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell from a high place'
 FALLING_DEATH_LOG_LINE_6 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell into a patch of fire'
 FALLING_DEATH_LOG_LINE_7 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell into a patch of cacti'
-FALLING_DEATH_LOG_LINE_8 = '2013-04-03 10:27:55 [INFO] gumptionthomas was doomed to fall (by Skeleton)'
-FALLING_DEATH_LOG_LINE_9 = '2013-04-03 10:27:55 [INFO] gumptionthomas was doomed to fall (by vesicular)'
+FALLING_DEATH_LOG_LINE_8 = '2013-04-03 10:27:55 [INFO] gumptionthomas was doomed to fall by Skeleton'
+FALLING_DEATH_LOG_LINE_9 = '2013-04-03 10:27:55 [INFO] gumptionthomas was doomed to fall by vesicular'
 FALLING_DEATH_LOG_LINE_10 = '2013-04-03 10:27:55 [INFO] gumptionthomas was shot off some vines by Skeleton'
 FALLING_DEATH_LOG_LINE_11 = '2013-04-03 10:27:55 [INFO] gumptionthomas was shot off some vines by vesicular'
 FALLING_DEATH_LOG_LINE_12 = '2013-04-03 10:27:55 [INFO] gumptionthomas was blown from a high place by Creeper'
@@ -110,8 +110,8 @@ DEATH_LOG_LINES = [
     (FALLING_DEATH_LOG_LINE_5, "fell from a high place", None, None),
     (FALLING_DEATH_LOG_LINE_6, "fell into a patch of fire", None, None),
     (FALLING_DEATH_LOG_LINE_7, "fell into a patch of cacti", None, None),
-    (FALLING_DEATH_LOG_LINE_8, "was doomed to fall (by Skeleton)", "Skeleton", None),
-    (FALLING_DEATH_LOG_LINE_9, "was doomed to fall (by vesicular)", "vesicular", None),
+    (FALLING_DEATH_LOG_LINE_8, "was doomed to fall by Skeleton", "Skeleton", None),
+    (FALLING_DEATH_LOG_LINE_9, "was doomed to fall by vesicular", "vesicular", None),
     (FALLING_DEATH_LOG_LINE_10, "was shot off some vines by Skeleton", "Skeleton", None),
     (FALLING_DEATH_LOG_LINE_11, "was shot off some vines by vesicular", "vesicular", None),
     (FALLING_DEATH_LOG_LINE_12, "was blown from a high place by Creeper", "Creeper", None),
