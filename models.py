@@ -497,6 +497,10 @@ class LogLine(UsernameModel):
                         )
                     kwargs.update(gd)
                     kwargs['tags'] = tags
+                    if DEATH_TAG in tags:
+                        username = kwargs['username']
+                        i = line.find(username) + len(username) + 1
+                        kwargs['death_message'] = line[i:]
                     break
             if match:
                 break
@@ -518,9 +522,6 @@ class LogLine(UsernameModel):
             open_sessions_query = PlaySession.query_open()
             for session in open_sessions_query:
                 session.close(log_line.timestamp, log_line.key)
-        if DEATH_TAG in log_line.tags:
-            i = log_line.line.find(log_line.username) + len(log_line.username) + 1
-            log_line.death_message = log_line.line[i:]
         return log_line
 
     @classmethod
