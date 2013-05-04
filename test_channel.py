@@ -54,7 +54,7 @@ class SendLogLineTest(BaseTest):
         self.assertTrue('client_2' in trace)
 
     def test_sends_log_line_data_as_json(self):
-        js = '{"date": "Mar 23, 2013", "username": "quazifene", "event": "chat", "chat": "is there anybody in there?", "time": "07:01pm"}'
+        js = '{"username": "quazifene", "chat": "is there anybody in there?", "time": "07:01pm", "date": "Mar 23, 2013", "event": "chat", "death_message": null}'
         coal_channel.send_log_line(self.interesting_log_line)
         self.assertTrue(
             self.tracker.check("""Called channel.send_message(
@@ -67,6 +67,7 @@ class SendLogLineTest(BaseTest):
         self.assertEqual('07:01pm', log_line['time'])
         self.assertEqual('quazifene', log_line['username'])
         self.assertEqual('is there anybody in there?', log_line['chat'])
+        self.assertEqual(None, log_line['death_message'])
 
 
 class ChannelHandlerTest(BaseTest, WebTest):

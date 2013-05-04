@@ -8,7 +8,7 @@ from filters import datetime_filter
 import models
 
 
-INTERESTING_TAGS = ['login', 'logout', 'chat']
+INTERESTING_TAGS = ['login', 'logout', 'chat', 'death']
 
 
 def token_for_user(user):
@@ -37,6 +37,7 @@ def send_log_line(log_line):
             'time': datetime_filter(log_line.timestamp, '%I:%M%p'),
             'username': log_line.username,
             'chat': log_line.chat,
+            'death_message': log_line.death_message
         }
         message_json = json.dumps(message_data)
 

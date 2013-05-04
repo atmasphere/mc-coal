@@ -36,7 +36,117 @@ ALL_LOG_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_ST
 TIMESTAMP_LOG_LINES = [TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, CHAT_LOG_LINE_2, CHAT_LOG_LINE_3, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
 TIMESTAMP_LOG_LINES_CRON = [CHAT_LOG_LINE_2, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE_2, OVERLOADED_LOG_LINE, SERVER_STOP_LOG_LINE, SERVER_START_LOG_LINE, DISCONNECT_LOG_LINE, CHAT_LOG_LINE, CHAT_LOG_LINE_3, CONNECT_LOG_LINE, TIME_STAMP_LOG_LINE]
 CHAT_LOG_LINES_CRON = [CHAT_LOG_LINE_2, CHAT_LOG_LINE, CHAT_LOG_LINE_3]
+ANVIL_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was squashed by a falling anvil'
+PRICKED_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was pricked to death'
+CACTUS_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas walked into a cactus whilst trying to escape Skeleton'
+CACTUS_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas walked into a cactus whilst trying to escape vesicular'
+SHOT_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was shot by arrow'
+DROWNED_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas drowned'
+DROWNED_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas drowned whilst trying to escape Skeleton'
+DROWNED_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas drowned whilst trying to escape vesicular'
+BLEW_UP_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas blew up'
+BLEW_UP_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas was blown up by Creeper'
+BLEW_UP_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas was blown up by vesicular'
+FALLING_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas hit the ground too hard'
+FALLING_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell off a ladder'
+FALLING_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell off some vines'
+FALLING_DEATH_LOG_LINE_4 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell out of the water'
+FALLING_DEATH_LOG_LINE_5 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell from a high place'
+FALLING_DEATH_LOG_LINE_6 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell into a patch of fire'
+FALLING_DEATH_LOG_LINE_7 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell into a patch of cacti'
+FALLING_DEATH_LOG_LINE_8 = '2013-04-03 10:27:55 [INFO] gumptionthomas was doomed to fall (by Skeleton)'
+FALLING_DEATH_LOG_LINE_9 = '2013-04-03 10:27:55 [INFO] gumptionthomas was doomed to fall (by vesicular)'
+FALLING_DEATH_LOG_LINE_10 = '2013-04-03 10:27:55 [INFO] gumptionthomas was shot off some vines by Skeleton'
+FALLING_DEATH_LOG_LINE_11 = '2013-04-03 10:27:55 [INFO] gumptionthomas was shot off some vines by vesicular'
+FALLING_DEATH_LOG_LINE_12 = '2013-04-03 10:27:55 [INFO] gumptionthomas was blown from a high place by Creeper'
+FIRE_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas went up in flames'
+FIRE_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas burned to death'
+FIRE_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas was burnt to a crisp whilst fighting Skeleton'
+FIRE_DEATH_LOG_LINE_4 = '2013-04-03 10:27:55 [INFO] gumptionthomas was burnt to a crisp whilst fighting vesicular'
+FIRE_DEATH_LOG_LINE_5 = '2013-04-03 10:27:55 [INFO] gumptionthomas walked into a fire whilst fighting Skeleton'
+FIRE_DEATH_LOG_LINE_6 = '2013-04-03 10:27:55 [INFO] gumptionthomas walked into a fire whilst fighting vesicular'
+MOB_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was slain by Skeleton'
+MOB_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas was shot by Skeleton'
+MOB_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas was fireballed by Ghast'
+MOB_DEATH_LOG_LINE_4 = '2013-04-03 10:27:55 [INFO] gumptionthomas was killed by Whitch'
+MOB_DEATH_LOG_LINE_5 = '2013-04-03 10:27:55 [INFO] gumptionthomas got finished off by Skeleton using Bow'
+MOB_DEATH_LOG_LINE_6 = '2013-04-03 10:27:55 [INFO] gumptionthomas was slain by Skeleton using Bow'
+LAVA_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas tried to swim in lava'
+LAVA_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas tried to swim in lava while trying to escape Skeleton'
+LAVA_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas tried to swim in lava while trying to escape vesicular'
+OTHER_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas died'
+PVP_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas got finished off by vesicular using Bow'
+PVP_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas was slain by vesicular using Bow'
+PVP_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas was shot by vesicular'
+PVP_DEATH_LOG_LINE_4 = '2013-04-03 10:27:55 [INFO] gumptionthomas was killed by vesicular'
+POTION_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was killed by magic'
+STARVATION_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas starved to death'
+SUFFOCATION_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas suffocated in a wall'
+THORNS_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was killed while trying to hurt Skeleton'
+THORNS_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas was killed while trying to hurt vesicular'
+UNUSED_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was pummeled by vesicular'
+VOID_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas fell out of the world'
+VOID_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell from a high place and fell out of the world'
+VOID_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas was knocked into the void by Skeleton'
+VOID_DEATH_LOG_LINE_4 = '2013-04-03 10:27:55 [INFO] gumptionthomas was knocked into the void by vesicular'
+WITHER_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas withered away'
 
+DEATH_LOG_LINES = [
+    (ANVIL_DEATH_LOG_LINE, "was squashed by a falling anvil", None, None),
+    (PRICKED_DEATH_LOG_LINE, "was pricked to death", None, None),
+    (CACTUS_DEATH_LOG_LINE, "walked into a cactus whilst trying to escape Skeleton", "Skeleton", None),
+    (CACTUS_DEATH_LOG_LINE_2, "walked into a cactus whilst trying to escape vesicular", "vesicular", None),
+    (SHOT_DEATH_LOG_LINE, "was shot by arrow", None, None),
+    (DROWNED_DEATH_LOG_LINE, "drowned", None, None),
+    (DROWNED_DEATH_LOG_LINE_2, "drowned whilst trying to escape Skeleton", "Skeleton", None),
+    (DROWNED_DEATH_LOG_LINE_3, "drowned whilst trying to escape vesicular", "vesicular", None),
+    (BLEW_UP_DEATH_LOG_LINE, "blew up", None, None),
+    (BLEW_UP_DEATH_LOG_LINE_2, "was blown up by Creeper", "Creeper", None),
+    (BLEW_UP_DEATH_LOG_LINE_3, "was blown up by vesicular", "vesicular", None),
+    (FALLING_DEATH_LOG_LINE, "hit the ground too hard", None, None),
+    (FALLING_DEATH_LOG_LINE_2, "fell off a ladder", None, None),
+    (FALLING_DEATH_LOG_LINE_3, "fell off some vines", None, None),
+    (FALLING_DEATH_LOG_LINE_4, "fell out of the water", None, None),
+    (FALLING_DEATH_LOG_LINE_5, "fell from a high place", None, None),
+    (FALLING_DEATH_LOG_LINE_6, "fell into a patch of fire", None, None),
+    (FALLING_DEATH_LOG_LINE_7, "fell into a patch of cacti", None, None),
+    (FALLING_DEATH_LOG_LINE_8, "was doomed to fall (by Skeleton)", "Skeleton", None),
+    (FALLING_DEATH_LOG_LINE_9, "was doomed to fall (by vesicular)", "vesicular", None),
+    (FALLING_DEATH_LOG_LINE_10, "was shot off some vines by Skeleton", "Skeleton", None),
+    (FALLING_DEATH_LOG_LINE_11, "was shot off some vines by vesicular", "vesicular", None),
+    (FALLING_DEATH_LOG_LINE_12, "was blown from a high place by Creeper", "Creeper", None),
+    (FIRE_DEATH_LOG_LINE, "went up in flames", None, None),
+    (FIRE_DEATH_LOG_LINE_2, "burned to death", None, None),
+    (FIRE_DEATH_LOG_LINE_3, "was burnt to a crisp whilst fighting Skeleton", "Skeleton", None),
+    (FIRE_DEATH_LOG_LINE_4, "was burnt to a crisp whilst fighting vesicular", "vesicular", None),
+    (FIRE_DEATH_LOG_LINE_5, "walked into a fire whilst fighting Skeleton", "Skeleton", None),
+    (FIRE_DEATH_LOG_LINE_6, "walked into a fire whilst fighting vesicular", "vesicular", None),
+    (MOB_DEATH_LOG_LINE, "was slain by Skeleton", "Skeleton", None),
+    (MOB_DEATH_LOG_LINE_2, "was shot by Skeleton", "Skeleton", None),
+    (MOB_DEATH_LOG_LINE_3, "was fireballed by Ghast", "Ghast", None),
+    (MOB_DEATH_LOG_LINE_4, "was killed by Whitch", "Whitch", None),
+    (MOB_DEATH_LOG_LINE_5, "got finished off by Skeleton using Bow", "Skeleton", "Bow"),
+    (MOB_DEATH_LOG_LINE_6, "was slain by Skeleton using Bow", "Skeleton", "Bow"),
+    (LAVA_DEATH_LOG_LINE, "tried to swim in lava", None, None),
+    (LAVA_DEATH_LOG_LINE_2, "tried to swim in lava while trying to escape Skeleton", "Skeleton", None),
+    (LAVA_DEATH_LOG_LINE_3, "tried to swim in lava while trying to escape vesicular", "vesicular", None),
+    (OTHER_DEATH_LOG_LINE, "died", None, None),
+    (PVP_DEATH_LOG_LINE, "got finished off by vesicular using Bow", "vesicular", "Bow"),
+    (PVP_DEATH_LOG_LINE_2, "was slain by vesicular using Bow", "vesicular", "Bow"),
+    (PVP_DEATH_LOG_LINE_3, "was shot by vesicular", "vesicular", None),
+    (PVP_DEATH_LOG_LINE_4, "was killed by vesicular", "vesicular", None),
+    (POTION_DEATH_LOG_LINE, "was killed by magic", None, None),
+    (STARVATION_DEATH_LOG_LINE, "starved to death", None, None),
+    (SUFFOCATION_DEATH_LOG_LINE, "suffocated in a wall", None, None),
+    (THORNS_DEATH_LOG_LINE, "was killed while trying to hurt Skeleton", "Skeleton", None),
+    (THORNS_DEATH_LOG_LINE_2, "was killed while trying to hurt vesicular", "vesicular", None),
+    (UNUSED_DEATH_LOG_LINE, "was pummeled by vesicular", "vesicular", None),
+    (VOID_DEATH_LOG_LINE, "fell out of the world", None, None),
+    (VOID_DEATH_LOG_LINE_2, "fell from a high place and fell out of the world", None, None),
+    (VOID_DEATH_LOG_LINE_3, "was knocked into the void by Skeleton", "Skeleton", None),
+    (VOID_DEATH_LOG_LINE_4, "was knocked into the void by vesicular", "vesicular", None),
+    (WITHER_DEATH_LOG_LINE, "withered away", None, None),
+]
 TEST_USER_EMAIL = 'admin@example.com'
 
 NUM_PLAYER_FIELDS = 6
@@ -517,6 +627,32 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(1, models.PlaySession.query().count())
         play_session = models.PlaySession.current('gumptionthomas')
         self.assertIsNone(play_session)
+
+
+class DeathLogLineTest(AgentApiTest):
+    URL = '/api/agent/log_line'
+    ALLOWED = ['POST']
+
+    def test_all_deaths(self):
+        for (line, death_message, username_mob, weapon) in DEATH_LOG_LINES:
+            params = {'line': line, 'zone': TIME_ZONE}
+            response = self.post(self.get_secure_url(), params=params)
+            self.assertCreated(response)
+            self.assertEqual(1, models.LogLine.query().count())
+            log_line = models.LogLine.query().get()
+            self.assertEqual(line, log_line.line)
+            self.assertEqual(TIME_ZONE, log_line.zone)
+            self.assertEqual(datetime.datetime(2013, 4, 3, 15, 27, 55), log_line.timestamp)
+            self.assertEqual('INFO', log_line.log_level)
+            self.assertEqual('gumptionthomas', log_line.username, msg="Incorrect death username: '{0}' [{1}]".format(log_line.username, log_line.line))
+            self.assertEqual(death_message, log_line.death_message, msg="Incorrect death message: '{0}' [{1}]".format(log_line.death_message, log_line.line))
+            self.assertEqual(username_mob, log_line.username_mob, msg="Incorrect username/mob: '{0}' [{1}]".format(log_line.username_mob, log_line.line))
+            self.assertEqual(weapon, log_line.weapon)
+            self.assertEqual(models.DEATH_TAGS, log_line.tags)
+            self.assertEqual(1, models.Player.query().count())
+            player = models.Player.lookup(log_line.username)
+            self.assertIsNotNone(player)
+            log_line.key.delete()
 
 
 class OAuthTestTest(ApiTest):

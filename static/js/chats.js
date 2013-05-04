@@ -45,6 +45,9 @@ var chats = {
             case 'logout':
                 chatDiv.text('Logged out');
                 break;
+            case 'death':
+                chatDiv.text(data.death_message);
+                break;
         }
 
         eventDiv.prependTo('#live_events').slideDown('fast');
