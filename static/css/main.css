@@ -299,6 +299,13 @@ header nav li.user:hover {
     background-color: rgba(14,144,87,0.2);
 }
 
+.player.death_event {
+    background-color: rgba(87,0,0,0.5);
+}
+.player.you.death_event {
+    background-color: rgba(144,14,87,0.2);
+}
+
 .activity {
     position: absolute;
     top: 0;
