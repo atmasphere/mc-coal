@@ -521,7 +521,10 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/user/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove")
     ],
     config={
-        'webapp2_extras.sessions': {'secret_key': coal_config.SECRET_KEY},
+        'webapp2_extras.sessions': {
+            'secret_key': coal_config.SECRET_KEY,
+            'cookie_args': {'max_age': coal_config.COOKIE_MAX_AGE}
+        },
         'webapp2_extras.auth': {'user_model': 'models.User'}
     },
     debug=not on_production_server

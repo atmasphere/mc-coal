@@ -21,4 +21,6 @@ COAL_API_PASSWORD = 'a_password'
 
 COAL_SECRET_KEY = 'a_secret_string'
 
+COAL_COOKIE_MAX_AGE = None
+
 COAL_RESULTS_PER_PAGE = 50

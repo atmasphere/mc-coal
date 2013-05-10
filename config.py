@@ -10,5 +10,6 @@ class COALConfig(Config):
     RESULTS_PER_PAGE = 50
     API_PASSWORD = ''
     SECRET_KEY = ''
+    COOKIE_MAX_AGE = None
 
 coal_config = COALConfig.get_config()
