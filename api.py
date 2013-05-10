@@ -113,6 +113,8 @@ class OptionalBooleanField(fields.BooleanField):
 class PingForm(form.Form):
     server_name = fields.StringField(validators=[validators.InputRequired(), validators.Length(max=500)])
     is_server_running = OptionalBooleanField(validators=[validators.Optional()])
+    server_day = fields.IntegerField(validators=[validators.Optional()])
+    server_time = fields.IntegerField(validators=[validators.Optional()])
 
 
 class PingHandler(JsonRequestHandler):
@@ -120,8 +122,10 @@ class PingHandler(JsonRequestHandler):
     @validate_params(form_class=PingForm)
     def post(self):
         is_server_running = self.request.form.is_server_running.data
+        server_day = self.request.form.server_day.data
+        server_time = self.request.form.server_time.data
         server = Server.global_key().get()
-        server.update_is_running(is_server_running, last_ping=datetime.datetime.now())
+        server.update_is_running(is_server_running, last_ping=datetime.datetime.now(), server_day=server_day, server_time=server_time)
         last_log_line = LogLine.get_last_line_with_timestamp()
         response = {
             'last_line': last_log_line.line if last_log_line is not None else None,

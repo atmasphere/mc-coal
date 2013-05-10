@@ -12,6 +12,7 @@ import sys
 import time
 import urllib
 
+from nbt import nbt
 import timezones
 import yaml
 
@@ -23,6 +24,7 @@ except ImportError:
 
 DEFAULT_AGENT_LOGFILE = 'agent.log'
 DEFAULT_MC_LOGFILE = '../server.log'
+DEFAULT_MC_LEVELFILE = '../world/level.dat'
 DEFAULT_MC_PIDFILE = '../server.pid'
 DEFAULT_MC_COMMAND_FIFO = '../command-fifo'
 
@@ -41,6 +43,19 @@ class NoPasswordException(AgentException):
 
 class NoPingException(AgentException):
     pass
+
+
+def read_time(levelfile):
+    logger = logging.getLogger('ping')
+    try:
+        n = nbt.NBTFile(levelfile)
+        if n is not None:
+            t = n[0]["Time"].value
+            if t:
+                return t / 24000, t % 24000
+    except Exception, e:
+        logger.error(e)
+    return None, None
 
 
 def read_pid(pidfile):
@@ -84,7 +99,7 @@ def execute_commands(commandfifo, commands):
                 command_fifo.write(c.encode('ISO-8859-2', errors='ignore'))
 
 
-def ping_host(host, password, pidfile, commandfifo, fail=True):
+def ping_host(host, password, server_day, server_time, pidfile, commandfifo, fail=True):
     logger = logging.getLogger('ping')
     try:
         headers = {
@@ -95,6 +110,9 @@ def ping_host(host, password, pidfile, commandfifo, fail=True):
         params = {'server_name': host}
         if running is not None:
             params['is_server_running'] = running
+        if server_day is not None and server_time is not None:
+            params['server_day'] = server_day
+            params['server_time'] = server_time
         params = urllib.urlencode(params)
         conn = httplib.HTTPConnection(host)
         conn.request("POST", "/api/agent/ping?p={0}".format(password), params, headers)
@@ -163,10 +181,15 @@ def post_line(host, line, password, zone, skip_chat):
         time.sleep(timeout)
 
 
-def line_reader(logfile, last_ping, host, password, pidfile, commandfifo):
+def line_reader(logfile, last_ping, last_time, host, password, levelfile, pidfile, commandfifo):
     while True:
         if datetime.datetime.now() > last_ping + datetime.timedelta(seconds=5):
-            ping_host(host, password, pidfile, commandfifo, fail=False)
+            server_day = None
+            server_time = None
+            if datetime.datetime.now() > last_time + datetime.timedelta(seconds=30):
+                server_day, server_time = read_time(levelfile)
+                last_time = datetime.datetime.now()
+            ping_host(host, password, server_day, server_time, pidfile, commandfifo, fail=False)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()
@@ -176,10 +199,10 @@ def line_reader(logfile, last_ping, host, password, pidfile, commandfifo):
             logfile.seek(where)
             time.sleep(1.0)
         else:
-            yield line, last_ping
+            yield line, last_ping, last_time
 
 
-def tail(host, filename, password, zone, parse_history, skip_chat, last_line, last_ping, pidfile, commandfifo):
+def tail(host, filename, password, zone, parse_history, skip_chat, last_line, last_ping, last_time, levelfile, pidfile, commandfifo):
     logger = logging.getLogger('main')
     with open(filename, 'r') as logfile:
         st_results = os.stat(filename)
@@ -193,7 +216,7 @@ def tail(host, filename, password, zone, parse_history, skip_chat, last_line, la
             st_size = st_results[6]
             logfile.seek(st_size)
             read_last_line = True
-        for line, last_ping in line_reader(logfile, last_ping, host, password, pidfile, commandfifo):
+        for line, last_ping, last_time in line_reader(logfile, last_ping, last_time, host, password, levelfile, pidfile, commandfifo):
             if read_last_line:
                 post_line(host, line, password, zone, skip_chat)
                 if skip_chat:
@@ -296,6 +319,11 @@ def main(argv):
         help="The Minecraft server log filename (default: '{0}')".format(DEFAULT_MC_LOGFILE)
     )
     parser.add_argument(
+        '--mc_levelfile',
+        default=DEFAULT_MC_LEVELFILE,
+        help="The Minecraft level.dat filename (default: '{0}')".format(DEFAULT_MC_LEVELFILE)
+    )
+    parser.add_argument(
         '--mc_pidfile',
         default=DEFAULT_MC_PIDFILE,
         help="The Minecraft server PID filename (default: '{0}')".format(DEFAULT_MC_PIDFILE)
@@ -337,6 +365,7 @@ def main(argv):
         if not coal_password:
             raise NoPasswordException()
         mc_logfile = args.mc_logfile
+        mc_levelfile = args.mc_levelfile
         mc_pidfile = args.mc_pidfile
         mc_commandfile = args.mc_commandfifo
         parse_mc_history = args.parse_mc_history
@@ -348,6 +377,7 @@ def main(argv):
         if parse_all:
             last_line = None
         last_ping = datetime.datetime.now()
+        last_time = datetime.datetime.now()
         logger.info(u"Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
         tail(
             coal_host,
@@ -358,6 +388,8 @@ def main(argv):
             skip_chat_history,
             last_line,
             last_ping,
+            last_time,
+            mc_levelfile,
             mc_pidfile,
             mc_commandfile
         )
