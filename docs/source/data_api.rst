@@ -235,6 +235,8 @@ Server API
       "updated": "2013-04-14 19:55:22 CDT-0500",
       "is_running": true,
       "created": "2013-03-04 15:05:53 CST-0600"
+      "server_day": 15744
+      "server_time": 19767
     }
 
 
