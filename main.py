@@ -525,7 +525,7 @@ application = webapp2.WSGIApplication(
             'secret_key': coal_config.SECRET_KEY,
             'cookie_args': {'max_age': coal_config.COOKIE_MAX_AGE}
         },
-        'webapp2_extras.auth': {'user_model': 'models.User'}
+        'webapp2_extras.auth': {'user_model': 'models.User', 'token_max_age': coal_config.COOKIE_MAX_AGE}
     },
     debug=not on_production_server
 )
