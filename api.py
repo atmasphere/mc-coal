@@ -200,7 +200,7 @@ class GoogleAppEngineUserAuthHandler(webapp2.RequestHandler):
             user = self.auth.store.user_model.get_by_auth_id(auth_id)
             if user:
                 # existing user. just log them in.
-                self.auth.set_session(self.auth.store.user_to_dict(user))
+                self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
                 # update access for gae admins
                 if users.is_current_user_admin():
                     if not (user.active and user.admin):
@@ -234,7 +234,7 @@ class GoogleAppEngineUserAuthHandler(webapp2.RequestHandler):
                         last_login=datetime.datetime.now()
                     )
                     if ok:
-                        self.auth.set_session(self.auth.store.user_to_dict(user))
+                        self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
                     else:
                         logging.error('create_user() returned False with strings: %s' % user)
                         user = None
