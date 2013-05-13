@@ -51,8 +51,9 @@ def read_time(levelfile):
         n = nbt.NBTFile(levelfile)
         if n is not None:
             t = n[0]["Time"].value
+            dt = n[0]["DayTime"].value
             if t:
-                return t / 24000, t % 24000
+                return t / 24000, dt % 24000
     except Exception, e:
         logger.error(e)
     return None, None
