@@ -209,6 +209,8 @@ Server API
     :Response Data: - **version** -- The minecraft server version.
                     - **is_running** -- A boolean indicating whether the minecraft server is running. If this value is ``null`` the status is unknown.
                     - **last_ping** -- The timestamp of the last agent ping.
+                    - **server_day** -- An integer indicating the number of game days since the start of the level.
+                    - **server_time** -- An integer indicating the game time of day. 0 is sunrise, 6000 is mid day, 12000 is sunset, 18000 is mid night, 24000 is the next day's 0.
                     - **created** -- The server's creation timestamp.
                     - **updated** -- The server's updated timestamp.
 

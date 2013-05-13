@@ -287,7 +287,7 @@ class Server(ndb.Model):
         if last_ping is not None:
             if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):
                 record_ping = True
-        if was_running != is_running or record_ping:
+        if record_ping or (was_running != is_running):
             self.is_running = is_running
             if last_ping is not None:
                 self.last_ping = last_ping

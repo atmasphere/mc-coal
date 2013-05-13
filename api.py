@@ -372,7 +372,7 @@ class MultiPageUserAwareHandler(UserAwareHandler, MultiPage):
     pass
 
 
-SERVER_FIELDS = ['version', 'is_running']
+SERVER_FIELDS = ['version', 'is_running', 'server_day', 'server_time']
 SERVER_FIELD_FUNCTIONS = {
     'last_ping': lambda o: api_datetime(o.last_ping),
     'created': lambda o: api_datetime(o.created),

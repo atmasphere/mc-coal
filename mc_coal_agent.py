@@ -52,7 +52,7 @@ def read_time(levelfile):
         if n is not None:
             t = n[0]["Time"].value
             dt = n[0]["DayTime"].value
-            if t:
+            if t or dt:
                 return t / 24000, dt % 24000
     except Exception, e:
         logger.error(e)
