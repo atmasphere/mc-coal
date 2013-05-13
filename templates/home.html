@@ -24,6 +24,12 @@
                             Unknown
                         {% endif %}
                     </strong>
+                    {% if server.server_day or server.server_time %}
+                        Day: {{ server.server_day }}&nbsp;&nbsp;Time: {{ server.server_time }}
+                    {% endif %}
+                    {% if server.last_ping %}
+                        As of {{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}
+                    {% endif %}
                 </div>
             </div>
         </div>
