@@ -587,7 +587,7 @@ class ChatHandler(MultiPageUserAwareHandler):
     def post(self):
         user = self.request.user
         chat = u"/say {0}".format(self.request.form.chat.data)
-        Command.push(user.username or user.email, chat)
+        Command.push(user.name, chat)
         self.response.set_status(201)
 
 

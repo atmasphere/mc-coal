@@ -327,12 +327,13 @@ class ChatsHandler(PagingHandler):
         self.render_template('chats.js', context=context)
 
     def render_html_response(self, context, next_cursor, previous_cursor):
-        channel_token = channel.token_for_user(self.request.user)
+        user = self.request.user
+        channel_token = channel.token_for_user(user)
         context.update({
             'next_cursor': next_cursor,
             'previous_cursor': previous_cursor,
             'channel_token': channel_token,
-            'username': self.request.user.username,
+            'username': user.name,
         })
         self.render_template('chats.html', context=context)
 
@@ -345,7 +346,7 @@ class ChatsHandler(PagingHandler):
             form = ChatForm(self.request.POST)
             if form.validate():
                 chat = u"/say {0}".format(form.chat.data)
-                Command.push(user.username, chat)
+                Command.push(user.name, chat)
         except Exception, e:
             logging.error(u"Error POSTing chat: {0}".format(e))
             self.abort(500)

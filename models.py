@@ -193,6 +193,10 @@ class User(auth_models.User):
     def white_list(self):
         return get_whitelist_user(self.email)
 
+    @property
+    def name(self):
+        return self.username or self.email
+
     def record_chat_view(self, dt=None):
         if dt is None:
             dt = datetime.datetime.now()
@@ -451,7 +455,7 @@ class LogLine(UsernameModel):
     updated = ndb.DateTimeProperty(auto_now=True)
 
     def _pre_put_hook(self):
-        if self.username:
+        if self.username and '@' not in self.username:
             Player.get_or_create(self.username)
         if not self.tags:
             self.tags = [UNKNOWN_TAG]
@@ -520,8 +524,6 @@ class LogLine(UsernameModel):
                 server.put()
         log_line = cls(parent=Server.global_key(), line=line, zone=zone, **kwargs)
         log_line.put()
-        if log_line.username:
-            Player.get_or_create(log_line.username)
         if LOGIN_TAG in log_line.tags:
             PlaySession.create(log_line.username, log_line.timestamp, zone, log_line.key)
         if LOGOUT_TAG in log_line.tags:
@@ -653,9 +655,6 @@ class PlaySession(UsernameModel):
     logout_log_line_key = ndb.KeyProperty(kind=LogLine)
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
-    # TODO: Legacy. Remove after running conversion script
-    login_log_line = ndb.KeyProperty(kind=LogLine)
-    logout_log_line = ndb.KeyProperty(kind=LogLine)
 
     @property
     def duration(self):
