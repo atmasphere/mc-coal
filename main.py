@@ -235,7 +235,7 @@ class HomeHandler(BaseHander):
                     playing_usernames.append(open_session.username)
                     open_sessions.append(open_session)
             # Get new chats
-            new_chats_query = LogLine.query_latest_chats()
+            new_chats_query = LogLine.query_latest_events()
             last_chat_view = self.request.user.last_chat_view
             if last_chat_view is not None:
                 new_chats_query = new_chats_query.filter(LogLine.timestamp > last_chat_view)
