@@ -587,6 +587,14 @@ class LogLine(UsernameModel):
         return cls.query_by_tags(LOGOUT_TAG).order(cls.timestamp)
 
     @classmethod
+    def query_latest_events(cls):
+        return cls.server_query().filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(-cls.timestamp, cls.key)
+
+    @classmethod
+    def query_oldest_events(cls):
+        return cls.server_query().filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(cls.timestamp, cls.key)
+
+    @classmethod
     def query_api(cls, username=None, tag=None, since=None, before=None):
         query = cls.query_latest_with_timestamp()
         if username:

@@ -308,7 +308,7 @@ class ChatsHandler(PagingHandler):
         # Latest
         else:
             results, previous_cursor, next_cursor = self.get_results_with_cursors(
-                LogLine.query_latest_chats(), LogLine.query_oldest_chats(), coal_config.RESULTS_PER_PAGE
+                LogLine.query_latest_events(), LogLine.query_oldest_events(), coal_config.RESULTS_PER_PAGE
             )
 
         context = {'chats': results, 'query_string': query_string or ''}
