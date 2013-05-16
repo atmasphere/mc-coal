@@ -44,8 +44,17 @@
     <footer>
         {% block footer %}
         <div id="footer">
-            <span class="copy">&copy; Copyright 2013&nbsp;&nbsp;<a href="http://mc-coal.org">The MineCraft Community Online Activity Log</a></span>
-            <span class="right">Code: <a href="http://www.gumption.com">Thomas Bohmbach, Jr.</a>&nbsp;&nbsp;|&nbsp;&nbsp;Design: <a href="http://brentgustafson.com">Brent Gustafson</a></span>
+            <span class="copy">&copy; Copyright 2013&nbsp;&nbsp;<a href="http://mc-coal.org" target="_blank">The MineCraft Community Online Activity Log</a></span>
+            <span class="right">
+                <div class="left code_credit">
+                    Code: <a href="http://www.gumption.com" target="_blank">Thomas Bohmbach, Jr.</a><br>
+                    <span class="lesser_credit">
+                        With contributions by <a href="https://github.com/gumptionthomas/mc-coal/issues/11" target="_blank">Mark Larimer</a>
+                    </span>
+                </div>
+                &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+                Design: <a href="http://brentgustafson.com" target="_blank">Brent Gustafson</a>
+            </span>
         </div>
         {% endblock %}
     </footer>

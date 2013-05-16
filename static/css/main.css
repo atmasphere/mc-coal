@@ -583,6 +583,14 @@ footer .copy {
     font-style: italic;
 }
 
+footer .code_credit {
+    line-height: 12px;
+}
+
+footer .lesser_credit {
+    font-size: 9px;
+}
+
 
 /*** iPad portrait orientation changes (also works for desktop) ***/
 @media only screen and (max-width: 768px) {
