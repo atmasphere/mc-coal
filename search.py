@@ -41,6 +41,8 @@ def add_log_line(log_line):
         ]
     if log_line.chat:
         fields.append(search.TextField(name='chat', value=log_line.chat))
+    if log_line.death_message:
+        fields.append(search.TextField(name='death_message', value=log_line.death_message))
     if log_line.tags:
         fields.append(search.TextField(name='tags', value=' '.join(log_line.tags) if log_line.tags else ''))
     return add_to_index(log_line_index, log_line.key, fields)

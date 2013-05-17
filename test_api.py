@@ -91,6 +91,7 @@ VOID_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas fell from a h
 VOID_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas was knocked into the void by Skeleton'
 VOID_DEATH_LOG_LINE_4 = '2013-04-03 10:27:55 [INFO] gumptionthomas was knocked into the void by vesicular'
 WITHER_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas withered away'
+DEATH_LOG_LINES_CRON = [ANVIL_DEATH_LOG_LINE, PRICKED_DEATH_LOG_LINE, CACTUS_DEATH_LOG_LINE]
 
 DEATH_LOG_LINES = [
     (ANVIL_DEATH_LOG_LINE, "was squashed by a falling anvil", None, None),
@@ -156,6 +157,7 @@ NUM_SERVER_FIELDS = 7
 NUM_PLAY_SESSION_FIELDS = 11
 NUM_LOG_LINE_FIELDS = 14
 NUM_CHAT_FIELDS = 9
+NUM_DEATH_FIELDS = 9
 NUM_SCREENSHOT_FIELDS = 9
 
 
@@ -1192,6 +1194,208 @@ class ChatKeyTest(KeyApiTest):
         self.assertOK(response)
         log_line = json.loads(response.body)
         self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        self.assertEqual(self.log_line.key.urlsafe(), log_line['key'])
+        self.assertEqual(self.log_line.username, log_line['username'])
+
+
+class DeathTest(MultiPageApiTest):
+    URL = '/api/data/death'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(DeathTest, self).setUp()
+        self.now = datetime.datetime.now()
+        self.players = []
+        self.players.append(models.Player.get_or_create("gumptionthomas"))
+        self.players.append(models.Player.get_or_create("vesicular"))
+        self.log_lines = []
+        for i in range(len(DEATH_LOG_LINES_CRON)):
+            log_line = models.LogLine.create(DEATH_LOG_LINES_CRON[i], TIME_ZONE)
+            self.log_lines.append(log_line)
+        log_line = models.LogLine.create(TIME_STAMP_LOG_LINE, TIME_ZONE)
+        death_log_line = '{0} [INFO] vesicular tried to swim in lava'.format(self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        log_line = models.LogLine.create(death_log_line, TIME_ZONE)
+        self.log_lines.insert(0, log_line)
+
+    def test_get(self):
+        response = self.get(self.get_secure_url('{0}?size={1}'.format(self.URL, 50)))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(len(self.log_lines), log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+            self.assertEqual(self.log_lines[i].death_message, log_line['message'])
+            self.assertEqual(self.log_lines[i].username, log_line['username'])
+            self.assertIsNotNone(log_line['timestamp'])
+
+    def test_get_username(self):
+        username = "gumptionthomas"
+        url = "/api/data/player/{0}/death".format(username)
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(3, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+            self.assertEqual(username, log_line['username'])
+
+    def test_get_since_before(self):
+        url = "{0}?since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+        url = "{0}?before={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(len(self.log_lines)-1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+        url = "{0}?since={1}&before={2}".format(self.URL, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(3, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+        url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(0, log_lines)
+
+
+class DeathQueryTest(DeathTest):
+    def setUp(self):
+        super(DeathQueryTest, self).setUp()
+        self.now = datetime.datetime.now()
+        self.log_lines = []
+        for i in range(25):
+            dt = self.now - datetime.timedelta(minutes=i)
+            death_log_line = '{0} [INFO] gumptionthomas was squashed by a falling anvil'.format(dt.strftime("%Y-%m-%d %H:%M:%S"))
+            log_line = models.LogLine.create(death_log_line, TIME_ZONE)
+            self.log_lines.append(log_line)
+
+    def test_get(self):
+        response = self.get(self.get_secure_url('{0}?q={1}'.format(self.URL, 'cactus')))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+            self.assertIn('cactus', log_line['line'])
+            self.assertIsNotNone(log_line['timestamp'])
+
+    def test_get_username(self):
+        url = "/api/data/player/gumptionthomas/death?q=anvil"
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        log_lines = body['deaths']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+
+    def test_get_multi(self):
+        response = self.get(self.get_secure_url('{0}?q={1}'.format(self.URL, 'anvil')))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        next_cursor = body['cursor']
+        log_lines = body['deaths']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+        response = self.get(self.get_secure_url('{0}?q={1}&cursor={2}'.format(self.URL, 'anvil', next_cursor)))
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        next_cursor = body['cursor']
+        log_lines = body['deaths']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+        response = self.get(self.get_secure_url('{0}?q={1}&cursor={2}'.format(self.URL, 'anvil', next_cursor)))
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(6, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+
+    def test_get_since_before(self):
+        url = "{0}?q=anvil&since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+        url = "{0}?q=anvil&before={1}&size=50".format(self.URL, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(len(self.log_lines)-1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+        url = "{0}?q=anvil&since={1}&before={2}".format(self.URL, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(3, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
+        url = "{0}?q=anvil&since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(self.get_secure_url(url=url))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['deaths']
+        self.assertLength(0, log_lines)
+
+
+class DeathKeyTest(KeyApiTest):
+    URL = '/api/data/death'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(DeathKeyTest, self).setUp()
+        self.player = models.Player.get_or_create("gumptionthomas")
+        self.log_line = models.LogLine.create(SHOT_DEATH_LOG_LINE, TIME_ZONE)
+        self.url = "{0}/{1}".format(self.URL, self.log_line.key.urlsafe())
+
+    def test_get(self):
+        response = self.get(self.get_secure_url(url=self.url))
+        self.assertOK(response)
+        log_line = json.loads(response.body)
+        self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
         self.assertEqual(self.log_line.key.urlsafe(), log_line['key'])
         self.assertEqual(self.log_line.username, log_line['username'])
 
