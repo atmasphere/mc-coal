@@ -45,18 +45,33 @@ class NoPingException(AgentException):
     pass
 
 
-def read_time(levelfile):
+def read_level(levelfile):
     logger = logging.getLogger('ping')
+    t = dt = raining = thundering = None
     try:
         n = nbt.NBTFile(levelfile)
         if n is not None:
-            t = n[0]["Time"].value
-            dt = n[0]["DayTime"].value
-            if t or dt:
-                return t / 24000, dt % 24000
+            try:
+                t = n[0]["Time"].value
+                t /= 24000
+            except:
+                t = None
+            try:
+                dt = n[0]["DayTime"].value
+                dt %= 24000
+            except:
+                dt = None
+            try:
+                raining = bool(n[0]["raining"])
+            except:
+                raining = None
+            try:
+                thundering = bool(n[0]["thundering"])
+            except:
+                thundering = None
     except Exception, e:
         logger.error(e)
-    return None, None
+    return t, dt, raining, thundering
 
 
 def read_pid(pidfile):
@@ -100,7 +115,7 @@ def execute_commands(commandfifo, commands):
                 command_fifo.write(c.encode('ISO-8859-2', errors='ignore'))
 
 
-def ping_host(host, password, server_day, server_time, pidfile, commandfifo, fail=True):
+def ping_host(host, password, server_day, server_time, raining, thundering, pidfile, commandfifo, fail=True):
     logger = logging.getLogger('ping')
     try:
         headers = {
@@ -114,6 +129,8 @@ def ping_host(host, password, server_day, server_time, pidfile, commandfifo, fai
         if server_day is not None and server_time is not None:
             params['server_day'] = server_day
             params['server_time'] = server_time
+        params['is_raining'] = raining
+        params['is_thundering'] = thundering
         params = urllib.urlencode(params)
         conn = httplib.HTTPConnection(host)
         conn.request("POST", "/api/agent/ping?p={0}".format(password), params, headers)
@@ -185,9 +202,9 @@ def post_line(host, line, password, zone, skip_chat):
 def line_reader(logfile, last_ping, last_time, host, password, levelfile, pidfile, commandfifo):
     while True:
         if datetime.datetime.now() > last_ping + datetime.timedelta(seconds=5):
-            server_day, server_time = read_time(levelfile)
+            server_day, server_time, raining, thundering = read_level(levelfile)
             last_time = datetime.datetime.now()
-            ping_host(host, password, server_day, server_time, pidfile, commandfifo, fail=False)
+            ping_host(host, password, server_day, server_time, raining, thundering, pidfile, commandfifo, fail=False)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()

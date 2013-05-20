@@ -115,6 +115,8 @@ class PingForm(form.Form):
     is_server_running = OptionalBooleanField(validators=[validators.Optional()])
     server_day = fields.IntegerField(validators=[validators.Optional()])
     server_time = fields.IntegerField(validators=[validators.Optional()])
+    is_raining = OptionalBooleanField(validators=[validators.Optional()])
+    is_thundering = OptionalBooleanField(validators=[validators.Optional()])
 
 
 class PingHandler(JsonRequestHandler):
@@ -124,8 +126,10 @@ class PingHandler(JsonRequestHandler):
         is_server_running = self.request.form.is_server_running.data
         server_day = self.request.form.server_day.data
         server_time = self.request.form.server_time.data
+        is_raining = self.request.form.is_raining.data
+        is_thundering = self.request.form.is_thundering.data
         server = Server.global_key().get()
-        server.update_is_running(is_server_running, last_ping=datetime.datetime.now(), server_day=server_day, server_time=server_time)
+        server.update_is_running(is_server_running, last_ping=datetime.datetime.now(), server_day=server_day, server_time=server_time, is_raining=is_raining, is_thundering=is_thundering)
         last_log_line = LogLine.get_last_line_with_timestamp()
         response = {
             'last_line': last_log_line.line if last_log_line is not None else None,
@@ -372,7 +376,7 @@ class MultiPageUserAwareHandler(UserAwareHandler, MultiPage):
     pass
 
 
-SERVER_FIELDS = ['version', 'is_running', 'server_day', 'server_time']
+SERVER_FIELDS = ['version', 'is_running', 'server_day', 'server_time', 'is_raining', 'is_thundering']
 SERVER_FIELD_FUNCTIONS = {
     'last_ping': lambda o: api_datetime(o.last_ping),
     'created': lambda o: api_datetime(o.created),

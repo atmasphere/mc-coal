@@ -211,6 +211,8 @@ Server API
                     - **last_ping** -- The timestamp of the last agent ping.
                     - **server_day** -- An integer indicating the number of game days since the start of the level.
                     - **server_time** -- An integer indicating the game time of day. 0 is sunrise, 6000 is mid day, 12000 is sunset, 18000 is mid night, 24000 is the next day's 0.
+                    - **is_raining** -- A boolean indicating whether it is raining. If this value is ``null`` the status is unknown.
+                    - **is_thundering** -- A boolean indicating whether it is thundering. If this value is ``null`` the status is unknown.
                     - **created** -- The server's creation timestamp.
                     - **updated** -- The server's updated timestamp.
 
@@ -237,6 +239,8 @@ Server API
       "created": "2013-03-04 15:05:53 CST-0600"
       "server_day": 15744
       "server_time": 19767
+      "is_raining": true,
+      "is_thundering": true,
     }
 
 

@@ -267,6 +267,8 @@ class Server(ndb.Model):
     last_ping = ndb.DateTimeProperty()
     server_day = ndb.IntegerProperty()
     server_time = ndb.IntegerProperty()
+    is_raining = ndb.BooleanProperty()
+    is_thundering = ndb.BooleanProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -279,7 +281,7 @@ class Server(ndb.Model):
             logging.info("Haven't heard from the agent since {0}. Setting server status is UNKNOWN.".format(self.last_ping))
             self.update_is_running(None)
 
-    def update_is_running(self, is_running, last_ping=None, server_day=None, server_time=None):
+    def update_is_running(self, is_running, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None):
         was_running = self.is_running
         record_ping = False
         if (server_day is not None and server_day != self.server_day) or (server_time is not None and server_time != self.server_time):
@@ -287,6 +289,10 @@ class Server(ndb.Model):
                 self.server_day = server_day
             if server_time is not None:
                 self.server_time = server_time
+            record_ping = True
+        if is_raining != self.is_raining or is_thundering != self.is_thundering:
+            self.is_raining = is_raining
+            self.is_thundering = is_thundering
             record_ping = True
         if last_ping is not None:
             if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):

@@ -27,6 +27,9 @@
                     {% if server.server_day or server.server_time %}
                         Day: {{ server.server_day }}&nbsp;&nbsp;Time: {{ server.server_time }}
                     {% endif %}
+                    {% if server.is_raining != None or server.is_thundering != None %}
+                        Raining: {{ server.is_raining }}&nbsp;&nbsp;Thundering: {{ server.is_thundering }}
+                    {% endif %}
                     {% if server.last_ping %}
                         as of {{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}
                     {% endif %}
