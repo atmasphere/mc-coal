@@ -9,7 +9,7 @@
         <div class="title box wrap">
             <div class="left">
                 <h1>{{ config.TITLE }}</h1>
-                <h4>Game time is {{ server.server_time }} on day {{ server.server_day }}
+                <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
                 {% if server.is_raining != None %}
                     {% if server.is_raining %}
                         / It is raining
