@@ -128,6 +128,7 @@ class PingHandler(JsonRequestHandler):
         server_time = self.request.form.server_time.data
         is_raining = self.request.form.is_raining.data
         is_thundering = self.request.form.is_thundering.data
+        logging.info("Is Raining: {0} Is Thundering: {1}".format(is_raining, is_thundering))
         server = Server.global_key().get()
         server.update_is_running(is_server_running, last_ping=datetime.datetime.now(), server_day=server_day, server_time=server_time, is_raining=is_raining, is_thundering=is_thundering)
         last_log_line = LogLine.get_last_line_with_timestamp()
