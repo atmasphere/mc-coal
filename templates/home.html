@@ -24,11 +24,19 @@
                             Unknown
                         {% endif %}
                     </strong>
+                    <br/>
                     {% if server.server_day or server.server_time %}
-                        Day: {{ server.server_day }}&nbsp;&nbsp;Time: {{ server.server_time }}
+                        The game time is {{ server.server_time }} on day {{ server.server_day }}
                     {% endif %}
-                    {% if server.is_raining != None or server.is_thundering != None %}
-                        Raining: {{ server.is_raining }}&nbsp;&nbsp;Thundering: {{ server.is_thundering }}
+                    {% if server.is_raining != None %}
+                        {% if server.is_raining %}
+                            and it is raining
+                            {% if server.is_thundering %}
+                                and thundering
+                            {% endif %}
+                        {% else %}
+                            and it is sunny
+                        {% endif %}
                     {% endif %}
                     {% if server.last_ping %}
                         as of {{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}

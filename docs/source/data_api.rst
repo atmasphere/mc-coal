@@ -136,7 +136,13 @@ Status Codes
 Timestamps
 ^^^^^^^^^^
 
-  Unless otherwise specified, all timestamps are of the form ``%Y-%m-%d %H:%M:%S %Z%z`` (see `Python strftime formatting <http://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_) and converted to the ``COAL_TIMEZONE`` as defined in ``mc_coal_config.py`` or UTC if not defined.
+  Unless otherwise specified, all timestamps are of the form ``%Y-%m-%d %H:%M:%S %Z-%z`` (see `Python strftime formatting <http://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_) and converted to the ``COAL_TIMEZONE`` as defined in ``mc_coal_config.py`` or UTC if not defined.
+
+  **Example timestamp**:
+
+  .. sourcecode:: http
+
+    "2013-04-14 19:55:22 CDT-0500"
 
 .. _list:
 
