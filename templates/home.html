@@ -9,18 +9,15 @@
         <div class="title box wrap">
             <div class="left">
                 <h1>{{ config.TITLE }}</h1>
-                <h4>
-                {% if server.server_day or server.server_time %}
-                    The game time is {{ server.server_time }} on day {{ server.server_day }}
-                {% endif %}
+                <h4>Game time is {{ server.server_time }} on day {{ server.server_day }}
                 {% if server.is_raining != None %}
                     {% if server.is_raining %}
-                        and it is raining
+                        / It is raining
                         {% if server.is_thundering %}
                             and thundering
                         {% endif %}
                     {% else %}
-                        and it is sunny
+                        / It is sunny
                     {% endif %}
                 {% endif %}
                 </h4>
