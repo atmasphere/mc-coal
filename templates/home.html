@@ -14,7 +14,7 @@
             <div class="status wrap {% if server.is_running == True %}up{% elif server.is_running == False %}down{% else %}unknown{% endif %}">
                 <i class="sprite"></i>
                 <div class="right">
-                    <h4>Sever Status</h4>
+                    <h4>Sever Status{% if server.last_ping %}&nbsp;&nbsp;({{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}){% endif %}</h4>
                     <strong>
                         {% if server.is_running == True %}
                             Running
@@ -37,9 +37,6 @@
                         {% else %}
                             and it is sunny
                         {% endif %}
-                    {% endif %}
-                    {% if server.last_ping %}
-                        as of {{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}
                     {% endif %}
                 </div>
             </div>
