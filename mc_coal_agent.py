@@ -62,11 +62,11 @@ def read_level(levelfile):
             except:
                 dt = None
             try:
-                raining = bool(n[0]["raining"])
+                raining = bool(n[0]["raining"].value)
             except:
                 raining = None
             try:
-                thundering = bool(n[0]["thundering"])
+                thundering = bool(n[0]["thundering"].value)
             except:
                 thundering = None
     except Exception, e:
