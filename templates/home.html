@@ -12,12 +12,12 @@
                 <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
                 {% if server.is_raining != None %}
                     {% if server.is_raining %}
-                        / It is raining
+                        / Raining
                         {% if server.is_thundering %}
-                            and thundering
+                            & Thundering
                         {% endif %}
                     {% else %}
-                        / It is sunny
+                        / Sunny
                     {% endif %}
                 {% endif %}
                 </h4>
@@ -25,7 +25,7 @@
             <div class="status wrap {% if server.is_running == True %}up{% elif server.is_running == False %}down{% else %}unknown{% endif %}">
                 <i class="sprite"></i>
                 <div class="right">
-                    <h4>Sever Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}{% endif %})</h4>
+                    <h4>Sever Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}{% endif %})</h4>
                     <strong>
                         {% if server.is_running == True %}
                             Running
