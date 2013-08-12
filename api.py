@@ -105,7 +105,7 @@ class OptionalBooleanField(fields.BooleanField):
 
     def process_formdata(self, valuelist):
         if not valuelist:
-            self.data = None
+            self.data = self.default
         else:
             self.data = valuelist[0] == 'True'
 

@@ -110,7 +110,7 @@ def search_log_lines(query_string, limit=1000, offset=None, cursor=None):
     timestamp_desc = search.SortExpression(
         expression='timestamp_sse',
         direction=search.SortExpression.DESCENDING,
-        default_value=''
+        default_value=0
     )
     sort_options = search.SortOptions(expressions=[timestamp_desc], limit=limit)
     return search_index(log_line_index, query_string, sort_options=sort_options, limit=limit, offset=offset, cursor=cursor)
