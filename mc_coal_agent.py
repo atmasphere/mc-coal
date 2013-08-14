@@ -390,7 +390,7 @@ def main(argv):
         skip_chat_history = args.skip_chat_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
-        last_line = ping_host(coal_host, coal_password, None, None, None, None, mc_pidfile, mc_commandfile)
+        last_line = ping_host(coal_host, coal_password, None, None, None, None, None, None, mc_commandfile)
         parse_all = args.parse_all
         if parse_all:
             last_line = None
