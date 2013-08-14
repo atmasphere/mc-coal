@@ -87,16 +87,16 @@ def read_pid(pidfile):
 
 
 def is_server_running(pidfile):
-    is_running = None
-    if psutil is not None:
-        pid = read_pid(pidfile)
-        if pid:
-            try:
+    is_running = False
+    pid = read_pid(pidfile)
+    if pid:
+        is_running = True
+        try:
+            if psutil is not None:
                 pid = int(pid)
                 psutil.Process(pid)
-                is_running = True
-            except:
-                is_running = False
+        except:
+            is_running = False
     return is_running
 
 
@@ -115,14 +115,13 @@ def execute_commands(commandfifo, commands):
                 command_fifo.write(c.encode('ISO-8859-2', errors='ignore'))
 
 
-def ping_host(host, password, server_day, server_time, raining, thundering, pidfile, commandfifo, fail=True):
+def ping_host(host, password, running, server_day, server_time, raining, thundering, timestamp, commandfifo, fail=True):
     logger = logging.getLogger('ping')
     try:
         headers = {
             "Content-type": "application/x-www-form-urlencoded",
             "Accept": "text/plain"
         }
-        running = is_server_running(pidfile)
         params = {'server_name': host}
         if running is not None:
             params['is_server_running'] = running
@@ -131,6 +130,8 @@ def ping_host(host, password, server_day, server_time, raining, thundering, pidf
             params['server_time'] = server_time
         params['is_raining'] = raining
         params['is_thundering'] = thundering
+        if timestamp is not None:
+            params['timestamp'] = timestamp.strftime(u"%Y-%m-%d %H:%M:%S")
         params = urllib.urlencode(params)
         conn = httplib.HTTPConnection(host)
         conn.request("POST", "/api/agent/ping?p={0}".format(password), params, headers)
@@ -202,9 +203,11 @@ def post_line(host, line, password, zone, skip_chat):
 def line_reader(logfile, last_ping, last_time, host, password, levelfile, pidfile, commandfifo):
     while True:
         if datetime.datetime.now() > last_ping + datetime.timedelta(seconds=5):
+            running = is_server_running(pidfile)
             server_day, server_time, raining, thundering = read_level(levelfile)
+            timestamp = last_time
             last_time = datetime.datetime.now()
-            ping_host(host, password, server_day, server_time, raining, thundering, pidfile, commandfifo, fail=False)
+            ping_host(host, password, running, server_day, server_time, raining, thundering, timestamp, commandfifo, fail=False)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()

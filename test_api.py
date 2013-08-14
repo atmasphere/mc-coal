@@ -324,6 +324,53 @@ class PingTest(AgentApiTest):
         self.assertEqual(TIME_STAMP_LOG_LINE, body['last_line'])
         self.assertEmpty(body['commands'])
 
+    def post_level_data(self, now=None, timestamp=None, server_day=None, server_time=None):
+        now = now or datetime.datetime.now()
+        timestamp = timestamp or now
+        params = {
+            'server_name': 'test',
+            'is_server_running': True,
+            'server_day': 10,
+            'server_time': 1000,
+            'timestamp': timestamp.strftime(u"%Y-%m-%d %H:%M:%S")
+        }
+        response = self.post(self.get_secure_url(), params=params)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        self.assertIsNone(body['last_line'])
+        self.assertEmpty(body['commands'])
+        return body
+
+    def test_post_level_data(self):
+        self.post_level_data()
+        server = models.Server.global_key().get()
+        self.assertTrue(server.is_running)
+        self.assertEqual(10, server.last_server_day)
+        self.assertEqual(1000, server.last_server_time)
+        self.assertEqual(server.last_server_day, server.server_day)
+        self.assertLess(abs(server.server_time - server.last_server_time), 100) #Within 5 seconds
+
+    def test_post_level_data_past(self):
+        now = datetime.datetime.now()
+        self.post_level_data(now=now, timestamp=now - datetime.timedelta(seconds=20))
+        server = models.Server.global_key().get()
+        self.assertTrue(server.is_running)
+        self.assertEqual(10, server.last_server_day)
+        self.assertEqual(1000, server.last_server_time)
+        self.assertEqual(server.last_server_day, server.server_day)
+        self.assertGreaterEqual(server.server_time, 1400)
+
+    def test_post_level_data_day_past(self):
+        now = datetime.datetime.now()
+        self.post_level_data(now=now, timestamp=now - datetime.timedelta(seconds=1220)) #One game day + 400 ticks
+        server = models.Server.global_key().get()
+        self.assertTrue(server.is_running)
+        self.assertEqual(10, server.last_server_day)
+        self.assertEqual(1000, server.last_server_time)
+        self.assertEqual(server.last_server_day+1, server.server_day)
+        self.assertGreaterEqual(server.server_time, 1400)
+
     def test_post_commands(self):
         commands = []
         for i in range(5):

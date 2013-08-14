@@ -24,6 +24,7 @@ from restler.decorators import ae_ndb_serializer
 
 import search
 
+TICKS_PER_PLAY_SECOND = 20
 UNKNOWN_TAG = 'unknown'
 TIMESTAMP_TAG = 'timestamp'
 CONNECTION_TAG = 'connection'
@@ -265,10 +266,11 @@ class Server(ndb.Model):
     version = ndb.StringProperty()
     is_running = ndb.BooleanProperty()
     last_ping = ndb.DateTimeProperty()
-    server_day = ndb.IntegerProperty()
-    server_time = ndb.IntegerProperty()
+    last_server_day = ndb.IntegerProperty()
+    last_server_time = ndb.IntegerProperty()
     is_raining = ndb.BooleanProperty()
     is_thundering = ndb.BooleanProperty()
+    timestamp = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -276,19 +278,39 @@ class Server(ndb.Model):
     def players_query(self):
         return Player.query_all_players()
 
+    @property
+    def server_day(self):
+        sd = self.last_server_day
+        if self.is_running and self.timestamp is not None and sd is not None and self.last_server_time is not None:
+            d = datetime.datetime.now() - self.timestamp
+            rst = self.last_server_time + (d.seconds * TICKS_PER_PLAY_SECOND)
+            sd += int(rst / 24000)
+        return sd
+
+    @property
+    def server_time(self):
+        st = self.last_server_time
+        if self.is_running and self.timestamp is not None and st is not None:
+            d = datetime.datetime.now() - self.timestamp
+            st += d.seconds * TICKS_PER_PLAY_SECOND
+            if st >= 24000:
+                st %= 24000
+        return st
+
     def check_is_running(self):
         if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=2):
             logging.info("Haven't heard from the agent since {0}. Setting server status is UNKNOWN.".format(self.last_ping))
             self.update_is_running(None)
 
-    def update_is_running(self, is_running, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None):
+    def update_is_running(self, is_running, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None, timestamp=None):
         was_running = self.is_running
         record_ping = False
-        if (server_day is not None and server_day != self.server_day) or (server_time is not None and server_time != self.server_time):
+        if (server_day is not None and server_day != self.last_server_day) or (server_time is not None and server_time != self.last_server_time):
+            self.timestamp = timestamp
             if server_day is not None:
-                self.server_day = server_day
+                self.last_server_day = server_day
             if server_time is not None:
-                self.server_time = server_time
+                self.last_server_time = server_time
             record_ping = True
         if is_raining != self.is_raining or is_thundering != self.is_thundering:
             self.is_raining = is_raining
