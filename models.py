@@ -280,12 +280,7 @@ class Server(ndb.Model):
 
     @property
     def server_day(self):
-        sd = self.last_server_day
-        if self.is_running and self.timestamp is not None and sd is not None and self.last_server_time is not None:
-            d = datetime.datetime.now() - self.timestamp
-            rst = self.last_server_time + (d.seconds * TICKS_PER_PLAY_SECOND)
-            sd += int(rst / 24000)
-        return sd
+        return self.last_server_day
 
     @property
     def server_time(self):

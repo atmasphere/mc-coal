@@ -368,7 +368,7 @@ class PingTest(AgentApiTest):
         self.assertTrue(server.is_running)
         self.assertEqual(10, server.last_server_day)
         self.assertEqual(1000, server.last_server_time)
-        self.assertEqual(server.last_server_day+1, server.server_day)
+        self.assertEqual(server.last_server_day, server.server_day)
         self.assertGreaterEqual(server.server_time, 1400)
 
     def test_post_commands(self):
