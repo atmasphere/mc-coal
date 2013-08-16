@@ -54,5 +54,9 @@ handlers:
 - url: /api/.*
   script: api.application
 
+- url: /__bscs__/.*
+  script: main.application
+  login: admin
+
 - url: /.*
   script: main.application

@@ -115,7 +115,7 @@ def execute_commands(commandfifo, commands):
                 command_fifo.write(c.encode('ISO-8859-2', errors='ignore'))
 
 
-def ping_host(host, password, running, server_day, server_time, raining, thundering, timestamp, commandfifo, fail=True):
+def ping_host(host, password, running, server_day, server_time, raining, thundering, commandfifo, fail=True):
     logger = logging.getLogger('ping')
     try:
         headers = {
@@ -130,8 +130,6 @@ def ping_host(host, password, running, server_day, server_time, raining, thunder
             params['server_time'] = server_time
         params['is_raining'] = raining
         params['is_thundering'] = thundering
-        if timestamp is not None:
-            params['timestamp'] = timestamp.strftime(u"%Y-%m-%d %H:%M:%S")
         params = urllib.urlencode(params)
         conn = httplib.HTTPConnection(host)
         conn.request("POST", "/api/agent/ping?p={0}".format(password), params, headers)
@@ -205,9 +203,8 @@ def line_reader(logfile, last_ping, last_time, host, password, levelfile, pidfil
         if datetime.datetime.now() > last_ping + datetime.timedelta(seconds=5):
             running = is_server_running(pidfile)
             server_day, server_time, raining, thundering = read_level(levelfile)
-            timestamp = last_time
             last_time = datetime.datetime.now()
-            ping_host(host, password, running, server_day, server_time, raining, thundering, timestamp, commandfifo, fail=False)
+            ping_host(host, password, running, server_day, server_time, raining, thundering, commandfifo, fail=False)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()
@@ -390,7 +387,7 @@ def main(argv):
         skip_chat_history = args.skip_chat_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
-        last_line = ping_host(coal_host, coal_password, None, None, None, None, None, None, mc_commandfile)
+        last_line = ping_host(coal_host, coal_password, None, None, None, None, None, mc_commandfile)
         parse_all = args.parse_all
         if parse_all:
             last_line = None

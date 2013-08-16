@@ -21,7 +21,7 @@ from agar.env import on_production_server
 import channel
 from config import coal_config
 from filters import FILTERS
-from models import get_whitelist_user, User, Server, Player, LogLine, PlaySession, ScreenShot, Command
+from models import IMAGE_UPLOAD_URL, get_whitelist_user, User, Server, Player, LogLine, PlaySession, ScreenShot, Command
 import search
 
 
@@ -505,8 +505,20 @@ class UserRemoveHandler(BaseHander):
         self.redirect(webapp2.uri_for('users'))
 
 
+class BlobstoreDataHandler(blobstore_handlers.BlobstoreUploadHandler):
+    def post(self):
+        files = self.get_uploads('file')
+        if files:
+            blob_info = files[0]
+            self.redirect('{0}'.format(blob_info.key()))
+        else:
+            self.abort(400, "No files in POST")
+
+
 application = webapp2.WSGIApplication(
     [
+        RedirectRoute(IMAGE_UPLOAD_URL, handler=BlobstoreDataHandler, name="blobstore_put_data"),
+
         RedirectRoute('/login_callback', handler='main.GoogleAppEngineUserAuthHandler:login_callback', name='login_callback'),
         RedirectRoute('/logout', handler='main.GoogleAppEngineUserAuthHandler:logout', name='logout'),
         RedirectRoute('/', handler=HomeHandler, name="home"),
