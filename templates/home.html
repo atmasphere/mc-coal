@@ -36,6 +36,9 @@
                         {% endif %}
                         (v{{ server.version }})
                     </strong>
+                    {% if server.is_running == True %}
+                        (Trouble logging in? Check <a href="http://xpaw.ru/mcstatus/">Minecraft Service Statuses</a>)
+                    {% endif %}
                 </div>
             </div>
         </div>
