@@ -27,7 +27,7 @@ from config import coal_config
 import search
 
 IMAGE_HEADER_SIZE = 50000
-IMAGE_UPLOAD_URL = '/__bscs__/data'
+IMAGE_UPLOAD_URL = '/_bscs/data'
 TICKS_PER_PLAY_SECOND = 20
 UNKNOWN_TAG = 'unknown'
 TIMESTAMP_TAG = 'timestamp'
@@ -306,7 +306,7 @@ class NdbImage(ndb.Model):
         previous_blob_info = self.blob_info
         filename = filename or self.key_as_string
         mime_type = mime_type or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-        url = blobstore.create_upload_url('/__bscs__/data')
+        url = blobstore.create_upload_url('/_bscs/data')
         params = []
         params.append(MultipartParam("file", filename=filename, filetype=mime_type, value=data))
         payload_generator, headers = multipart_encode(params)

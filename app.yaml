@@ -11,6 +11,8 @@ libraries:
   version: latest
 - name: PIL
   version: latest
+- name: pycrypto
+  version: latest
 
 builtins:
 - remote_api: on
@@ -54,7 +56,7 @@ handlers:
 - url: /api/.*
   script: api.application
 
-- url: /__bscs__/.*
+- url: /_bscs/.*
   script: main.application
   login: admin
 
