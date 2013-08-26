@@ -8,7 +8,6 @@ from google.appengine.ext import ndb
 from pytz.gae import pytz
 
 import webapp2
-from webapp2_extras import auth, sessions
 
 from wtforms import form, fields, validators
 
@@ -19,6 +18,7 @@ from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
 
 from config import coal_config
+from main import UserHandler, UserBase
 from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG
 
@@ -169,29 +169,7 @@ class LogLineHandler(JsonRequestHandler):
         self.json_response({}, status_code=status_code)
 
 
-class GoogleAppEngineUserAuthHandler(webapp2.RequestHandler):
-    @webapp2.cached_property
-    def session_store(self):
-        return sessions.get_store(request=self.request)
-
-    @webapp2.cached_property
-    def session(self):
-        return self.session_store.get_session(backend="datastore")
-
-    @webapp2.cached_property
-    def auth(self):
-        return auth.get_auth(request=self.request)
-
-    @webapp2.cached_property
-    def user_info(self):
-        return self.auth.get_user_by_session()
-
-    @webapp2.cached_property
-    def user(self):
-        user_info = self.user_info
-        user = self.auth.store.user_model.get_by_id(user_info['user_id']) if user_info else None
-        return user
-
+class GoogleAppEngineUserAuthHandler(UserHandler):
     def logged_in(self):
         return self.user is not None
 
@@ -339,20 +317,8 @@ class OAuthTestHandler(JsonRequestHandler):
         self.response.out.write(body)
 
 
-class UserAwareHandler(JsonRequestHandler):
-    @webapp2.cached_property
-    def auth(self):
-        return auth.get_auth(request=self.request)
-
-    @webapp2.cached_property
-    def user_info(self):
-        return self.auth.get_user_by_session()
-
-    @webapp2.cached_property
-    def user(self):
-        user_info = self.user_info
-        user = self.auth.store.user_model.get_by_id(user_info['user_id']) if user_info else None
-        return user
+class UserAwareHandler(JsonRequestHandler, UserBase):
+    pass
 
 
 class MultiPageForm(form.Form):

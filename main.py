@@ -35,31 +35,6 @@ def uri_for_pagination(name, cursor=None):
     return uri
 
 
-class JinjaHandler(webapp2.RequestHandler):
-    _filters = FILTERS
-    _globals = {
-        'uri_for': webapp2.uri_for,
-        'uri_for_pagination': uri_for_pagination
-    }
-
-    @webapp2.cached_property
-    def jinja2(self):
-        return jinja2.get_jinja2(factory=self.jinja2_factory)
-
-    def jinja2_factory(self, app):
-        j = jinja2.Jinja2(app)
-        j.environment.filters.update(self._filters)
-        j.environment.globals.update(self._globals)
-        return j
-
-    def get_template_context(self, context=None):
-        return context
-
-    def render_template(self, filename, context={}):
-        context = self.get_template_context(context)
-        self.response.write(self.jinja2.render_template(filename, **context))
-
-
 def get_callback_url(handler, next_url=None):
     if next_url is None:
         next_url = handler.request.path_qs
@@ -91,9 +66,9 @@ def authenticate(handler, required=True, admin=False):
         if update:
             user.put()
     if required and not (user and user.active):
-        handler.redirect(webapp2.uri_for('home'), abort=True)
+        handler.redirect(get_login_url(handler), abort=True)
     if admin and not user.admin:
-        handler.redirect(webapp2.uri_for('home'), abort=True)
+        handler.redirect(get_login_url(handler), abort=True)
     return user
 
 
@@ -105,7 +80,32 @@ def authenticate_admin(handler):
     return authenticate(handler, required=True, admin=True)
 
 
-class UserAwareHandler(JinjaHandler):
+class JinjaHandler(webapp2.RequestHandler):
+    _filters = FILTERS
+    _globals = {
+        'uri_for': webapp2.uri_for,
+        'uri_for_pagination': uri_for_pagination
+    }
+
+    @webapp2.cached_property
+    def jinja2(self):
+        return jinja2.get_jinja2(factory=self.jinja2_factory)
+
+    def jinja2_factory(self, app):
+        j = jinja2.Jinja2(app)
+        j.environment.filters.update(self._filters)
+        j.environment.globals.update(self._globals)
+        return j
+
+    def get_template_context(self, context=None):
+        return context
+
+    def render_template(self, filename, context={}):
+        context = self.get_template_context(context)
+        self.response.write(self.jinja2.render_template(filename, **context))
+
+
+class UserBase(object):
     @webapp2.cached_property
     def session_store(self):
         return sessions.get_store(request=self.request)
@@ -124,10 +124,10 @@ class UserAwareHandler(JinjaHandler):
 
     @webapp2.cached_property
     def user(self):
-        user_info = self.user_info
-        user = self.auth.store.user_model.get_by_id(user_info['user_id']) if user_info else None
-        return user
+        return self.auth.store.user_model.get_by_id(self.user_info['user_id']) if self.user_info else None
 
+
+class UserHandler(JinjaHandler, UserBase):
     def logged_in(self):
         return self.user is not None
 
@@ -139,7 +139,7 @@ class UserAwareHandler(JinjaHandler):
 
     def dispatch(self):
         try:
-            super(UserAwareHandler, self).dispatch()
+            super(UserHandler, self).dispatch()
         finally:
             self.session_store.save_sessions(self.response)
 
@@ -157,8 +157,12 @@ class UserAwareHandler(JinjaHandler):
             template_context['bg_img'] = bg_img.blurred_image_serving_url
         return template_context
 
+    def head(self, *args):
+        """Head is used by Twitter. If not there the tweet button shows 0"""
+        pass
 
-class GoogleAppEngineUserAuthHandler(UserAwareHandler):
+
+class GoogleAppEngineUserAuthHandler(UserHandler):
     def login_callback(self):
         next_url = self.request.params.get('next_url', '')
         user = None
@@ -215,13 +219,7 @@ class GoogleAppEngineUserAuthHandler(UserAwareHandler):
         self.redirect(next_url or webapp2.uri_for('home'))
 
 
-class BaseHander(UserAwareHandler):
-    def head(self, *args):
-        """Head is used by Twitter. If not there the tweet button shows 0"""
-        pass
-
-
-class HomeHandler(BaseHander):
+class HomeHandler(UserHandler):
     @authentication_required(authenticate=authenticate_public)
     def get(self):
         user = self.request.user
@@ -256,7 +254,7 @@ class HomeHandler(BaseHander):
         self.render_template('home.html', context=context)
 
 
-class PagingHandler(BaseHander):
+class PagingHandler(UserHandler):
     def get_results_with_cursors(self, query, reverse_query, size):
         cursor = self.request.get('cursor', None)
         if cursor:
@@ -373,7 +371,7 @@ class PlaySessionsHandler(PagingHandler):
         self.render_template('play_sessions.html', context=context)
 
 
-class ScreenShotUploadHandler(BaseHander):
+class ScreenShotUploadHandler(UserHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         url = webapp2.uri_for('screen_shot_uploaded')
@@ -382,29 +380,7 @@ class ScreenShotUploadHandler(BaseHander):
         self.render_template('screen_shot_upload.html', context=context)
 
 
-class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler):
-    @webapp2.cached_property
-    def session_store(self):
-        return sessions.get_store(request=self.request)
-
-    @webapp2.cached_property
-    def session(self):
-        return self.session_store.get_session(backend="datastore")
-
-    @webapp2.cached_property
-    def auth(self):
-        return auth.get_auth(request=self.request)
-
-    @webapp2.cached_property
-    def user_info(self):
-        user_info = self.auth.get_user_by_session()
-        return user_info
-
-    @webapp2.cached_property
-    def user(self):
-        user = self.auth.store.user_model.get_by_id(self.user_info['user_id']) if self.user_info else None
-        return user
-
+class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase):
     @authentication_required(authenticate=authenticate)
     def post(self):
         blob_info = self.get_uploads('file')[0]
@@ -422,7 +398,7 @@ class ScreenShotsHandler(PagingHandler):
         self.render_template('screen_shots.html', context=context)
 
 
-class ScreenShotRemoveHandler(BaseHander):
+class ScreenShotRemoveHandler(UserHandler):
     @authentication_required(authenticate=authenticate)
     def post(self, key):
         try:
@@ -451,7 +427,7 @@ class UsersHandler(PagingHandler):
         self.render_template('users.html', context=context)
 
 
-class UserEditHandler(BaseHander):
+class UserEditHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
         try:
@@ -489,7 +465,7 @@ class UserEditHandler(BaseHander):
         self.render_template('user.html', context=context)
 
 
-class UserRemoveHandler(BaseHander):
+class UserRemoveHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
         try:
