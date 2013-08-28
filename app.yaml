@@ -29,10 +29,6 @@ handlers:
 - url: /_ah/channel/.*
   script: channel.application
 
-# - url: /google28fe702d4ac094cf\.html
-#   static_files: google28fe702d4ac094cf.html
-#   upload: google28fe702d4ac094cf.html
-
 - url: /(robots\.txt|favicon\.ico)
   static_files: static/\1
   upload: static/(.*)
@@ -53,8 +49,11 @@ handlers:
   script: cron.application
   login: admin
 
+- url: /oauth/.*
+  script: main.application
+
 - url: /api/.*
-  script: api.application
+  script: main.application
 
 - url: /_bscs/.*
   script: main.application

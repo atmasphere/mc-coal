@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Authorize {{ client_id }}?{% endblock %}
+
+{% block content %}
+    <div class="box">
+        <p>The application with client-id "{{ client_id }}" is requesting authorization to access your mc-coal data.</p>
+        <p>Would you like to grant authorization?</p>
+        <form action="{{ url|safe }}" method="post">
+            {{ form.csrf_token }}
+            <div class="form-actions">
+                {{ form.authorize() }}
+                {{ form.deny() }}
+            </div>
+        </form>
+    </div>
+{% endblock %}

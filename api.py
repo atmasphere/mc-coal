@@ -2,7 +2,6 @@ import datetime
 from functools import wraps
 import logging
 
-from google.appengine.api import users, oauth
 from google.appengine.ext import ndb
 
 from pytz.gae import pytz
@@ -12,15 +11,14 @@ import webapp2
 from wtforms import form, fields, validators
 
 from agar.auth import authentication_required
-from agar.env import on_production_server
 
 from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
 
 from config import coal_config
-from main import UserHandler, UserBase
 from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG
+from oauth import resource_provider
 
 
 def validate_params(form_class):
@@ -58,7 +56,7 @@ def validate_params(form_class):
     return decorator
 
 
-class JsonRequestHandler(webapp2.RequestHandler):
+class JsonHandler(webapp2.RequestHandler):
     def _setup_context(self, context):
         if not context:
             context = {}
@@ -83,7 +81,7 @@ class JsonRequestHandler(webapp2.RequestHandler):
         if isinstance(exception, webapp2.HTTPException):
             code = exception.code
             if code == 404:
-                super(JsonRequestHandler, self).handle_exception(exception, debug_mode)
+                super(JsonHandler, self).handle_exception(exception, debug_mode)
         else:
             code = 500
             logging.error(errors)
@@ -120,7 +118,7 @@ class PingForm(form.Form):
     timestamp = fields.DateTimeField(validators=[validators.Optional()])
 
 
-class PingHandler(JsonRequestHandler):
+class PingHandler(JsonHandler):
     @authentication_required(authenticate=authenticate)
     @validate_params(form_class=PingForm)
     def post(self):
@@ -154,7 +152,7 @@ class LogLineForm(form.Form):
     zone = fields.StringField(validators=[validators.InputRequired()])
 
 
-class LogLineHandler(JsonRequestHandler):
+class LogLineHandler(JsonHandler):
     @authentication_required(authenticate=authenticate)
     @validate_params(form_class=LogLineForm)
     def post(self):
@@ -167,72 +165,6 @@ class LogLineHandler(JsonRequestHandler):
             if log_line is not None:
                 status_code = 201
         self.json_response({}, status_code=status_code)
-
-
-class GoogleAppEngineUserAuthHandler(UserHandler):
-    def logged_in(self):
-        return self.user is not None
-
-    def logout(self, redirect_url=None):
-        redirect_url = redirect_url or '/'
-        self.auth.unset_session()
-        logout_url = users.create_logout_url(redirect_url)
-        self.redirect(logout_url)
-
-    def dispatch(self):
-        try:
-            super(GoogleAppEngineUserAuthHandler, self).dispatch()
-        finally:
-            self.session_store.save_sessions(self.response)
-
-    def login_callback(self):
-        user = None
-        gae_user = users.get_current_user()
-        if gae_user:
-            auth_id = User.get_gae_user_auth_id(gae_user=gae_user)
-            user = self.auth.store.user_model.get_by_auth_id(auth_id)
-            if user:
-                # existing user. just log them in.
-                self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
-                # update access for gae admins
-                if users.is_current_user_admin():
-                    if not (user.active and user.admin):
-                        user.active = True
-                        user.admin = True
-                user.last_login = datetime.datetime.now()
-                user.put()
-            else:
-                # check whether there's a user currently logged in
-                # then, create a new user if no one is signed in,
-                # otherwise add this auth_id to currently logged in user.
-                if self.logged_in and self.user:
-                    u = self.user
-                    if auth_id not in u.auth_ids:
-                        u.auth_ids.append(auth_id)
-                    u.populate(
-                        email=gae_user.email(),
-                        nickname=gae_user.nickname(),
-                        last_login=datetime.datetime.now()
-                    )
-                    if users.is_current_user_admin():
-                        u.admin = True
-                    u.put()
-                else:
-                    ok, user = self.auth.store.user_model.create_user(
-                        auth_id,
-                        email=gae_user.email(),
-                        nickname=gae_user.nickname(),
-                        active=users.is_current_user_admin(),
-                        admin=users.is_current_user_admin(),
-                        last_login=datetime.datetime.now()
-                    )
-                    if ok:
-                        self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
-                    else:
-                        logging.error('create_user() returned False with strings: %s' % user)
-                        user = None
-                        self.auth.unset_session()
-        self.redirect('/')
 
 
 def api_datetime(dt, zone=None, dt_format=u"%Y-%m-%d %H:%M:%S", tz_format=u"%Z%z"):
@@ -248,33 +180,17 @@ def api_datetime(dt, zone=None, dt_format=u"%Y-%m-%d %H:%M:%S", tz_format=u"%Z%z
     return None
 
 
-def get_consumer_key(handler):
-    request = getattr(handler, 'request', None)
-    consumer_key = None
-    try:
-        consumer_key = oauth.get_oauth_consumer_key()
-    except oauth.InvalidOAuthParametersError:
-        consumer_key = request.get('oauth_consumer_key')
-    return consumer_key
-
-
 def authenticate_oauth(handler):
     user = None
-    try:
-        gae_user = oauth.get_current_user()
-        auth_id = User.get_gae_user_auth_id(gae_user=gae_user)
-        user = User.get_by_auth_id(auth_id)
-    except Exception:
-        pass
+    authorization = resource_provider.get_authorization()
+    if authorization.is_valid:
+        user = authorization.user_key.get()
     return user
 
 
 def authenticate_user_or_password(handler):
-    # Check session cookie
-    user = handler.user
-    if not user:
-        # Check oauth
-        user = authenticate_oauth(handler)
+    # Check oauth
+    user = authenticate_oauth(handler)
     if not (user and user.active):
         # Check password
         return authenticate(handler)
@@ -282,43 +198,11 @@ def authenticate_user_or_password(handler):
 
 
 def authenticate_user_required(handler):
-    # Check session cookie
-    user = handler.user
-    if not user:
-        # Check oauth
-        user = authenticate_oauth(handler)
+    # Check oauth
+    user = authenticate_oauth(handler)
     if not (user and user.active):
         handler.abort(403)
     return user
-
-
-class OAuthTestHandler(JsonRequestHandler):
-    def get(self):
-        try:
-            body = u"No response"
-            user = oauth.get_current_user()
-            if user:
-                body = u"Request:\n{0}\n\nCurrent User Nickname: {1}\nCurrent User Email: {2}".format(self.request, user.nickname(), user.email())
-            else:
-                body = u"No user"
-            try:
-                consumer_key = oauth.get_oauth_consumer_key()
-                body = u"{0}\nConsumer Key: {1}".format(body, consumer_key)
-            except oauth.InvalidOAuthParametersError:
-                consumer_key = self.request.get('oauth_consumer_key')
-                body = u"{0}\nConsumer Key (from params): {1}".format(body, consumer_key)
-        except oauth.InvalidOAuthParametersError, pe:
-            body = u"Invalid OAuth parameters: {0}".format(pe)
-        except oauth.InvalidOAuthTokenError, te:
-            body = u"Invalid OAuth token: {0}".format(te)
-        except Exception, e:
-            body = u"EXCEPTION: {0}".format(e)
-        logging.info(body)
-        self.response.out.write(body)
-
-
-class UserAwareHandler(JsonRequestHandler, UserBase):
-    pass
 
 
 class MultiPageForm(form.Form):
@@ -349,7 +233,7 @@ class MultiPage():
         return response
 
 
-class MultiPageUserAwareHandler(UserAwareHandler, MultiPage):
+class MultiPageJsonHandler(JsonHandler, MultiPage):
     pass
 
 
@@ -362,7 +246,7 @@ SERVER_FIELD_FUNCTIONS = {
 SERVER_STRATEGY = ModelStrategy(Server).include(*SERVER_FIELDS).include(**SERVER_FIELD_FUNCTIONS)
 
 
-class ServerHandler(UserAwareHandler):
+class ServerHandler(JsonHandler):
     @authentication_required(authenticate=authenticate_user_or_password)
     def get(self):
         server = Server.global_key().get()
@@ -381,14 +265,14 @@ USER_FIELD_FUNCTIONS = {
 USER_STRATEGY = ModelStrategy(User).include(*USER_FIELDS).include(**USER_FIELD_FUNCTIONS)
 
 
-class UsersHandler(MultiPageUserAwareHandler):
+class UsersHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_or_password)
     @validate_params(form_class=MultiPageForm)
     def get(self):
         self.json_response(self.fetch_page(User.query_by_email(), results_name='users'), USER_STRATEGY)
 
 
-class UserKeyHandler(UserAwareHandler):
+class UserKeyHandler(JsonHandler):
     def get_user_by_key(self, key, abort=True):
         fail_code = 404
         if key == 'self':
@@ -420,14 +304,14 @@ PLAYER_FIELD_FUNCTIONS = {
 PLAYER_STRATEGY = ModelStrategy(Player).include(*PLAYER_FIELDS).include(**PLAYER_FIELD_FUNCTIONS)
 
 
-class PlayersHandler(MultiPageUserAwareHandler):
+class PlayersHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_or_password)
     @validate_params(form_class=MultiPageForm)
     def get(self):
         self.json_response(self.fetch_page(Player.query_by_username(), results_name='players'), PLAYER_STRATEGY)
 
 
-class PlayerKeyUsernameHandler(UserAwareHandler):
+class PlayerKeyUsernameHandler(JsonHandler):
     def get_player_by_key_or_username(self, key_username, abort_404=True):
         try:
             player_key = ndb.Key(urlsafe=key_username)
@@ -465,7 +349,7 @@ class PlaySessionsForm(MultiPageForm):
     before = fields.DateTimeField(validators=[validators.Optional()])
 
 
-class PlaySessionsHandler(MultiPageUserAwareHandler):
+class PlaySessionsHandler(MultiPageJsonHandler):
     def get_player_by_key_or_username(self, key_username, abort_404=True):
         try:
             player_key = ndb.Key(urlsafe=key_username)
@@ -489,7 +373,7 @@ class PlaySessionsHandler(MultiPageUserAwareHandler):
         self.json_response(self.fetch_page(query, results_name='play_sessions'), PLAY_SESSION_STRATEGY)
 
 
-class PlaySessionKeyHandler(UserAwareHandler):
+class PlaySessionKeyHandler(JsonHandler):
     def get_play_session_by_key(self, key, abort_404=True):
         try:
             play_session_key = ndb.Key(urlsafe=key)
@@ -528,7 +412,7 @@ class ChatPostForm(form.Form):
     chat = fields.StringField(validators=[validators.DataRequired()])
 
 
-class ChatHandler(MultiPageUserAwareHandler):
+class ChatHandler(MultiPageJsonHandler):
     def get_player_by_key_or_username(self, key_username, abort_404=True):
         try:
             player_key = ndb.Key(urlsafe=key_username)
@@ -572,7 +456,7 @@ class ChatHandler(MultiPageUserAwareHandler):
         self.response.set_status(201)
 
 
-class ChatKeyHandler(UserAwareHandler):
+class ChatKeyHandler(JsonHandler):
     def get_log_line_by_key(self, key, abort_404=True):
         try:
             log_line_key = ndb.Key(urlsafe=key)
@@ -610,7 +494,7 @@ class DeathForm(MultiPageForm):
     before = fields.DateTimeField(validators=[validators.Optional()])
 
 
-class DeathHandler(MultiPageUserAwareHandler):
+class DeathHandler(MultiPageJsonHandler):
     def get_player_by_key_or_username(self, key_username, abort_404=True):
         try:
             player_key = ndb.Key(urlsafe=key_username)
@@ -646,7 +530,7 @@ class DeathHandler(MultiPageUserAwareHandler):
             self.json_response(self.fetch_page(query, results_name='deaths'), DEATH_STRATEGY)
 
 
-class DeathKeyHandler(UserAwareHandler):
+class DeathKeyHandler(JsonHandler):
     def get_log_line_by_key(self, key, abort_404=True):
         try:
             log_line_key = ndb.Key(urlsafe=key)
@@ -684,7 +568,7 @@ class LogLineForm(MultiPageForm):
     before = fields.DateTimeField(validators=[validators.Optional()])
 
 
-class LogLinesHandler(MultiPageUserAwareHandler):
+class LogLinesHandler(MultiPageJsonHandler):
     def get_player_by_key_or_username(self, key_username, abort_404=True):
         try:
             player_key = ndb.Key(urlsafe=key_username)
@@ -721,7 +605,7 @@ class LogLinesHandler(MultiPageUserAwareHandler):
             self.json_response(self.fetch_page(query, results_name='log_lines'), LOG_LINE_STRATEGY)
 
 
-class LogLineKeyHandler(UserAwareHandler):
+class LogLineKeyHandler(JsonHandler):
     def get_log_line_by_key(self, key, abort_404=True):
         try:
             log_line_key = ndb.Key(urlsafe=key)
@@ -756,7 +640,7 @@ class ScreenShotForm(MultiPageForm):
     before = fields.DateTimeField(validators=[validators.Optional()])
 
 
-class ScreenShotsHandler(MultiPageUserAwareHandler):
+class ScreenShotsHandler(MultiPageJsonHandler):
     def get_player_by_key_or_username(self, key_username, abort_404=True):
         try:
             player_key = ndb.Key(urlsafe=key_username)
@@ -780,7 +664,7 @@ class ScreenShotsHandler(MultiPageUserAwareHandler):
         self.json_response(self.fetch_page(query, results_name='screenshots'), SCREEN_SHOT_STRATEGY)
 
 
-class ScreenShotKeyHandler(UserAwareHandler):
+class ScreenShotKeyHandler(JsonHandler):
     def get_screen_shot_by_key(self, key, abort_404=True):
         try:
             screen_shot_key = ndb.Key(urlsafe=key)
@@ -797,43 +681,33 @@ class ScreenShotKeyHandler(UserAwareHandler):
         self.json_response(screen_shot, SCREEN_SHOT_STRATEGY)
 
 
-application = webapp2.WSGIApplication(
-    [
-        webapp2.Route('/api/agent/ping', PingHandler, name='api_agent_ping'),
-        webapp2.Route('/api/agent/log_line', LogLineHandler, name='api_agent_log_line'),
+routes = [
+    webapp2.Route('/api/agent/ping', 'api.PingHandler', name='api_agent_ping'),
+    webapp2.Route('/api/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line'),
 
-        webapp2.Route('/login_callback', handler='api.GoogleAppEngineUserAuthHandler:login_callback', name='login_callback'),
-        webapp2.Route('/logout', handler='api.GoogleAppEngineUserAuthHandler:logout', name='logout'),
+    webapp2.Route('/api/data/server', 'api.ServerHandler', name='api_data_server'),
+    webapp2.Route('/api/data/user/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
+    webapp2.Route('/api/data/user', 'api.UsersHandler', name='api_data_user'),
+    webapp2.Route('/api/data/player/<key_username>/session', 'api.PlaySessionsHandler', name='api_data_player_session'),
+    webapp2.Route('/api/data/player/<key_username>/log_line', 'api.LogLinesHandler', name='api_data_player_log_line'),
+    webapp2.Route('/api/data/player/<key_username>/chat', 'api.ChatHandler', name='api_data_player_chat'),
+    webapp2.Route('/api/data/player/<key_username>/death', 'api.DeathHandler', name='api_data_player_death'),
+    webapp2.Route('/api/data/player/<key_username>/screenshot', 'api.ScreenShotsHandler', name='api_data_player_screen_shot'),
+    webapp2.Route('/api/data/player/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
+    webapp2.Route('/api/data/player', 'api.PlayersHandler', name='api_data_player'),
+    webapp2.Route('/api/data/play_session/<key>', 'api.PlaySessionKeyHandler', name='api_data_play_session_key'),
+    webapp2.Route('/api/data/play_session', 'api.PlaySessionsHandler', name='api_data_play_session'),
+    webapp2.Route('/api/data/chat/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
+    webapp2.Route('/api/data/chat', 'api.ChatHandler', name='api_data_chat'),
+    webapp2.Route('/api/data/death/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
+    webapp2.Route('/api/data/death', 'api.DeathHandler', name='api_data_death'),
+    webapp2.Route('/api/data/log_line/<key>', 'api.LogLineKeyHandler', name='api_data_log_line_key'),
+    webapp2.Route('/api/data/log_line', 'api.LogLinesHandler', name='api_data_log_line'),
+    webapp2.Route('/api/data/screenshot/<key>', 'api.ScreenShotKeyHandler', name='api_data_screen_shot_key'),
+    webapp2.Route('/api/data/screenshot', 'api.ScreenShotsHandler', name='api_data_screen_shot')
+]
 
-        webapp2.Route('/api/data/oauth_test', OAuthTestHandler, name='api_data_oauth_test'),
-
-        webapp2.Route('/api/data/server', ServerHandler, name='api_data_server'),
-        webapp2.Route('/api/data/user/<key>', UserKeyHandler, name='api_data_user_key'),
-        webapp2.Route('/api/data/user', UsersHandler, name='api_data_user'),
-        webapp2.Route('/api/data/player/<key_username>/session', PlaySessionsHandler, name='api_data_player_session'),
-        webapp2.Route('/api/data/player/<key_username>/log_line', LogLinesHandler, name='api_data_player_log_line'),
-        webapp2.Route('/api/data/player/<key_username>/chat', ChatHandler, name='api_data_player_chat'),
-        webapp2.Route('/api/data/player/<key_username>/death', DeathHandler, name='api_data_player_death'),
-        webapp2.Route('/api/data/player/<key_username>/screenshot', ScreenShotsHandler, name='api_data_player_screen_shot'),
-        webapp2.Route('/api/data/player/<key_username>', PlayerKeyUsernameHandler, name='api_data_player_key_username'),
-        webapp2.Route('/api/data/player', PlayersHandler, name='api_data_player'),
-        webapp2.Route('/api/data/play_session/<key>', PlaySessionKeyHandler, name='api_data_play_session_key'),
-        webapp2.Route('/api/data/play_session', PlaySessionsHandler, name='api_data_play_session'),
-        webapp2.Route('/api/data/chat/<key>', ChatKeyHandler, name='api_data_chat_key'),
-        webapp2.Route('/api/data/chat', ChatHandler, name='api_data_chat'),
-        webapp2.Route('/api/data/death/<key>', DeathKeyHandler, name='api_data_death_key'),
-        webapp2.Route('/api/data/death', DeathHandler, name='api_data_death'),
-        webapp2.Route('/api/data/log_line/<key>', LogLineKeyHandler, name='api_data_log_line_key'),
-        webapp2.Route('/api/data/log_line', LogLinesHandler, name='api_data_log_line'),
-        webapp2.Route('/api/data/screenshot/<key>', ScreenShotKeyHandler, name='api_data_screen_shot_key'),
-        webapp2.Route('/api/data/screenshot', ScreenShotsHandler, name='api_data_screen_shot'),
-    ],
-    config={
-        'webapp2_extras.sessions': {
-            'secret_key': coal_config.SECRET_KEY,
-            'cookie_args': {'max_age': coal_config.COOKIE_MAX_AGE}
-        },
-        'webapp2_extras.auth': {'user_model': 'models.User', 'token_max_age': coal_config.COOKIE_MAX_AGE}
-    },
-    debug=not on_production_server
-)
+# print "ADDING API ROUTES"
+# from main import application
+# for route in routes:
+#     application.router.add(route)

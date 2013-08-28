@@ -424,6 +424,7 @@ class NdbImage(ndb.Model):
 class User(auth_models.User):
     active = ndb.BooleanProperty(default=False)
     admin = ndb.BooleanProperty(default=False)
+    authorized_client_ids = ndb.StringProperty(repeated=True)
     email = ndb.StringProperty()
     nickname = ndb.StringProperty()
     username = ndb.StringProperty()
@@ -451,6 +452,21 @@ class User(auth_models.User):
             dt = datetime.datetime.now()
         self.last_chat_view = dt
         self.put()
+
+    def is_client_id_authorized(self, client_id):
+        return client_id in self.authorized_client_ids
+
+    def authorize_client_id(self, client_id):
+        if client_id and client_id not in self.authorized_client_ids:
+            self.authorized_client_ids.append(client_id)
+            self.put()
+
+    def unauthorize_client_id(self, client_id):
+        if client_id and client_id in self.authorized_client_ids:
+            self.authorized_client_ids.remove(client_id)
+            self.put()
+        from oauth import authorization_provider
+        authorization_provider.discard_client_user_tokens(client_id, self.key)
 
     def is_player(self, player):
         if player is not None:
