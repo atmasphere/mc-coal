@@ -180,7 +180,7 @@ class BaseSecureForm(SessionSecureForm):
 
 
 class AuthForm(BaseSecureForm):
-    authorize = fields.SubmitField('Approve', id='submit_button')
+    grant = fields.SubmitField('Grant', id='submit_button')
     deny = fields.SubmitField('Deny', id='submit_button')
 
 
@@ -207,17 +207,16 @@ class AuthorizationCodeHandler(UserHandler, PyOAuth2Base):
     @authentication_required(authenticate=authenticate)
     def get(self):
         if self.user.is_client_id_authorized(self.client_id):
-            self.set_authorization_code_response()
-        else:
-            form = AuthForm(csrf_context=self.session)
-            context = {'url': self.request.url, 'form': form, 'client_id': self.client_id}
-            self.render_template('auth.html', context=context)
+            self.user.unauthorize_client_id(self.client_id)
+        form = AuthForm(csrf_context=self.session)
+        context = {'url': self.request.url, 'form': form, 'client_id': self.client_id}
+        self.render_template('auth.html', context=context)
 
     @authentication_required(authenticate=authenticate)
     def post(self):
         form = AuthForm(self.request.POST, csrf_context=self.session)
         if form.validate():
-            if form.authorize.data:
+            if form.grant.data:
                 Client.get_or_insert(self.client_id, client_id=self.client_id, redirect_uri=self.redirect_uri)
                 self.user.authorize_client_id(self.client_id)
             else:
@@ -229,6 +228,15 @@ class AuthorizationCodeHandler(UserHandler, PyOAuth2Base):
             form = AuthForm(csrf_context=self.session)
             context = {'url': self.request.url, 'form': form, 'client_id': self.client_id}
             self.render_template('auth.html', context=context)
+
+
+class ShowAuthorizationCodeHandler(UserHandler, PyOAuth2Base):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        code = self.request.GET.get('code', None)
+        error = self.request.GET.get('error', None)
+        context = {'code': code, 'error': error}
+        self.render_template('oauth_redirect.html', context=context)
 
 
 class TokenHandler(webapp2.RequestHandler, PyOAuth2Base):
@@ -261,5 +269,6 @@ class TestHandler(webapp2.RequestHandler):
 routes = [
     RedirectRoute('/oauth/auth', handler='oauth.AuthorizationCodeHandler', methods=['GET', 'POST'], name='oauth_auth'),
     RedirectRoute('/oauth/token', handler='oauth.TokenHandler', methods=['POST'], name='oauth_token'),
+    RedirectRoute('/oauth/show', handler='oauth.ShowAuthorizationCodeHandler', methods=['GET'], name='oauth_show'),
     RedirectRoute('/oauth/test', handler='oauth.TestHandler', methods=['GET'], name='oauth_test')
 ]

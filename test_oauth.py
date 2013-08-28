@@ -96,7 +96,7 @@ class OauthTest(BaseTest, WebTest):
             else:
                 url += '?'
             url += query_params
-        params = {'csrf_token': csrf_token, 'authorize': 'Approve'}
+        params = {'csrf_token': csrf_token, 'grant': 'Grant'}
         response = self.post(url, params)
         self.assertRedirects(response)
         self.assertRegexpMatches(response.headers['Location'], ur"https://localhost/\?code=.+")
@@ -186,7 +186,7 @@ class AuthorizationCodeHandlerTest(OauthTest):
             else:
                 url += '?'
             url += query_params
-        params = {'csrf_token': csrf_token, 'authorize': 'Approve'}
+        params = {'csrf_token': csrf_token, 'grant': 'Grant'}
         response = self.post(url, params)
         self.assertRedirects(response)
         self.assertRegexpMatches(response.headers['Location'], ur"https://localhost/\?code=.+")
