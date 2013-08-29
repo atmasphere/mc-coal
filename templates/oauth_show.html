@@ -5,7 +5,7 @@
 {% block content %}
     <div class="box">
         {% if code %}
-            <p><h2>The Access Code is:</h2><h1>{{ code }}</h1></p>
+            <p><h2>The Access Code is:</h2>{{ code }}</p>
         {% endif %}
         {% if error %}
             <p><h2>Problem getting the Access Code</h2>:<h1>{{ error }}</h1>.</p>

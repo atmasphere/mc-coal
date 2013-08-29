@@ -84,7 +84,10 @@ class COALAuthorizationProvider(AuthorizationProvider):
         return True
 
     def validate_redirect_uri(self, client_id, redirect_uri):
-        return True
+        client = ndb.Key(Client, client_id).get()
+        if client is not None and client.redirect_uri is not None and client.redirect_uri == redirect_uri:
+            return True
+        return False
 
     def validate_scope(self, client_id, scope):
         return True
@@ -96,7 +99,6 @@ class COALAuthorizationProvider(AuthorizationProvider):
         key_name = self.get_authorization_code_key_name(client_id, code)
         key = ndb.Key(AuthorizationCode, key_name)
         auth_code = key.get()
-        #Has the code expired?
         if auth_code is not None and auth_code.is_expired:
             key.delete()
             auth_code = None
@@ -143,7 +145,6 @@ class COALAuthorizationProvider(AuthorizationProvider):
         token_query = token_query.filter(Token.user_key == user_key)
         keys = [key for key in token_query.iter(keys_only=True)]
         ndb.delete_multi(keys)
-
 
 authorization_provider = COALAuthorizationProvider()
 
@@ -236,7 +237,7 @@ class ShowAuthorizationCodeHandler(UserHandler, PyOAuth2Base):
         code = self.request.GET.get('code', None)
         error = self.request.GET.get('error', None)
         context = {'code': code, 'error': error}
-        self.render_template('oauth_redirect.html', context=context)
+        self.render_template('oauth_show.html', context=context)
 
 
 class TokenHandler(webapp2.RequestHandler, PyOAuth2Base):

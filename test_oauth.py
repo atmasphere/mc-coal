@@ -214,7 +214,10 @@ class AuthorizationCodeHandlerTest(OauthTest):
             url += query_params
         params = {'csrf_token': csrf_token, 'deny': 'Deny'}
         response = self.post(url, params)
-        self.assertRedirects(response, to=TEST_REDIRECT_URI+"?error=unauthorized_client")
+        self.assertBadRequest(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        self.assertEqual(body['error'], 'invalid_request')
         self.assertEqual(0, Client.query().count())
 
     def test_post_deny_existing_client(self):
@@ -242,6 +245,35 @@ class AuthorizationCodeHandlerTest(OauthTest):
         response = self.post(url, params)
         self.assertRedirects(response, to=TEST_REDIRECT_URI+"?error=access_denied")
         self.assertEqual(1, Client.query().count())
+
+    def test_post_incorrect_redirect_uri(self):
+        self.get_authorization_code()
+        self.log_in_user()
+        query_params = {
+            'client_id': TEST_CLIENT_ID,
+            'redirect_uri': 'invalid_redirect_uri',
+            'response_type': 'code'
+        }
+        response = self.get(self.url, params=query_params)
+        self.assertOK(response)
+        csrf_string = 'name="csrf_token" type="hidden" value="'
+        begin = response.body.find(csrf_string) + len(csrf_string)
+        end = response.body.find('"', begin)
+        csrf_token = response.body[begin:end]
+        url = self.url
+        if query_params:
+            query_params = urlencode(query_params, doseq=True)
+            if '?' in url:
+                url += '&'
+            else:
+                url += '?'
+            url += query_params
+        params = {'csrf_token': csrf_token, 'grant': 'Grant'}
+        response = self.post(url, params)
+        self.assertBadRequest(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        self.assertEqual(body['error'], 'invalid_request')
 
     def test_get_no_auth(self):
         if self.url:
