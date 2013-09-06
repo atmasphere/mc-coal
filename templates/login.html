@@ -4,13 +4,16 @@
 
 {% block content %}
     <div class="box">
-        <p><h2><a href="{{ gae_login_uri }}">Log In With Google</a></h2></p>
-        <p><h2>Log In With IndieAuth:</h2></p>
+        <h2><a href="{{ gae_login_uri }}">Log In With Google</a></h2>
+    </div>
+    <div class="box">
+        <h2>Log In With <a href="http://indieauth.com">IndieAuth</a>:
         <form action="http://indieauth.com/auth" method="get">
           <label>Web Address:</label>
           <input type="text" name="me" placeholder="yourdomain.com" />
-          <p><button type="submit">Sign In</button></p>
+          <button type="submit">Sign In</button>
           <input type="hidden" name="redirect_uri" value="{{ ia_redirect_uri }}" />
         </form>
+        </h2>
     </div>
 {% endblock %}
