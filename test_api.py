@@ -198,7 +198,7 @@ class ApiTest(OauthTest):
     def test_get_no_password(self):
         if self.URL:
             access_token, refresh_token = self.get_tokens()
-            response = self.get(self.url, access_token=access_token)
+            response = self.get(self.url, bearer_token=access_token)
             if 'GET' in self.ALLOWED:
                 self.assertOK(response)
             else:
@@ -215,7 +215,7 @@ class ApiTest(OauthTest):
     def test_post_no_password(self):
         if self.URL:
             access_token, refresh_token = self.get_tokens()
-            response = self.post(self.url, access_token=access_token)
+            response = self.post(self.url, bearer_token=access_token)
             if 'POST' in self.ALLOWED:
                 self.assertOK(response)
             else:
@@ -789,7 +789,7 @@ class UserKeyTest(KeyApiTest):
         self.log_out_user()
         access_token, _ = self.get_tokens(email="example@example.com")
         url = "{0}/{1}".format(self.URL, 'self')
-        response = self.get(url=url, access_token=access_token)
+        response = self.get(url=url, bearer_token=access_token)
         self.assertOK(response)
         response_user = json.loads(response.body)
         self.assertEqual(NUM_USER_FIELDS, len(response_user))
@@ -1061,7 +1061,7 @@ class ChatTest(MultiPageApiTest):
         access_token, _ = self.get_tokens()
         chat = u'Hello world...'
         params = {'chat': chat}
-        response = self.post(self.URL, params=params, access_token=access_token)
+        response = self.post(self.URL, params=params, bearer_token=access_token)
         self.assertCreated(response)
         self.assertEqual(1, models.Command.query().count())
         command = models.Command.query().get()
@@ -1075,7 +1075,7 @@ class ChatTest(MultiPageApiTest):
         access_token, _ = self.get_tokens()
         chat = u'Hello world...'
         params = {'chat': chat}
-        response = self.post(self.URL, params=params, access_token=access_token)
+        response = self.post(self.URL, params=params, bearer_token=access_token)
         self.assertCreated(response)
         self.assertEqual(1, models.Command.query().count())
         command = models.Command.query().get()
@@ -1083,12 +1083,17 @@ class ChatTest(MultiPageApiTest):
         self.assertEqual(u'/say {0}'.format(chat), command.command)
 
     def test_post_no_password(self):
-            access_token, _ = self.get_tokens()
-            response = self.post(self.url, {'chat': u"Hello world..."}, access_token=access_token)
-            if 'POST' in self.ALLOWED:
-                self.assertCreated(response)
-            else:
-                self.assertMethodNotAllowed(response)
+        access_token, _ = self.get_tokens()
+        response = self.post(self.url, {'chat': u"Hello world..."}, bearer_token=access_token)
+        self.assertCreated(response)
+
+    def test_post_no_access_token(self):
+        response = self.post(self.url, {'chat': u"Hello world..."})
+        self.assertForbidden(response)
+
+    def test_post_invalid_access_token(self):
+        response = self.post(self.url, {'chat': u"Hello world..."}, bearer_token='invalid_token')
+        self.assertForbidden(response)
 
 
 class ChatQueryTest(ChatTest):

@@ -6,54 +6,29 @@ Data APIs
 Common
 ======
 
+The following sections define parts of the API that are common across all services.
+
 -------
 Request
 -------
 
-^^^^^^^^^^^^^^
-Authentication
-^^^^^^^^^^^^^^
+The following sections define common parts of API requests.
 
-Calls to services can be user authenticated via a normal login session cookie (via a browser) or valid Google Account OAuth credentials and provide an authenticated user to the service.
+^^^^^^^^^^^^^
+Authorization
+^^^^^^^^^^^^^
 
-Unless otherwise indicated, most services don't actually require authenicating a user. In these cases, the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter can be used in lieu of user authentication.
+Clients making calls to the API on behalf of a user require a bearer access token which can be acquired via a simplified :ref:`OAuth2 <oauth2>` flow.
 
-"""""
-OAuth
-"""""
-The OAuth user authentication scheme requires calls be made using HTTPS. If your mc-coal instance is mapped to a custom domain, you'll need to make calls to your application's ``appspot.com`` domain rather than your custom domain.
+Unless otherwise indicated, most services don't actually require authorization from a user. In these cases, the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter can be used in lieu of user authentication.
 
-See these links for more information on authenticating via oauth:
-
-* `OAuth for Python Overview <https://developers.google.com/appengine/docs/python/oauth/overview>`_
-* `Setting up an OAuth provider on Google App Engine <http://ikaisays.com/2011/05/26/setting-up-an-oauth-provider-on-google-app-engine/>`_
-* `StackOverflow: google app engine oauth2 provider <http://stackoverflow.com/questions/7810607/google-app-engine-oauth2-provider>`_
-
-An oauth test endpoint is provided to simplify developing consumer applications:
-
-.. http:get:: /api/data/oauth_test
-
-  **Example response**:
-
-  .. sourcecode:: http
-
-    HTTP/1.1 200 OK
-
-    Request:
-    GET /api/data/oauth_test?oauth_body_hash=2jmj7l5rSw0yVb%2FvlWAYkK%2FYBwk%3D&oauth_nonce=49307393&oauth_timestamp=1366478308&oauth_consumer_key=my.consumer.com&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&oauth_token=1%2F6UptVLjvsKTr2CAF6t5GFCwL6I8s-24pBxi4bJoIPGQ&oauth_signature=%2FbCvttoC3y82LGYX7onyjuZmNrg%3D HTTP/1.1
-
-    Current User Nickname: thomasbohmbach
-    Current User Email: t@gmail.com
-    Consumer Key (from params): my.consumer.com
-
-^^^^^^^^^^
-Parameters
-^^^^^^^^^^
+""""""""""""""""
+Secured Services
+""""""""""""""""
 
 .. http:get:: /api/data/(service)
 
   :query p: The ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py``.
-
   :status 403: No authenticated user and/or invalid password provided.
 
   **Examples**:
@@ -64,17 +39,22 @@ Parameters
 
 .. http:post:: /api/data/(service)
 
+  :requestheader Authorization: A "Bearer" access token string. See the :ref:`OAuth2 <oauth2>` section for information on how to request an access token.
   :status 403: No authenticated user.
 
   **Examples**:
 
   .. sourcecode:: http
 
-    POST /api/data/(service)?oauth_body_hash=2jmj7l5rSw0yVb%2FvlWAYkK%2FYBwk%3D&oauth_nonce=49307393&oauth_timestamp=1366478308&oauth_consumer_key=my.consumer.com&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&oauth_token=1%2F6UptVLjvsKTr2CAF6t5GFCwL6I8s-24pBxi4bJoIPGQ&oauth_signature=%2FbCvttoC3y82LGYX7onyjuZmNrg%3D HTTP/1.1
+    POST /api/data/(service) HTTP/1.1
+    Authorization: Bearer 8wB8QtpULBVNuL2mqBaWdIRWX30qKtIK3E5QbOWP
+
 
 --------
 Response
 --------
+
+The following sections define common parts of API responses.
 
 ^^^^^^^^^^^^
 Status Codes

@@ -6,6 +6,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   oauth2
    data_api
 
 
