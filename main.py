@@ -14,9 +14,10 @@ from wtforms import form, fields, validators
 from agar.auth import authentication_required
 from agar.env import on_production_server
 
+from base_handler import uri_for_pagination
 import channel
 from config import coal_config
-from models import IMAGE_UPLOAD_URL, get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command
+from models import get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command
 import search
 from user_auth import get_login_url, UserBase, UserHandler, authenticate, authenticate_admin, authenticate_public
 
@@ -292,10 +293,9 @@ class BlobstoreDataHandler(blobstore_handlers.BlobstoreUploadHandler):
         else:
             self.abort(400, "No files in POST")
 
+
 application = webapp2.WSGIApplication(
     [
-        RedirectRoute(IMAGE_UPLOAD_URL, handler=BlobstoreDataHandler, name="blobstore_put_data"),
-
         RedirectRoute('/', handler=HomeHandler, name="home"),
         RedirectRoute('/chats', handler=ChatsHandler, strict_slash=True, name="chats"),
         RedirectRoute('/players', handler=PlayersHandler, strict_slash=True, name="players"),
@@ -320,7 +320,8 @@ application = webapp2.WSGIApplication(
 
 from user_auth import routes as user_auth_routes
 from api import routes as api_routes
+from image import routes as image_routes
 from oauth import routes as oauth_routes
-routes = user_auth_routes + api_routes + oauth_routes
+routes = user_auth_routes + api_routes + image_routes + oauth_routes
 for route in routes:
      application.router.add(route)
