@@ -1,9 +1,8 @@
 import datetime
-import json
 import logging
 
 from pyoauth2.provider import AuthorizationProvider, ResourceAuthorization, ResourceProvider
-from pyoauth2.utils import random_ascii_string, url_query_params
+from pyoauth2.utils import url_query_params, random_ascii_string
 
 from google.appengine.ext import ndb
 
@@ -108,6 +107,20 @@ class COALAuthorizationProvider(AuthorizationProvider):
     @property
     def token_expires_in(self):
         return coal_config.OAUTH_TOKEN_EXPIRES_IN
+
+    def generate_client_id(self, client_id=None):
+        """Generate a unique client_id based on the given client_id, if any.
+
+        :param client_id: A client_id to base the new unique one on.
+        :type grant_type: str
+
+        :rtype: str
+        """
+        if client_id is None:
+            client_id = random_ascii_string(10)
+        while Client.get_by_client_id(client_id) is not None:
+            client_id = u'{0}-{1}'.format(client_id, random_ascii_string(3))
+        return client_id
 
     def validate_client_id(self, client_id):
         client = Client.get_by_client_id(client_id)

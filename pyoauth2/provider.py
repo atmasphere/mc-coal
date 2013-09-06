@@ -468,9 +468,8 @@ class AuthorizationProvider(Provider):
         return self._make_json_response(data, status_code=status_code)
 
     def get_registration(self, **data):
-        client_id = data.get('client_id', utils.random_ascii_string(10))
-        while self.validate_client_id(client_id):
-            client_id = u'{0}-{1}'.format(client_id, utils.random_ascii_string(3))
+        client_id = data.get('client_id', None)
+        client_id = self.generate_client_id(client_id=client_id)
         redirect_uris = data.get('redirect_uris')
         client_name = data.get('client_name', None)
         client_uri = data.get('client_uri', None)
@@ -638,7 +637,7 @@ class AuthorizationProvider(Provider):
 
             scope = data.get('scope', None)
             if scope is not None:
-                is_valid_scope = self.validate_scope(client_id, scope)
+                is_valid_scope = self.validate_scope(client_id, scope)  # Note: this will allow the client to remove, but not add, scope.
                 if not is_valid_scope:
                     return self._make_json_error_response('invalid_request')
 
