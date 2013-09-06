@@ -32,7 +32,7 @@ TEST_LOGO_URI = 'http://example.com/logo.png'
 TEST_CLIENT_SECRET = 'client_secret'
 TEST_REGISTRATION_ACCESS_TOKEN = 'registration_access_token'
 
-NUM_CLIENT_FIELDS = 9
+NUM_CLIENT_FIELDS = 10
 
 
 class OauthTest(BaseTest, WebTest):
@@ -53,13 +53,14 @@ class OauthTest(BaseTest, WebTest):
             'name': TEST_CLIENT_NAME,
             'uri': TEST_CLIENT_URI,
             'logo_uri': TEST_LOGO_URI,
+            'scope': ['data'],
             'secret': TEST_CLIENT_SECRET,
             'secret_expires_at': 0,
             'registration_access_token': TEST_REGISTRATION_ACCESS_TOKEN
         }
         self.client = Client(key=key, **data)
         self.client.put()
-        logging.disable(logging.ERROR)
+        # logging.disable(logging.ERROR)
 
     def tearDown(self):
         super(OauthTest, self).tearDown()
@@ -103,7 +104,8 @@ class OauthTest(BaseTest, WebTest):
         query_params = {
             'client_id': TEST_CLIENT_ID,
             'redirect_uri': TEST_REDIRECT_URI,
-            'response_type': 'code'
+            'response_type': 'code',
+            'scope': 'data'
         }
         response = self.get(url, params=query_params)
         self.assertOK(response)
@@ -137,6 +139,7 @@ class OauthTest(BaseTest, WebTest):
             'client_id': TEST_CLIENT_ID,
             'client_secret': TEST_CLIENT_SECRET,
             'redirect_uri': TEST_REDIRECT_URI,
+            'scope': 'data'
         }
         response = self.post(url, params)
         self.assertOK(response)
@@ -222,7 +225,8 @@ class AuthorizationCodeHandlerTest(OauthTest):
         query_params = {
             'client_id': TEST_CLIENT_ID,
             'redirect_uri': TEST_REDIRECT_URI,
-            'response_type': 'code'
+            'response_type': 'code',
+            'scope': 'data'
         }
         response = self.get(self.url, params=query_params)
         self.assertOK(response)
@@ -361,6 +365,7 @@ class TokenHandlerTest(OauthTest):
             'client_id': TEST_CLIENT_ID,
             'client_secret': TEST_CLIENT_SECRET,
             'redirect_uri': TEST_REDIRECT_URI,
+            'scope': 'data'
         }
         response = self.post(self.url, params)
         self.assertOK(response)
@@ -399,6 +404,7 @@ class TokenHandlerTest(OauthTest):
             'client_id': 'invalid',
             'client_secret': TEST_CLIENT_SECRET,
             'redirect_uri': TEST_REDIRECT_URI,
+            'scope': 'data'
         }
         response = self.post(self.url, params)
         self.assertBadRequest(response)
@@ -464,6 +470,7 @@ class TokenHandlerTest(OauthTest):
             'client_id': TEST_CLIENT_ID,
             'client_secret': TEST_CLIENT_SECRET,
             'redirect_uri': TEST_REDIRECT_URI,
+            'scope': 'data'
         }
         response = self.post(self.url, params)
         self.assertOK(response)
@@ -496,6 +503,7 @@ class TokenHandlerTest(OauthTest):
             'client_id': TEST_CLIENT_ID,
             'client_secret': TEST_CLIENT_SECRET,
             'redirect_uri': TEST_REDIRECT_URI,
+            'scope': 'data'
         }
         response = self.post(self.url, params)
         self.assertBadRequest(response)

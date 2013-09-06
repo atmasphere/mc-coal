@@ -261,7 +261,8 @@ class AuthorizationProvider(Provider):
             'code': code,
             'response_type': None,
             'client_id': None,
-            'redirect_uri': None
+            'redirect_uri': None,
+            'scope': None
         })
         redirect = utils.build_url(redirect_uri, params)
         return self._make_response(headers={'Location': redirect},

@@ -25,6 +25,7 @@ class Client(ndb.Model):
     uri = ndb.StringProperty()
     logo_uri = ndb.StringProperty()
     redirect_uris = ndb.StringProperty(repeated=True)
+    scope = ndb.StringProperty(repeated=True)
     secret = ndb.StringProperty()
     secret_expires_at = ndb.IntegerProperty(default=0)
     secret_expires = ndb.ComputedProperty(lambda self: datetime.datetime(year=1970, month=1, day=1) + datetime.timedelta(seconds=self.secret_expires_at) if self.secret_expires_at else None)
@@ -57,7 +58,7 @@ class AuthorizationCode(ndb.Model):
     code = ndb.StringProperty(required=True)
     client_id = ndb.StringProperty(required=True)
     user_key = ndb.KeyProperty(required=True)
-    scope = ndb.StringProperty()
+    scope = ndb.StringProperty(repeated=True)
     expires_in = ndb.IntegerProperty(default=0)
     expires = ndb.ComputedProperty(lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in else None)
     created = ndb.DateTimeProperty(auto_now_add=True)
@@ -73,7 +74,7 @@ class Token(ndb.Model):
     refresh_token = ndb.StringProperty(required=True)
     client_id = ndb.StringProperty(required=True)
     user_key = ndb.KeyProperty(required=True)
-    scope = ndb.StringProperty()
+    scope = ndb.StringProperty(repeated=True)
     token_type = ndb.StringProperty()
     expires_in = ndb.IntegerProperty(default=0)
     expires = ndb.ComputedProperty(lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in is not None else None)
@@ -84,38 +85,44 @@ class Token(ndb.Model):
     def is_expired(self):
         return datetime.datetime.now() > self.expires if self.expires is not None else False
 
+    def validate_scope(self, scope):
+        return scope in self.scope
+
 
 class COALAuthorizationProvider(AuthorizationProvider):
     def get_authorization_code_key_name(self, client_id, code):
         return '{0}-{1}'.format(client_id, code)
 
     def _handle_exception(self, exc):
-        pass
+        logging.info(exc)
 
     @property
     def token_expires_in(self):
         return coal_config.OAUTH_TOKEN_EXPIRES_IN
 
     def validate_client_id(self, client_id):
-        client = ndb.Key(Client, client_id).get()
+        client = Client.get_by_client_id(client_id)
         if client is not None and client.active:
             return True
         return False
 
     def validate_client_secret(self, client_id, client_secret):
-        client = ndb.Key(Client, client_id).get()
+        client = Client.get_by_client_id(client_id)
         if client is not None and client.active:
             return client.validate_secret(client_secret)
         return False
 
     def validate_redirect_uri(self, client_id, redirect_uri):
-        client = ndb.Key(Client, client_id).get()
+        client = Client.get_by_client_id(client_id)
         if client is not None and redirect_uri in client.redirect_uris:
             return True
         return False
 
     def validate_scope(self, client_id, scope):
-        return True
+        client = Client.get_by_client_id(client_id)
+        if client is not None:
+            return scope in client.scope
+        return False
 
     def validate_access(self, client_id):
         return webapp2.get_request().user.is_client_id_authorized(client_id)
@@ -141,6 +148,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
         key = ndb.Key(AuthorizationCode, key_name)
         if key.get() is not None:
             raise Exception("duplicate_authorization_code")
+        scope = scope.split() if scope else ['data']
         auth_code = AuthorizationCode(key=key, code=code, client_id=client_id, scope=scope, user_key=user.key, expires_in=coal_config.OAUTH_TOKEN_EXPIRES_IN)
         auth_code.put()
 
@@ -151,6 +159,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
             raise Exception("duplicate_access_token")
         if self.from_refresh_token(client_id, refresh_token, scope):
             raise Exception("duplicate_refresh_token")
+        scope = scope.split() if scope else ['data']
         token = Token(key=key, access_token=access_token, refresh_token=refresh_token, client_id=client_id, user_key=auth_code.user_key, scope=scope, token_type=token_type, expires_in=expires_in)
         token.put()
 
@@ -227,6 +236,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
             data = {
                 'client_id': client.client_id,
                 'redirect_uris': client.redirect_uris,
+                'scope': ' '.join(client.scope),
                 'client_secret': client.secret,
                 'client_secret_expires_at': client.secret_expires_at,
                 'registration_access_token': client.registration_access_token,
@@ -242,7 +252,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
 
     def persist_client_information(
         self, client_id, redirect_uris, client_name, client_uri, logo_uri,
-        client_secret=None, client_secret_expires_at=None, registration_access_token=None
+        scope=None, client_secret=None, client_secret_expires_at=None, registration_access_token=None
     ):
         data = {
             'redirect_uris': redirect_uris or [],
@@ -250,6 +260,8 @@ class COALAuthorizationProvider(AuthorizationProvider):
             'uri': client_uri,
             'logo_uri': logo_uri,
         }
+        if scope is not None:
+            data['scope'] = scope.split()
         if client_secret is not None:
             data['secret'] = client_secret
         if client_secret_expires_at is not None:
@@ -258,6 +270,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
             data['registration_access_token'] = registration_access_token
         client = Client.get_by_client_id(client_id)
         if client is None:
+            data['scope'] = ['data']
             client = Client(key=ndb.Key(Client, client_id), client_id=client_id, **data)
         else:
             client.populate(**data)
@@ -280,6 +293,9 @@ class COALAuthorizationProvider(AuthorizationProvider):
         key = ndb.Key(Client, client_id)
         key.delete()
         self.discard_client_tokens(client_id)
+
+    def get_default_client_scope(self):
+        return 'data'
 
     def get_authorization_header(self):
         return webapp2.get_request().headers.get('Authorization', None)
@@ -308,11 +324,12 @@ class COALAuthorizationProvider(AuthorizationProvider):
         client_name = data.get('client_name', None)
         client_uri = data.get('client_uri', None)
         logo_uri = data.get('logo_uri', None)
+        scope = self.get_default_client_scope()
         client_secret = self.generate_client_secret()
         client_secret_expires_at = self.generate_secret_expires_at()
         registration_access_token = self.generate_registration_access_token()
         self.persist_client_information(
-            client_id, redirect_uris, client_name, client_uri, logo_uri,
+            client_id, redirect_uris, client_name, client_uri, logo_uri, scope,
             client_secret, client_secret_expires_at, registration_access_token
         )
         return self.get_client_response(client_id, status_code=201)
@@ -413,6 +430,12 @@ class COALAuthorizationProvider(AuthorizationProvider):
                 if not is_valid_secret:
                     return self._make_json_error_response('invalid_request')
 
+            scope = data.get('scope', None)
+            if scope is not None:
+                is_valid_scope = self.validate_scope(client_id, scope)
+                if not is_valid_scope:
+                    return self._make_json_error_response('invalid_request')
+
             redirect_uris = data.get('redirect_uris')
             client_name = data.get('client_name', None)
             client_uri = data.get('client_uri', None)
@@ -425,7 +448,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
                 client_secret = self.generate_client_secret()
                 client_secret_expires_at = self.generate_secret_expires_at()
             self.persist_client_information(
-                client_id, redirect_uris, client_name, client_uri, logo_uri,
+                client_id, redirect_uris, client_name, client_uri, logo_uri, scope=scope,
                 client_secret=client_secret, client_secret_expires_at=client_secret_expires_at
             )
             return self.get_client_response(client_id)
@@ -449,6 +472,8 @@ class COALResourceAuthorization(ResourceAuthorization):
 
 
 class COALResourceProvider(ResourceProvider):
+    SCOPE = 'data'
+
     @property
     def authorization_class(self):
         return COALResourceAuthorization
@@ -459,7 +484,7 @@ class COALResourceProvider(ResourceProvider):
     def validate_access_token(self, access_token, authorization):
         key = ndb.Key(Token, access_token)
         token = key.get()
-        if token is not None and not token.is_expired:
+        if token is not None and not token.is_expired and token.validate_scope(self.SCOPE):
             authorization.is_valid = True
             authorization.client_id = token.client_id
             authorization.user_key = token.user_key
