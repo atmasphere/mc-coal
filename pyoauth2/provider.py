@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 from requests import Response
@@ -38,6 +39,23 @@ class Provider(object):
             res.headers.update(headers)
         res.raw = StringIO(body)
         return res
+
+    def _make_error_response(self, error, headers=None, status_code=401):
+        """Return an error response object from the given error code.
+
+        :param error: The error code.
+        :type data: str
+        :param headers: Dict of headers to include in the requests.
+        :type headers: dict
+        :param status_code: HTTP status code.
+        :type status_code: int
+        :rtype: requests.Response
+        """
+        response_headers = {}
+        if headers is not None:
+            response_headers.update(headers)
+        response_headers['WWW-Authenticate'] = 'Bearer error="{0}"'.format(error)
+        return self._make_response(headers=response_headers, status_code=status_code)
 
     def _make_redirect_error_response(self, redirect_uri, err):
         """Return a HTTP 302 redirect response object containing the error.
@@ -181,6 +199,14 @@ class AuthorizationProvider(Provider):
         """
         return 3600
 
+    @property
+    def secret_expires_in(self):
+        """Property method to get the secret expiration time in seconds. 0 (zero) means never expire.
+
+        :rtype: int
+        """
+        return 0
+
     def generate_authorization_code(self):
         """Generate a random authorization code.
 
@@ -201,6 +227,33 @@ class AuthorizationProvider(Provider):
         :rtype: str
         """
         return utils.random_ascii_string(self.token_length)
+
+    def generate_client_secret(self):
+        """Generate a random client secret
+
+        :rtype: str
+        """
+        return utils.random_ascii_string(self.token_length)
+
+    def generate_registration_access_token(self):
+        """Generate a random registration access token.
+
+        :rtype: str
+        """
+        return utils.random_ascii_string(self.token_length)
+
+    def generate_secret_expires_at(self):
+        """Generate the Time at which the client_secret will expire or 0 if it will not expire.  The time
+        is represented as the number of seconds from 1970-01-01T0:0:0Z as measured in UTC until now.
+
+        :rtype: int
+        """
+        secret_expires_at = 0
+        if self.secret_expires_in:
+            secret_expires = datetime.datetime.now() + datetime.timedelta(seconds=self.secret_expires_in)
+            expires_in = secret_expires - datetime.datetime(year=1970, month=1, day=1)
+            secret_expires_at = expires_in.seconds
+        return secret_expires_at
 
     def get_authorization_code(self,
                                response_type,
@@ -410,6 +463,52 @@ class AuthorizationProvider(Provider):
             'refresh_token': refresh_token
         })
 
+    def get_client_response(self, client_id, status_code=200):
+        data = self.from_client_id(client_id)
+        return self._make_json_response(data, status_code=status_code)
+
+    def get_registration(self, **data):
+        client_id = data.get('client_id', utils.random_ascii_string(10))
+        while self.validate_client_id(client_id):
+            client_id = u'{0}-{1}'.format(client_id, utils.random_ascii_string(3))
+        redirect_uris = data.get('redirect_uris')
+        client_name = data.get('client_name', None)
+        client_uri = data.get('client_uri', None)
+        logo_uri = data.get('logo_uri', None)
+        scope = self.get_default_client_scope()
+        client_secret = self.generate_client_secret()
+        client_secret_expires_at = self.generate_secret_expires_at()
+        registration_access_token = self.generate_registration_access_token()
+        self.persist_client_information(
+            client_id, redirect_uris, client_name, client_uri, logo_uri, scope,
+            client_secret, client_secret_expires_at, registration_access_token
+        )
+        return self.get_client_response(client_id, status_code=201)
+
+    def get_registration_access_token(self):
+        registration_access_token = None
+        header = self.get_authorization_header()
+        header = header.split() if header is not None else None
+        if header is not None and len(header) > 1 and header[0] == 'Bearer':
+            registration_access_token = header[1]
+        return registration_access_token
+
+    def get_client(self, client_id):
+        registration_access_token = self.get_registration_access_token()
+        is_valid_client_id = self.validate_client_id(client_id)
+        if not is_valid_client_id:
+            return self._make_response(self, status_code=401)
+        is_valid_registration_access_token = self.validate_registration_access_token(client_id, registration_access_token)
+        if not is_valid_registration_access_token:
+            return self._make_error_response('invalid_token')
+        # Regenerate secret if expired
+        is_secret_expired = self.validate_client_secret_expired(client_id)
+        if is_secret_expired:
+            client_secret = self.generate_client_secret()
+            client_secret_expires_at = self.generate_secret_expires_at()
+            self.persist_client_secret(client_id, client_secret, client_secret_expires_at)
+        return self.get_client_response(client_id)
+
     def get_authorization_code_from_uri(self, uri):
         """Get authorization code response from a URI. This method will
         ignore the domain and path of the request, instead
@@ -471,6 +570,95 @@ class AuthorizationProvider(Provider):
                 if not data.get(x):
                     raise TypeError("Missing required OAuth 2.0 POST param: {0}".format(x))            
             return self.get_token(**data)
+        except TypeError as exc:
+            self._handle_exception(exc)
+
+            # Catch missing parameters in request
+            return self._make_json_error_response('invalid_request')
+        except StandardError as exc:
+            self._handle_exception(exc)
+
+            # Catch all other server errors
+            return self._make_json_error_response('server_error')
+
+    def get_registration_from_post_body(self, body):
+        """Get a registration response from POST data.
+
+        :param data: POST data containing authorization information.
+        :type data: dict
+        :rtype: requests.Response
+        """
+        try:
+            # Load the
+            data = json.loads(body)
+
+            # Verify OAuth 2.0 Parameters
+            for x in ['redirect_uris']:
+                if not data.get(x):
+                    raise TypeError("Missing required OAuth 2.0 POST param: {0}".format(x))
+
+            # Handle get token from authorization code
+            return self.get_registration(**data)
+        except TypeError as exc:
+            self._handle_exception(exc)
+
+            # Catch missing parameters in request
+            return self._make_json_error_response('invalid_request')
+        except StandardError as exc:
+            self._handle_exception(exc)
+
+            # Catch all other server errors
+            return self._make_json_error_response('server_error')
+
+    def get_client_from_put_body(self, client_id, body):
+        registration_access_token = self.get_registration_access_token()
+        try:
+            data = json.loads(body)
+
+            # Verify OAuth 2.0 Parameters
+            for x in ['client_id', 'redirect_uris']:
+                if not data.get(x):
+                    raise TypeError("Missing required OAuth 2.0 PUT param: {0}".format(x))
+
+            is_valid_client_id = self.validate_client_id(client_id)
+            if not is_valid_client_id:
+                return self._make_response(self, status_code=401)
+            is_valid_registration_access_token = self.validate_registration_access_token(client_id, registration_access_token)
+            if not is_valid_registration_access_token:
+                return self._make_error_response('invalid_token')
+
+            if client_id != data['client_id']:
+                return self._make_json_error_response('invalid_client_id')
+
+            client_secret = data.get('client_secret', None)
+            if client_secret is not None:
+                is_valid_secret = self.validate_client_secret(client_id, client_secret)
+                if not is_valid_secret:
+                    return self._make_json_error_response('invalid_request')
+
+            scope = data.get('scope', None)
+            if scope is not None:
+                is_valid_scope = self.validate_scope(client_id, scope)
+                if not is_valid_scope:
+                    return self._make_json_error_response('invalid_request')
+
+            redirect_uris = data.get('redirect_uris')
+            client_name = data.get('client_name', None)
+            client_uri = data.get('client_uri', None)
+            logo_uri = data.get('logo_uri', None)
+            # Regenerate secret if expired
+            is_secret_expired = self.validate_client_secret_expired(client_id)
+            client_secret = None
+            client_secret_expires_at = None
+            if is_secret_expired:
+                client_secret = self.generate_client_secret()
+                client_secret_expires_at = self.generate_secret_expires_at()
+            self.persist_client_information(
+                client_id, redirect_uris, client_name, client_uri, logo_uri, scope=scope,
+                client_secret=client_secret, client_secret_expires_at=client_secret_expires_at
+            )
+            return self.get_client_response(client_id)
+
         except TypeError as exc:
             self._handle_exception(exc)
 

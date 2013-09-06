@@ -86,7 +86,16 @@ class Token(ndb.Model):
         return datetime.datetime.now() > self.expires if self.expires is not None else False
 
     def validate_scope(self, scope):
-        return scope in self.scope
+        if scope is None:
+            return False
+        if scope == self.scope:
+            return True
+        if not scope:
+            return False
+        for s in scope.split():
+            if s not in self.scope:
+                return False
+        return True
 
 
 class COALAuthorizationProvider(AuthorizationProvider):
@@ -120,9 +129,16 @@ class COALAuthorizationProvider(AuthorizationProvider):
 
     def validate_scope(self, client_id, scope):
         client = Client.get_by_client_id(client_id)
-        if client is not None:
-            return scope in client.scope
-        return False
+        if client is None or scope is None:
+            return False
+        if scope == client.scope:
+            return True
+        if not scope:
+            return False
+        for s in scope.split():
+            if s not in client.scope:
+                return False
+        return True
 
     def validate_access(self, client_id):
         return webapp2.get_request().user.is_client_id_authorized(client_id)
@@ -179,41 +195,6 @@ class COALAuthorizationProvider(AuthorizationProvider):
         token_query = token_query.filter(Token.user_key == user_key)
         keys = [key for key in token_query.iter(keys_only=True)]
         ndb.delete_multi(keys)
-
-    @property
-    def secret_expires_in(self):
-        """Property method to get the secret expiration time in seconds. 0 (zero) means never expire.
-
-        :rtype: int
-        """
-        return 0
-
-    def generate_client_secret(self):
-        """Generate a random client secret
-
-        :rtype: str
-        """
-        return random_ascii_string(self.token_length)
-
-    def generate_registration_access_token(self):
-        """Generate a random registration access token.
-
-        :rtype: str
-        """
-        return random_ascii_string(self.token_length)
-
-    def generate_secret_expires_at(self):
-        """Generate the Time at which the client_secret will expire or 0 if it will not expire.  The time
-        is represented as the number of seconds from 1970-01-01T0:0:0Z as measured in UTC until now.
-
-        :rtype: int
-        """
-        secret_expires_at = 0
-        if self.secret_expires_in:
-            secret_expires = datetime.datetime.now() + datetime.timedelta(seconds=self.secret_expires_in)
-            expires_in = secret_expires - datetime.datetime(year=1970, month=1, day=1)
-            secret_expires_at = expires_in.seconds
-        return secret_expires_at
 
     def get_registration_client_uri(self, client_id):
         """Get the fully qualified URL of the client configuration endpoint for the client_id.
@@ -312,158 +293,6 @@ class COALAuthorizationProvider(AuthorizationProvider):
             return True
         return False
 
-    def get_client_response(self, client_id, status_code=200):
-        data = self.from_client_id(client_id)
-        return self._make_json_response(data, status_code=status_code)
-
-    def get_registration(self, **data):
-        client_id = data.get('client_id', random_ascii_string(10))
-        while self.validate_client_id(client_id):
-            client_id = u'{0}-{1}'.format(client_id, random_ascii_string(1))
-        redirect_uris = data.get('redirect_uris')
-        client_name = data.get('client_name', None)
-        client_uri = data.get('client_uri', None)
-        logo_uri = data.get('logo_uri', None)
-        scope = self.get_default_client_scope()
-        client_secret = self.generate_client_secret()
-        client_secret_expires_at = self.generate_secret_expires_at()
-        registration_access_token = self.generate_registration_access_token()
-        self.persist_client_information(
-            client_id, redirect_uris, client_name, client_uri, logo_uri, scope,
-            client_secret, client_secret_expires_at, registration_access_token
-        )
-        return self.get_client_response(client_id, status_code=201)
-
-    def _make_error_response(self, error, headers=None, status_code=401):
-        """Return an error response object from the given error code.
-
-        :param error: The error code.
-        :type data: str
-        :param headers: Dict of headers to include in the requests.
-        :type headers: dict
-        :param status_code: HTTP status code.
-        :type status_code: int
-        :rtype: requests.Response
-        """
-        response_headers = {}
-        if headers is not None:
-            response_headers.update(headers)
-        response_headers['WWW-Authenticate'] = 'Bearer error="{0}"'.format(error)
-        return self._make_response(headers=response_headers, status_code=status_code)
-
-    def get_registration_from_post_body(self, body):
-        """Get a registration response from POST data.
-
-        :param data: POST data containing authorization information.
-        :type data: dict
-        :rtype: requests.Response
-        """
-        try:
-            # Load the
-            data = json.loads(body)
-
-            # Verify OAuth 2.0 Parameters
-            for x in ['redirect_uris']:
-                if not data.get(x):
-                    raise TypeError("Missing required OAuth 2.0 POST param: {0}".format(x))
-
-            # Handle get token from authorization code
-            return self.get_registration(**data)
-        except TypeError as exc:
-            self._handle_exception(exc)
-
-            # Catch missing parameters in request
-            return self._make_json_error_response('invalid_request')
-        except StandardError as exc:
-            self._handle_exception(exc)
-
-            # Catch all other server errors
-            return self._make_json_error_response('server_error')
-
-    def get_registration_access_token(self):
-        registration_access_token = None
-        header = self.get_authorization_header()
-        header = header.split() if header is not None else None
-        if header is not None and len(header) > 1 and header[0] == 'Bearer':
-            registration_access_token = header[1]
-        return registration_access_token
-
-    def get_client(self, client_id):
-        registration_access_token = self.get_registration_access_token()
-        is_valid_client_id = self.validate_client_id(client_id)
-        if not is_valid_client_id:
-            return self._make_response(self, status_code=401)
-        is_valid_registration_access_token = self.validate_registration_access_token(client_id, registration_access_token)
-        if not is_valid_registration_access_token:
-            return self._make_error_response('invalid_token')
-        # Regenerate secret if expired
-        is_secret_expired = self.validate_client_secret_expired(client_id)
-        if is_secret_expired:
-            client_secret = self.generate_client_secret()
-            client_secret_expires_at = self.generate_secret_expires_at()
-            self.persist_client_secret(client_id, client_secret, client_secret_expires_at)
-        return self.get_client_response(client_id)
-
-    def get_client_from_put_body(self, client_id, body):
-        registration_access_token = self.get_registration_access_token()
-        try:
-            data = json.loads(body)
-
-            # Verify OAuth 2.0 Parameters
-            for x in ['client_id', 'redirect_uris']:
-                if not data.get(x):
-                    raise TypeError("Missing required OAuth 2.0 PUT param: {0}".format(x))
-
-            is_valid_client_id = self.validate_client_id(client_id)
-            if not is_valid_client_id:
-                return self._make_response(self, status_code=401)
-            is_valid_registration_access_token = self.validate_registration_access_token(client_id, registration_access_token)
-            if not is_valid_registration_access_token:
-                return self._make_error_response('invalid_token')
-
-            if client_id != data['client_id']:
-                return self._make_json_error_response('invalid_client_id')
-
-            client_secret = data.get('client_secret', None)
-            if client_secret is not None:
-                is_valid_secret = self.validate_client_secret(client_id, client_secret)
-                if not is_valid_secret:
-                    return self._make_json_error_response('invalid_request')
-
-            scope = data.get('scope', None)
-            if scope is not None:
-                is_valid_scope = self.validate_scope(client_id, scope)
-                if not is_valid_scope:
-                    return self._make_json_error_response('invalid_request')
-
-            redirect_uris = data.get('redirect_uris')
-            client_name = data.get('client_name', None)
-            client_uri = data.get('client_uri', None)
-            logo_uri = data.get('logo_uri', None)
-            # Regenerate secret if expired
-            is_secret_expired = self.validate_client_secret_expired(client_id)
-            client_secret = None
-            client_secret_expires_at = None
-            if is_secret_expired:
-                client_secret = self.generate_client_secret()
-                client_secret_expires_at = self.generate_secret_expires_at()
-            self.persist_client_information(
-                client_id, redirect_uris, client_name, client_uri, logo_uri, scope=scope,
-                client_secret=client_secret, client_secret_expires_at=client_secret_expires_at
-            )
-            return self.get_client_response(client_id)
-
-        except TypeError as exc:
-            self._handle_exception(exc)
-
-            # Catch missing parameters in request
-            return self._make_json_error_response('invalid_request')
-        except StandardError as exc:
-            self._handle_exception(exc)
-
-            # Catch all other server errors
-            return self._make_json_error_response('server_error')
-
 authorization_provider = COALAuthorizationProvider()
 
 
@@ -493,6 +322,12 @@ class COALResourceProvider(ResourceProvider):
                 authorization.expires_in = d.seconds
 
 resource_provider = COALResourceProvider()
+
+
+class COALAgentResourceProvider(COALResourceProvider):
+    SCOPE = 'agent'
+
+agent_resource_provider = COALAgentResourceProvider()
 
 
 class BaseSecureForm(SessionSecureForm):
