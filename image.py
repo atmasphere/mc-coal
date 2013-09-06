@@ -13,7 +13,6 @@ from webapp2_extras.routes import RedirectRoute
 
 
 IMAGE_HEADER_SIZE = 50000
-IMAGE_UPLOAD_URL = '/_bscs/data'
 
 
 class NdbImage(ndb.Model):
@@ -271,5 +270,5 @@ class BlobstoreDataHandler(blobstore_handlers.BlobstoreUploadHandler):
 
 
 routes = [
-    RedirectRoute(IMAGE_UPLOAD_URL, handler=BlobstoreDataHandler, name="image_put_data"),
+    RedirectRoute('/_bscs/data', handler=BlobstoreDataHandler, name="image_put_data"),
 ]

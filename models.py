@@ -256,6 +256,11 @@ class User(auth_models.User):
         return False, None
 
     @classmethod
+    def get_indie_auth_id(cls, me=None):
+        me = me or 'ANON'
+        return 'indieuser:{0}'.format(me)
+
+    @classmethod
     def lookup(cls, email=None, username=None):
         if email is not None or username is not None:
             query = cls.query()

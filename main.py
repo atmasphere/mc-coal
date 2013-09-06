@@ -19,7 +19,7 @@ import channel
 from config import coal_config
 from models import get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command
 import search
-from user_auth import get_login_url, UserBase, UserHandler, authenticate, authenticate_admin, authenticate_public
+from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin, authenticate_public
 
 
 class HomeHandler(UserHandler):
@@ -53,7 +53,7 @@ class HomeHandler(UserHandler):
         elif user:  # Logged in, but not on white-list and active
             context = {'logout_url': webapp2.uri_for('logout')}
         else:  # Not logged in
-            context = {'login_url': get_login_url(self)}
+            context = {'login_url': get_login_uri(self)}
         self.render_template('home.html', context=context)
 
 
@@ -282,16 +282,6 @@ class UserRemoveHandler(UserHandler):
         except Exception, e:
             logging.error(u"Error removing user: {0}".format(e))
         self.redirect(webapp2.uri_for('users'))
-
-
-class BlobstoreDataHandler(blobstore_handlers.BlobstoreUploadHandler):
-    def post(self):
-        files = self.get_uploads('file')
-        if files:
-            blob_info = files[0]
-            self.redirect('{0}'.format(blob_info.key()))
-        else:
-            self.abort(400, "No files in POST")
 
 
 application = webapp2.WSGIApplication(

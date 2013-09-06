@@ -69,7 +69,7 @@ class OauthTest(BaseTest, WebTest):
     def log_in_user(self, email=None, is_active=True, is_admin=False):
         email = email or TEST_USER_EMAIL
         super(OauthTest, self).log_in_user(email, is_admin=is_admin)
-        response = self.app.get('/login_callback')
+        response = self.app.get('/gae_login_callback')
         cookies = response.headers.get('Set-Cookie')
         self.auth_cookie = cookies[0:cookies.find(';')] if cookies else None
         self.assertRedirects(response, to='/')

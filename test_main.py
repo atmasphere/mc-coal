@@ -25,7 +25,7 @@ class MainBaseTest(BaseTest, WebTest):
 
     def log_in_user(self, email=TEST_USER_EMAIL, is_active=True, is_admin=False):
         super(MainBaseTest, self).log_in_user(email, is_admin=is_admin)
-        response = self.get('/login_callback')
+        response = self.get('/gae_login_callback')
         cookies = response.headers.get('Set-Cookie')
         self.auth_cookie = cookies[0:cookies.find(';')] if cookies else None
         self.assertRedirects(response, to='/')

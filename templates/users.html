@@ -14,7 +14,7 @@
                 <div class="player wrap {% if u.player.is_user(user) %}you{% endif %}">
                     <div class="activity {% if u.player.is_playing %}on{% endif %}"></div>
                     <div class="avatar" style="background-image: url(https://minotar.net/helm/{{ u.player.username }}/40)"></div>
-                    <h3 class="data">{{ u.email }}</h3>
+                    <h3 class="data">{{ u.email or u.nickname }}</h3>
                     <div class="data"><h4>Minecraft Username:</h4>{{ u.player.username }}</div>
                     <div class="data"><h4>Is Active:</h4>{% if u.active %}True{% else %}False{% endif %}</div>
                     <div class="data"><h4>Is Admin:</h4>{% if u.admin %}True{% else %}False{% endif %}</div>

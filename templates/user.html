@@ -9,7 +9,7 @@
         <div class="box">
             <div class="player wrap {% if edit_user.key == user.key %}you{% endif %}">
                 {% if edit_user.username %}<div class="avatar" style="background-image: url(https://minotar.net/helm/{{ edit_user.username }}/40)"></div>{% endif %}
-                <div class="name">{{ edit_user.email }}</div>
+                <div class="name">{{ edit_user.email or edit_user.nickname }}</div>
                 <div class="online">
                     <h4>Last COAL Login</h4>
                     <div class="data">{% if edit_user.last_login %}{{ edit_user.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ edit_user.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>

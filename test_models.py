@@ -63,13 +63,13 @@ class ScreenShotTest(BaseTest):
         return blobstore.BlobInfo(blobstore.BlobKey(path))
 
     # def test_create_data(self):
-        # image_data = open(IMAGE_PATH, 'rb').read()
-        # screen_shot = models.ScreenShot.create('bill', data=image_data, filename=IMAGE_PATH)
-        # self.assertIsNotNone(screen_shot)
-        # self.assertIsNone(screen_shot.blurred_image_serving_url)
-        # self.assertEqual(image_data, screen_shot.image_data)
-        # self.run_deferred()
-        # self.assertIsNotNone(screen_shot.blurred_image_serving_url)
+    #     image_data = open(IMAGE_PATH, 'rb').read()
+    #     screen_shot = models.ScreenShot.create('bill', data=image_data, filename=IMAGE_PATH)
+    #     self.assertIsNotNone(screen_shot)
+    #     self.assertIsNone(screen_shot.blurred_image_serving_url)
+    #     self.assertEqual(image_data, screen_shot.image_data)
+    #     self.run_deferred()
+    #     self.assertIsNotNone(screen_shot.blurred_image_serving_url)
 
     def test_create_blob(self):
         blob_info = self.create_blob_info(IMAGE_PATH)
