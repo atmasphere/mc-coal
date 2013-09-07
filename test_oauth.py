@@ -638,6 +638,7 @@ class ClientHanderTest(OauthTest):
         params = {
             'client_id': TEST_CLIENT_ID,
             'redirect_uris': [TEST_REDIRECT_URI],
+            'client_secret': TEST_CLIENT_SECRET,
             'client_name': 'new_client_name',
             'client_uri': TEST_CLIENT_URI,
             'logo_uri': TEST_LOGO_URI
@@ -659,7 +660,8 @@ class ClientHanderTest(OauthTest):
     def test_put_minimum(self):
         params = {
             'client_id': TEST_CLIENT_ID,
-            'redirect_uris': [TEST_REDIRECT_URI]
+            'redirect_uris': [TEST_REDIRECT_URI],
+            'client_secret': TEST_CLIENT_SECRET
         }
         response = self.put_json(self.url, params=params, bearer_token=self.client.registration_access_token)
         self.assertOK(response)
