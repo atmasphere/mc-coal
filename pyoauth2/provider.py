@@ -618,7 +618,6 @@ class AuthorizationProvider(Provider):
             for x in ['client_id', 'redirect_uris']:
                 if not data.get(x):
                     raise TypeError("Missing required OAuth 2.0 PUT param: {0}".format(x))
-
             is_valid_client_id = self.validate_client_id(client_id)
             if not is_valid_client_id:
                 return self._make_response(self, status_code=401)
@@ -630,10 +629,9 @@ class AuthorizationProvider(Provider):
                 return self._make_json_error_response('invalid_client_id')
 
             client_secret = data.get('client_secret', None)
-            if client_secret is not None:
-                is_valid_secret = self.validate_client_secret(client_id, client_secret)
-                if not is_valid_secret:
-                    return self._make_json_error_response('invalid_request')
+            is_valid_secret = self.validate_client_secret(client_id, client_secret)
+            if not is_valid_secret:
+                return self._make_json_error_response('invalid_request')
 
             scope = data.get('scope', None)
             if scope is not None:

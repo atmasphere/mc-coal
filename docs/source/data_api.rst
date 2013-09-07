@@ -22,6 +22,8 @@ Clients making calls to the API on behalf of a user require a bearer access toke
 
 Unless otherwise indicated, most services don't actually require authorization from a user. In these cases, the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter can be used in lieu of user authentication.
 
+.. _secured_services:
+
 """"""""""""""""
 Secured Services
 """"""""""""""""
