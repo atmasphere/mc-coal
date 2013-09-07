@@ -6,14 +6,10 @@ OAuth2
 
 Clients making calls to the :ref:`Data APIs <data_api>` on behalf of a user require an :ref:`access token <access_token>` which can be acquired via this simplified `OAuth 2.0 <http://tools.ietf.org/html/draft-ietf-oauth-v2-31>`_ flow.
 
-1. :ref:`Register <client_regististration>` the client via :http:post:`/oauth/register` and record the :ref:`client configuration <client_configuration>` in the response. These :ref:`client configuration <client_configuration>` values should be kept secure. If the client has registered previously, this step can be skipped.
-
-  - If a client ever forgets its :ref:`client configuration <client_configuration>` values, they can be retreived via :http:get:`/oauth/client/(client_id)` as long as the client knows its ``client_id`` and ``registration_access_token``.
-
-2. Direct the user's browser to :http:get:`/oauth/auth` with the required :ref:`client configuration <client_configuration>` values in the query parameters, including a ``redirect_uri``.
-3. If the user grants the authorization to the client, the user's browser will be redirected to the ``redirect_uri`` with an :ref:`authorization code <authorization_code>`.
-4. The client calls :http:post:`/oauth/token` with the :ref:`authorization code <authorization_code>` and other :ref:`client configuration <client_configuration>` values and is returned an :ref:`access token <access_token>` and a :ref:`refresh token <refresh_token>`.
-5. If the :ref:`access token <access_token>` expires or otherwise becomes invalid, the client can post to the token endpoint with the :ref:`refresh token <refresh_token>` and is returned a new :ref:`access token <access_token>` and :ref:`refresh token <refresh_token>`.
+1. :ref:`Register <client_regististration>` the client via :http:post:`/oauth/register` and record the :ref:`client configuration <client_configuration>` contained in the response. These :ref:`client configuration <client_configuration>` values should be kept secure.
+2. :ref:`Redirect <authorization_code>` the user's browser to :http:get:`/oauth/auth` with the required :ref:`client configuration <client_configuration>` values in the query parameters, including a ``redirect_uri``. If the user grants the authorization to the client, the user's browser will be redirected to the ``redirect_uri`` with an :ref:`authorization code <authorization_code>`.
+3. :ref:`Request <access_token>` :http:post:`/oauth/token` with the :ref:`authorization code <authorization_code>` and other :ref:`client configuration <client_configuration>` values and is returned an :ref:`access token <access_token>` and a :ref:`refresh token <refresh_token>`.
+4. :ref:`Refresh <refresh_token>` the :ref:`access token <access_token>` if it expires or otherwise becomes invalid using a :ref:`refresh token <refresh_token>`.
 
 
 .. _client_regististration:
@@ -36,19 +32,19 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
     - **client_secret_expires_at** -- Time at which the ``client_secret`` will expire or 0 if it will not expire. The time is represented as the number of seconds from ``1970-01-01T0:0:0Z`` as measured in UTC until the date/time.
     - **registration_access_token** -- The access token that is used at the client configuration endpoint to perform subsequent operations upon the client registration through the client configuration enpdoints (:http:get:`/oauth/client/(client_id)`, :http:put:`/oauth/client/(client_id)`, and :http:delete:`/oauth/client/(client_id)`).
     - **registration_client_uri** -- The fully qualified URL of the client configuration endpoint for this client.  The client MUST use this URL as given when communicating with the client configuration endpoint.
-    - **client_name** -- (*optional*) The human-readable name of the client to be presented to the user.
-    - **client_uri** -- (*optional*) The URL of the homepage of the client.
-    - **logo_uri** -- (*optional*) The URL that references a logo for the client.
+    - **client_name** -- (*optional*) -- The human-readable name of the client to be presented to the user.
+    - **client_uri** -- (*optional*) -- The URL of the homepage of the client.
+    - **logo_uri** -- (*optional*) -- The URL that references a logo for the client.
 
 
 .. http:post:: /oauth/register
 
   :json string_array redirect_uris: An array of redirect URIs for use in other oauth flows.
-  :json string client_id: (*optional*) A requested client id. If a client is already registered with the same client id, a unique client id based on the requested one will be created instead. If this parameter is omitted, a completely random client id will be created.
-  :json string client_name: (*optional*) The human-readable name of the client to be presented to the user.
-  :json string client_uri: (*optional*) The URL of the homepage of the client.
-  :json string logo_uri: (*optional*) The URL that references a logo for the client.
-  :json string scope: (*optional*) A space separated list of scope values that the client can use when requesting access tokens. Currently, the only valid value is ``"data"``.
+  :json string client_id: (*optional*) -- A requested client id. If a client is already registered with the same client id, a unique client id based on the requested one will be created instead. If this parameter is omitted, a completely random client id will be created.
+  :json string client_name: (*optional*) -- The human-readable name of the client to be presented to the user.
+  :json string client_uri: (*optional*) -- The URL of the homepage of the client.
+  :json string logo_uri: (*optional*) -- The URL that references a logo for the client.
+  :json string scope: (*optional*) -- A space separated list of scope values that the client can use when requesting access tokens. Currently, the only valid value is ``"data"``.
 
   :status 201 Created: Successfully created a new client. The ``application/json`` response body will be an object with the :ref:`client configuration <client_configuration>` as top-level members.
 
@@ -100,7 +96,9 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
 Client Configuration
 ====================
 
-The client configuration endpoint is a protected resource that is provisioned by the server to facilitate viewing, updating, and deleting a client's registered information. The location of this endpoint is communicated to the client through the ``registration_client_uri`` member of the :http:post:`/oauth/register` response. Authorization for this endpoint requires that the client's ``registration_access_token`` be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
+The client configuration endpoint is a protected resource that is provisioned by the server to facilitate viewing, updating, and deleting a client's registered information. If a client ever forgets its :ref:`client configuration <client_configuration>` values, they can be retreived via :http:get:`/oauth/client/(client_id)` as long as the client knows its ``registration_client_uri`` and ``registration_access_token``.
+
+The location of this endpoint is communicated to the client through the ``registration_client_uri`` member of the :http:post:`/oauth/register` response. Authorization for this endpoint requires that the client's ``registration_access_token`` be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
 
 
 .. http:get:: /oauth/client/(client_id)
@@ -154,10 +152,10 @@ The client configuration endpoint is a protected resource that is provisioned by
   :json string client_id: The client id. If not correct, a :http:statuscode:`400` ``invalid_client_id`` response will result.
   :json string_array redirect_uris: The new client redirect URIs.
   :json string client_secret: The client secret. If this value does not match the current client secret, a :http:statuscode:`400` ``invalid_request`` response will result.
-  :json string scope: (*optional*) A space separated list of scope values. If there are new values that are not part of the current scope, a :http:statuscode:`400` ``invalid_request`` response will result. Note that this means a client can remove scope values, but can never add them. If not present, the client scope will be unmodified.
-  :json string client_name: (*optional*) The new human-readable name of the client. If not present, the client name will be set to ``null``.
-  :json string client_uri: (*optional*) The new URL of the homepage of the client. If not present, the homepage URL will be set to ``null``.
-  :json string logo_uri: (*optional*) The new URL that references a logo for the client. If not present, the logo URL will be set to ``null``.
+  :json string scope: (*optional*) -- A space separated list of scope values. If there are new values that are not part of the current scope, a :http:statuscode:`400` ``invalid_request`` response will result. Note that this means a client can remove scope values, but can never add them. If not present, the client scope will be unmodified.
+  :json string client_name: (*optional*) -- The new human-readable name of the client. If not present, the client name will be set to ``null``.
+  :json string client_uri: (*optional*) -- The new URL of the homepage of the client. If not present, the homepage URL will be set to ``null``.
+  :json string logo_uri: (*optional*) -- The new URL that references a logo for the client. If not present, the logo URL will be set to ``null``.
 
   :status 200 OK: Successfully updated the client configuration. The ``application/json`` response body will be an object with the new :ref:`client configuration <client_configuration>` as top-level members. Some of these values, including the ``client_secret``, ``client_secret_expires_at``, and ``registration_access_token``, may be different from those in the initial :http:post:`/oauth/register` response.  If there is a new client secret and/or registration access token in the response, the client must immediately discard its previous client secret and/or registration access token.  The value of the ``client_id`` will not change from the initial :http:post:`/oauth/register` response.
 
