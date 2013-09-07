@@ -4,7 +4,17 @@
 OAuth2
 ******
 
-Clients making calls to the API on behalf of a user require a bearer access token which can be acquired via a simplified oauth2 flow as described in the draft `OAuth 2.0 Authorization Framework <http://tools.ietf.org/html/draft-ietf-oauth-v2-31>`_.
+Clients making calls to the :ref:`Data APIs <data_api>` on behalf of a user require an :ref:`access token <access_token>` which can be acquired via this simplified `OAuth 2.0 <http://tools.ietf.org/html/draft-ietf-oauth-v2-31>`_ flow.
+
+1. Register the client via :http:post:`/oauth/register` and record the :ref:`client configuration <client_configuration>` in the response. These :ref:`client configuration <client_configuration>` values should be kept secure. If the client has registered previously, this step can be skipped.
+
+  - If a client ever forgets its :ref:`client configuration <client_configuration>` values, they can be retreived via :http:get:`/oauth/client/(client_id)` as long as the client knows its ``client_id`` and ``registration_access_token``.
+
+2. Direct the user's browser to :http:get:`/oauth/auth` with the required :ref:`client configuration <client_configuration>` values in the query parameters, including a ``redirect_uri``.
+3. If the user grants the authorization to the client, the user's browser will be redirected to the ``redirect_uri`` with an :ref:`authorization code <authorization_code>`.
+4. The client calls :http:post:`/oauth/token` with the :ref:`authorization code <authorization_code>` and other :ref:`client configuration <client_configuration>` values and is returned an :ref:`access token <access_token>` and a :ref:`refresh token <refresh_token>`.
+5. If the :ref:`access token <access_token>` expires or otherwise becomes invalid, the client can post to the token endpoint with the :ref:`refresh token <refresh_token>` and is returned a new :ref:`access token <access_token>` and :ref:`refresh token <refresh_token>`.
+
 
 ===================
 Client Registration
@@ -88,24 +98,55 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
 Client Configuration
 ====================
 
-The client configuration endpoint is a protected resource that is provisioned by the server to facilitate viewing, updating, and deleting a client's registered information. The location of this endpoint is communicated to the client through the ``registration_client_uri`` member of the :http:post:`/oauth/register` response. The client uses its ``registration_access_token`` (also returned as a member of the :http:post:`/oauth/register` response) in all calls to this endpoint through the ``Authorization`` header as a bearer token.
+The client configuration endpoint is a protected resource that is provisioned by the server to facilitate viewing, updating, and deleting a client's registered information. The location of this endpoint is communicated to the client through the ``registration_client_uri`` member of the :http:post:`/oauth/register` response. Authorization for this endpoint requires that the client's ``registration_access_token`` be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
+
 
 .. http:get:: /oauth/client/(client_id)
 
   Read the current configuration of the client (`client_id`).
 
-  :reqheader Authorization: The client's bearer ``registration_access_token`` as specified in `RFC6750: Bearer Token Usage <http://tools.ietf.org/html/rfc6750>`_.
+  :reqheader Authorization: The client's ``registration_access_token`` using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
   :resheader WWW-Authenticate: If there is a problem with authorization, the value will be ``Bearer error="invalid_token"`` as specified in `RFC6750: WWW-Authenticate Response Header Field <http://tools.ietf.org/html/rfc6750#section-3>`_.
 
   :status 200 OK: Successfully returned the client configuration. The ``application/json`` response body will be an object with the :ref:`client configuration <client_configuration>` as top-level members. Some of these values, including the ``client_secret``, ``client_secret_expires_at``, and ``registration_access_token``, may be different from those in the initial :http:post:`/oauth/register` response.  If there is a new client secret and/or registration access token in the response, the client must immediately discard its previous client secret and/or registration access token.  The value of the ``client_id`` will not change from the initial :http:post:`/oauth/register` response.
 
   :status 401 Unauthorized: Invalid or no ``Authorization`` request header provided. The ``WWW-Authenticate`` response header will contain the error.
 
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /oauth/client/my_example_app HTTP/1.1
+    Authorization: Bearer VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "client_id": "my_example_app",
+      "redirect_uris": ["http://example.com/callback"],
+      "scope": "data",
+      "client_secret": "bdv8HtrspbJh5F5KOlAUkDOl8KAyYcfsDQoTk1au",
+      "client_secret_expires_at": 0,
+      "registration_access_token": "VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE",
+      "registration_client_uri": "https://my-coal.org/oauth/client/my_example_app",
+      "client_name": "My Example Application",
+      "client_uri": "http://example.com",
+      "logo_uri": "http://example.com/logo.png"
+    }
+
+
 .. http:put:: /oauth/client/(client_id)
 
   Update the configuration of the client (`client_id`).
 
-  :reqheader Authorization: The client's bearer ``registration_access_token`` as specified in `RFC6750: Bearer Token Usage <http://tools.ietf.org/html/rfc6750>`_.
+  :reqheader Authorization: The client's ``registration_access_token`` using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
   :resheader WWW-Authenticate: If there is a problem with authorization, the value will be ``Bearer error="invalid_token"`` as specified in `RFC6750: WWW-Authenticate Response Header Field <http://tools.ietf.org/html/rfc6750#section-3>`_.
 
   :json string client_id: The client id. If not correct, a :http:statuscode:`400` ``invalid_client_id`` response will result.
@@ -129,7 +170,7 @@ The client configuration endpoint is a protected resource that is provisioned by
 
   .. sourcecode:: http
 
-    POST /oauth/client/my_example_app HTTP/1.1
+    PUT /oauth/client/my_example_app HTTP/1.1
     Authorization: Bearer VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE
 
   .. sourcecode:: javascript
@@ -170,7 +211,7 @@ The client configuration endpoint is a protected resource that is provisioned by
 
   Remove the client and all grants and tokens associated with it (`client_id`).
 
-  :reqheader Authorization: The client's bearer ``registration_access_token`` as specified in `RFC6750: Bearer Token Usage <http://tools.ietf.org/html/rfc6750>`_.
+  :reqheader Authorization: The client's ``registration_access_token`` using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
   :resheader WWW-Authenticate: If there is a problem with authorization, the value will be ``Bearer error="invalid_token"`` as specified in `RFC6750: WWW-Authenticate Response Header Field <http://tools.ietf.org/html/rfc6750#section-3>`_.
 
   :status 204 No Content: Successfully deprovisioned the client.
@@ -197,7 +238,7 @@ The client configuration endpoint is a protected resource that is provisioned by
 Authorization Code
 ==================
 
-Clients are granted a one-time-use authorization code in response to explicit, web-based authorization grants from a logged-in user.
+Clients are granted a unique, one-time-use authorization code in response to an explicit, web-based authorization grant from a logged-in user.
 
 .. http:get:: /oauth/auth
 
@@ -208,7 +249,7 @@ Clients are granted a one-time-use authorization code in response to explicit, w
   :query response_type: This should always be ``code`` when requesting an access code.
   :query scope: The scope for the authorization code request. Must always be ``data``.
 
-  :status 302 Found: If the user grants authorization, the user's browser will redirect to the ``redirect_uri`` with the access code passed via the ``code`` query parameter.
+  :status 302 Found: If the user grants authorization, the user's browser will redirect to the ``redirect_uri`` with the authorization code passed via the ``code`` query parameter.
   :status 302 Found: If the user denys authorization or an error occurs, the user's browser will redirect to the ``redirect_uri`` with the error passed via the ``error`` query parameter.
 
   **Example (user browser) request**:
@@ -221,14 +262,14 @@ Clients are granted a one-time-use authorization code in response to explicit, w
 
     .. image:: images/grant_auth.png
 
-    If the user grants authorization to the client, a :http:statuscode:`302` response is returned to the user's browser:
+    If the user grants authorization to the client, a :http:statuscode:`302` response is returned to the user's browser. The ``Location`` header in the response is set to the ``redirect_uri`` with the ``code`` query parameter set to the authorization code:
 
     .. sourcecode:: http
 
       HTTP/1.1 302 Found
       Location: http://example.com/callback?code=YEhb6FWOcPgnTUWtHwPcgBEojQjhU619YfshnqVd
 
-    If the user denys authorization to the client, a :http:statuscode:`302` response is returned to the user's browser:
+    If the user denys authorization to the client, a :http:statuscode:`302` response is returned to the user's browser. The ``Location`` header in the response is set to the ``redirect_uri`` with the ``error`` query parameter set:
 
     .. sourcecode:: http
 
@@ -236,15 +277,17 @@ Clients are granted a one-time-use authorization code in response to explicit, w
       Location: http://example.com/callback?error=access_denied
 
 
+.. _access_token:
+
 ============
 Access Token
 ============
 
-Clients use an :ref:`authorization code <authorization_code>` to acquire an access token, as well as a refresh token that is used to generate a new set of tokens when the previous access token expires. The access token is used in the request ``Authorization`` header as a bearer access token string when calling :ref:`secured services <secured_services>`.
+Clients use an :ref:`authorization code <authorization_code>` to acquire an :ref:`access token <access_token>` and a :ref:`refresh token <refresh_token>`. These tokens are unique and tied to both the client and the user that granted the authorization code. Authorization for :ref:`secured Data APIs <secured_services>` requires that a valid access token be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
 
 .. http:post:: /oauth/token
 
-  The client makes a request to the token endpoint by sending the following parameters in the request body using the ``application/x-www-form-urlencoded`` format with a character encoding of ``UTF-8``.
+  The client acquires tokens by making a request to the token endpoint, posting the following parameters in the request body using the ``application/x-www-form-urlencoded`` format with a character encoding of ``UTF-8``.
 
   :formparam client_id: The client id.
   :formparam client_secret: The current client secret.
@@ -304,6 +347,9 @@ Clients use an :ref:`authorization code <authorization_code>` to acquire an acce
         "refresh_token": "PuFZ2Hyu6R6eIAxVG9Y4j4kFRYsCapISTR0n3AUM"
     }
 
+
+.. _refresh_token:
+
 =============
 Refresh Token
 =============
@@ -312,7 +358,7 @@ When an access token expires, or otherwise becomes invalid, a one-time-use refre
 
 .. http:post:: /oauth/token
 
-  The client makes a request to the (refresh) token endpoint by sending the following parameters in the request body using the ``application/x-www-form-urlencoded`` format with a character encoding of ``UTF-8``.
+  The client acquires tokens by making a request to the token endpoint, posting the following parameters in the request body using the ``application/x-www-form-urlencoded`` format with a character encoding of ``UTF-8``.
 
   :formparam client_id: The client id.
   :formparam client_secret: The current client secret.

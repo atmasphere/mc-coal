@@ -1,6 +1,10 @@
+.. _data_api:
+
 *********
 Data APIs
 *********
+
+These APIs allow read and limited write access to various elements in the COAL datastore.
 
 ======
 Common
@@ -22,6 +26,7 @@ Clients making calls to the API on behalf of a user require a bearer access toke
 
 Unless otherwise indicated, most services don't actually require authorization from a user. In these cases, the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter can be used in lieu of user authentication.
 
+
 .. _secured_services:
 
 """"""""""""""""
@@ -41,7 +46,8 @@ Secured Services
 
 .. http:post:: /api/data/(service)
 
-  :requestheader Authorization: A "Bearer" access token string. See the :ref:`OAuth2 <oauth2>` section for information on how to request an access token.
+  :requestheader Authorization: An access token using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_. See :ref:`OAuth2 <oauth2>` for information on how to request an access token. The user tied to the access token will be considered the "authenticated user" for services that expect one.
+
   :status 403: No authenticated user.
 
   **Examples**:
