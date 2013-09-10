@@ -8,8 +8,8 @@ Clients making calls to the :ref:`Data APIs <data_api>` on behalf of a user requ
 
 1. :ref:`Register <client_regististration>` the client via :http:post:`/oauth/register` and record the :ref:`client configuration <client_configuration>` contained in the response. These :ref:`client configuration <client_configuration>` values should be kept secure.
 2. :ref:`Redirect <authorization_code>` the user's browser to :http:get:`/oauth/auth` with the required :ref:`client configuration <client_configuration>` values in the query parameters, including a ``redirect_uri``. If the user grants the authorization to the client, the user's browser will be redirected to the ``redirect_uri`` with an :ref:`authorization code <authorization_code>`.
-3. :ref:`Request <access_token>` :http:post:`/oauth/token` with the :ref:`authorization code <authorization_code>` and other :ref:`client configuration <client_configuration>` values and is returned an :ref:`access token <access_token>` and a :ref:`refresh token <refresh_token>`.
-4. :ref:`Refresh <refresh_token>` the :ref:`access token <access_token>` if it expires or otherwise becomes invalid using a :ref:`refresh token <refresh_token>`.
+3. :ref:`Request <access_token>` :http:post:`/oauth/token` with the :ref:`authorization code <authorization_code>` plus other :ref:`client configuration <client_configuration>` values and record the :ref:`access token <access_token>` and :ref:`refresh token <refresh_token>` contained in the response.
+4. :ref:`Refresh <refresh_token>` the :ref:`access token <access_token>` if it expires or otherwise becomes invalid using the :ref:`refresh token <refresh_token>`.
 
 
 .. _client_regististration:
