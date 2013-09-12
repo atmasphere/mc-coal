@@ -387,6 +387,9 @@ class Server(ndb.Model):
         )
         kwargs['agent_key'] = agent.key
         instance = cls.get_or_insert('global_server', **kwargs)
+        if instance.agent_key is None:
+            instance.agent_key = agent.key
+            instance.put()
         return instance
 
     @classmethod
