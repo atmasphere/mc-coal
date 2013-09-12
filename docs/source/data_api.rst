@@ -33,9 +33,10 @@ Secured Services
 
 .. http:post:: /api/data/(service)
 
-  :requestheader Authorization: An access token using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_. See :ref:`OAuth2 <oauth2>` for information on how to request an access token. The user tied to the access token will be considered the "authenticated user" for services that expect one.
+  :requestheader Authorization: An access token using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_. See :ref:`OAuth2 <oauth2>` for information on how to request an access token. The user that granted authorization for the access token will be considered the "authenticated user" for services that expect one.
 
-  :status 403: No authenticated user.
+  :status 401 Unauthorized: Invalid or no ``Authorization`` request header provided.
+  :status 403 Forbidden: The authorization was not granted by an active user.
 
   **Examples**:
 
@@ -131,7 +132,7 @@ Some services return a list of results that can span requests. These services al
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
 
-  :status 200: Successfully called the *list_service*.
+  :status 200 OK: Successfully called the *list_service*.
 
     :Response Data:
       - **cursor** -- If more results are available, this root level response value will be the next cursor string to be passed back into this service to grab the next set of results. If no more results are available, this field will be absent.
@@ -183,7 +184,7 @@ Server API
 
   Get the minecraft server information.
 
-  :status 200: Successfully queried the server information.
+  :status 200 OK: Successfully queried the server information.
 
     .. _server_response_data:
 
@@ -235,7 +236,7 @@ User API
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
 
-  :status 200: Successfully queried the users.
+  :status 200 OK: Successfully queried the users.
 
     :Response Data: - **users** -- The list of users.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -321,7 +322,7 @@ User API
 
   :arg key: The requested user's key. (*required*)
 
-  :status 200: Successfully read the user.
+  :status 200 OK: Successfully read the user.
 
     :Response Data: See :ref:`User response data <user_response_data>`
 
@@ -358,11 +359,9 @@ User API
 
   Get the information for the authenticated user.
 
-  :status 200: Successfully read the current user.
+  :status 200 OK: Successfully read the current user.
 
     :Response Data: See :ref:`User response data <user_response_data>`
-
-  :status 403: No authenticated user.
 
   **Example request**:
 
@@ -404,7 +403,7 @@ Player API
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
 
-  :status 200: Successfully queried the players.
+  :status 200 OK: Successfully queried the players.
 
     :Response Data: - **players** -- The list of players.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -461,7 +460,7 @@ Player API
 
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
-  :status 200: Successfully read the player.
+  :status 200 OK: Successfully read the player.
 
     :Response Data: See :ref:`Player response data <player_response_data>`
 
@@ -508,7 +507,7 @@ Play Session API
   :query since: Return sessions with a login timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return sessions with a login timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the play sessions.
+  :status 200 OK: Successfully queried the play sessions.
 
     :Response Data: - **play_sessions** -- The list of play sessions.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -581,7 +580,7 @@ Play Session API
 
   :arg key: The requested play session's key. (*required*)
 
-  :status 200: Successfully read the play session.
+  :status 200 OK: Successfully read the play session.
 
     :Response Data: See :ref:`Play session response data <play_session_response_data>`
 
@@ -625,7 +624,7 @@ Play Session API
   :query since: Return sessions with a login timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return sessions with a login timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the play sessions.
+  :status 200 OK: Successfully queried the play sessions.
 
     :Response Data: - **play_sessions** -- The list of the player's play sessions.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -692,7 +691,7 @@ Chat API
   :query since: Return chats with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return chats with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the chats.
+  :status 200 OK: Successfully queried the chats.
 
     :Response Data: - **chats** -- The list of chats.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -765,8 +764,7 @@ Chat API
 
   :formparam chat: The chat text.
 
-  :status 201: Successfully queued the chat. It will be sent to the agent on the next ping.
-  :status 403: No authenticated user.
+  :status 201 Created: Successfully queued the chat. It will be sent to the agent on the next ping.
 
   **Example request**:
 
@@ -791,7 +789,7 @@ Chat API
 
   :arg key: The requested chat's log line key. (*required*)
 
-  :status 200: Successfully read the chat.
+  :status 200 OK: Successfully read the chat.
 
     :Response Data: See :ref:`Chat response data <chat_response_data>`
 
@@ -834,7 +832,7 @@ Chat API
   :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the chats.
+  :status 200 OK: Successfully queried the chats.
 
     :Response Data: - **chats** -- The list of the player's chats.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -897,7 +895,7 @@ Death API
   :query since: Return deaths with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return deaths with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the deaths.
+  :status 200 OK: Successfully queried the deaths.
 
     :Response Data: - **deaths** -- The list of deaths.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -964,7 +962,7 @@ Death API
 
   :arg key: The requested death's log line key. (*required*)
 
-  :status 200: Successfully read the death.
+  :status 200 OK: Successfully read the death.
 
     :Response Data: See :ref:`Death response data <death_response_data>`
 
@@ -1007,7 +1005,7 @@ Death API
   :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the deaths.
+  :status 200 OK: Successfully queried the deaths.
 
     :Response Data: - **deaths** -- The list of the player's deaths.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -1087,7 +1085,7 @@ Log Line API
   :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the log lines.
+  :status 200 OK: Successfully queried the log lines.
 
     :Response Data: - **log_lines** -- The list of log lines.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -1176,7 +1174,7 @@ Log Line API
 
   :arg key: The requested log line's key. (*required*)
 
-  :status 200: Successfully read the log line.
+  :status 200 OK: Successfully read the log line.
 
     :Response Data: See :ref:`Log line response data <log_line_response_data>`
 
@@ -1229,7 +1227,7 @@ Log Line API
   :query since: Return log lines with a timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the log lines.
+  :status 200 OK: Successfully queried the log lines.
 
     :Response Data: - **log_lines** -- The list of the player's log lines.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -1332,7 +1330,7 @@ Screenshot API
   :query since: Return screenshots with a create timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return screenshots with a create timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the screenshot.
+  :status 200 OK: Successfully queried the screenshot.
 
     :Response Data: - **screenshots** -- The list of screenshots.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
@@ -1399,7 +1397,7 @@ Screenshot API
 
   :arg key: The requested screenshot's key. (*required*)
 
-  :status 200: Successfully read the screenshot.
+  :status 200 OK: Successfully read the screenshot.
 
     :Response Data: See :ref:`Screenshot response data <screenshot_response_data>`
 
@@ -1441,7 +1439,7 @@ Screenshot API
   :query since: Return log lines with a create timestamp since the given datetime (inclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
   :query before: Return log lines with a create timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
-  :status 200: Successfully queried the screenshot.
+  :status 200 OK: Successfully queried the screenshot.
 
     :Response Data: - **screenshots** -- The list of the player's uploaded screenshots.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
