@@ -567,7 +567,7 @@ class AuthorizationProvider(Provider):
             # Handle get token from authorization code
             for x in ['redirect_uri', 'code']:
                 if not data.get(x):
-                    raise TypeError("Missing required OAuth 2.0 POST param: {0}".format(x))            
+                    raise TypeError("Missing required OAuth 2.0 POST param: {0}".format(x))
             return self.get_token(**data)
         except TypeError as exc:
             self._handle_exception(exc)

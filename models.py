@@ -23,6 +23,7 @@ from image import NdbImage
 import search
 
 
+AGENT_CLIENT_ID = 'mc-coal-agent'
 TICKS_PER_PLAY_SECOND = 20
 UNKNOWN_TAG = 'unknown'
 TIMESTAMP_TAG = 'timestamp'
@@ -213,10 +214,10 @@ class User(auth_models.User):
             self.put()
 
     def unauthorize_client_id(self, client_id):
+        from oauth import authorization_provider
         if client_id and client_id in self.authorized_client_ids:
             self.authorized_client_ids.remove(client_id)
             self.put()
-        from oauth import authorization_provider
         authorization_provider.discard_client_user_tokens(client_id, self.key)
 
     def is_player(self, player):
@@ -291,6 +292,7 @@ class Server(ndb.Model):
     is_raining = ndb.BooleanProperty()
     is_thundering = ndb.BooleanProperty()
     timestamp = ndb.DateTimeProperty()
+    agent_key = ndb.KeyProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -311,6 +313,10 @@ class Server(ndb.Model):
             if st >= 24000:
                 st %= 24000
         return st
+
+    @property
+    def agent(self):
+        return self.agent_key.get() if self.agent_key is not None else None
 
     def check_is_running(self):
         if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=2):
@@ -371,8 +377,16 @@ class Server(ndb.Model):
 
     @classmethod
     def create(cls, key_name, **kwargs):
-        instance = cls(**kwargs)
-        instance.put()
+        from oauth import Client, authorization_provider
+        agent = Client.get_or_insert(
+            Client.get_key_name(AGENT_CLIENT_ID),
+            client_id=AGENT_CLIENT_ID,
+            redirect_uris=['/'],
+            scope=['agent'],
+            secret=authorization_provider.generate_client_secret()
+        )
+        kwargs['agent_key'] = agent.key
+        instance = cls.get_or_insert('global_server', **kwargs)
         return instance
 
     @classmethod
@@ -381,7 +395,7 @@ class Server(ndb.Model):
         if data is not None:
             return ndb.Key(urlsafe=data)
         else:
-            server = Server.get_or_insert('global_server')
+            server = Server.create('global_server')
             memcache.add('global_key', server.key.urlsafe())
             return server.key
 
@@ -784,15 +798,14 @@ class PlaySession(UsernameModel):
         return query
 
 
-if ImageFilter is not None:
-    class MyGaussianBlur(ImageFilter.Filter):
-        name = "GaussianBlur"
+class GaussianBlurFilter(ImageFilter.Filter):
+    name = "GaussianBlur"
 
-        def __init__(self, radius=2):
-            self.radius = radius
+    def __init__(self, radius=10):
+        self.radius = radius
 
-        def filter(self, image):
-            return image.gaussian_blur(self.radius)
+    def filter(self, image):
+        return image.gaussian_blur(self.radius)
 
 
 def blur(screen_shot_key):
@@ -828,8 +841,8 @@ class ScreenShot(NdbImage, UsernameModel):
     def create_blurred(self):
         blob_reader = blobstore.BlobReader(self.blob_key)
         pil_image = Image.open(blob_reader)
-        my_filter = MyGaussianBlur(radius=10)
-        pil_image = pil_image.filter(my_filter)
+        screen_shot_filter = GaussianBlurFilter()
+        pil_image = pil_image.filter(screen_shot_filter)
         output = StringIO()
         pil_image.save(output, format="png")
         pil_image_data = output.getvalue()

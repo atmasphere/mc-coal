@@ -18,7 +18,7 @@ from restler.serializers import ModelStrategy
 from config import coal_config
 from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG
-from oauth import resource_provider
+from oauth import authenticate_agent_oauth_required, authenticate_user_required
 
 
 def validate_params(form_class):
@@ -88,12 +88,6 @@ class JsonHandler(webapp2.RequestHandler):
         self.json_response({}, status_code=code, errors=errors)
 
 
-def authenticate(handler):
-    if handler.request.get('p', None) != coal_config.API_PASSWORD:
-        handler.abort(403)
-    return None
-
-
 class OptionalBooleanField(fields.BooleanField):
     def process_data(self, value):
         if value is not None:
@@ -119,7 +113,7 @@ class PingForm(form.Form):
 
 
 class PingHandler(JsonHandler):
-    @authentication_required(authenticate=authenticate)
+    @authentication_required(authenticate=authenticate_agent_oauth_required)
     @validate_params(form_class=PingForm)
     def post(self):
         form = self.request.form
@@ -153,7 +147,7 @@ class LogLineForm(form.Form):
 
 
 class LogLineHandler(JsonHandler):
-    @authentication_required(authenticate=authenticate)
+    @authentication_required(authenticate=authenticate_agent_oauth_required)
     @validate_params(form_class=LogLineForm)
     def post(self):
         status_code = 200
@@ -178,31 +172,6 @@ def api_datetime(dt, zone=None, dt_format=u"%Y-%m-%d %H:%M:%S", tz_format=u"%Z%z
         dt_tz_format = "{0} {1}".format(dt_format, tz_format) if tz_format else dt_format
         return tz_dt.strftime(dt_tz_format) if tz_dt else utc_dt.strftime(dt_format)
     return None
-
-
-def authenticate_oauth(handler):
-    user = None
-    authorization = resource_provider.get_authorization()
-    if authorization.is_valid:
-        user = authorization.user_key.get()
-    return user
-
-
-def authenticate_user_or_password(handler):
-    # Check oauth
-    user = authenticate_oauth(handler)
-    if not (user and user.active):
-        # Check password
-        return authenticate(handler)
-    return user
-
-
-def authenticate_user_required(handler):
-    # Check oauth
-    user = authenticate_oauth(handler)
-    if not (user and user.active):
-        handler.abort(403)
-    return user
 
 
 class MultiPageForm(form.Form):
@@ -247,7 +216,7 @@ SERVER_STRATEGY = ModelStrategy(Server).include(*SERVER_FIELDS).include(**SERVER
 
 
 class ServerHandler(JsonHandler):
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     def get(self):
         server = Server.global_key().get()
         self.json_response(server, SERVER_STRATEGY)
@@ -266,7 +235,7 @@ USER_STRATEGY = ModelStrategy(User).include(*USER_FIELDS).include(**USER_FIELD_F
 
 
 class UsersHandler(MultiPageJsonHandler):
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=MultiPageForm)
     def get(self):
         self.json_response(self.fetch_page(User.query_by_email(), results_name='users'), USER_STRATEGY)
@@ -288,7 +257,7 @@ class UserKeyHandler(JsonHandler):
             self.abort(fail_code)
         return user
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     def get(self, key):
         user = self.get_user_by_key(key)
         self.json_response(user, USER_STRATEGY)
@@ -305,7 +274,7 @@ PLAYER_STRATEGY = ModelStrategy(Player).include(*PLAYER_FIELDS).include(**PLAYER
 
 
 class PlayersHandler(MultiPageJsonHandler):
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=MultiPageForm)
     def get(self):
         self.json_response(self.fetch_page(Player.query_by_username(), results_name='players'), PLAYER_STRATEGY)
@@ -322,7 +291,7 @@ class PlayerKeyUsernameHandler(JsonHandler):
             self.abort(404)
         return player
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     def get(self, key_username):
         player = self.get_player_by_key_or_username(key_username)
         self.json_response(player, PLAYER_STRATEGY)
@@ -360,7 +329,7 @@ class PlaySessionsHandler(MultiPageJsonHandler):
             self.abort(404)
         return player
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=PlaySessionsForm)
     def get(self, key_username=None):
         username = None
@@ -384,7 +353,7 @@ class PlaySessionKeyHandler(JsonHandler):
             self.abort(404)
         return play_session
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     def get(self, key):
         play_session = self.get_play_session_by_key(key)
         self.json_response(play_session, PLAY_SESSION_STRATEGY)
@@ -423,7 +392,7 @@ class ChatHandler(MultiPageJsonHandler):
             self.abort(404)
         return player
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ChatForm)
     def get(self, key_username=None):
         username = None
@@ -467,7 +436,7 @@ class ChatKeyHandler(JsonHandler):
             self.abort(404)
         return log_line
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     def get(self, key):
         log_line = self.get_log_line_by_key(key)
         if CHAT_TAG not in log_line.tags:
@@ -505,7 +474,7 @@ class DeathHandler(MultiPageJsonHandler):
             self.abort(404)
         return player
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=DeathForm)
     def get(self, key_username=None):
         username = None
@@ -541,7 +510,7 @@ class DeathKeyHandler(JsonHandler):
             self.abort(404)
         return log_line
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     def get(self, key):
         log_line = self.get_log_line_by_key(key)
         if DEATH_TAG not in log_line.tags:
@@ -579,7 +548,7 @@ class LogLinesHandler(MultiPageJsonHandler):
             self.abort(404)
         return player
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=LogLineForm)
     def get(self, key_username=None):
         username = None
@@ -616,7 +585,7 @@ class LogLineKeyHandler(JsonHandler):
             self.abort(404)
         return log_line
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     def get(self, key):
         log_line = self.get_log_line_by_key(key)
         self.json_response(log_line, LOG_LINE_STRATEGY)
@@ -651,7 +620,7 @@ class ScreenShotsHandler(MultiPageJsonHandler):
             self.abort(404)
         return player
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ScreenShotForm)
     def get(self, key_username=None):
         username = None
@@ -675,7 +644,7 @@ class ScreenShotKeyHandler(JsonHandler):
             self.abort(404)
         return screen_shot
 
-    @authentication_required(authenticate=authenticate_user_or_password)
+    @authentication_required(authenticate=authenticate_user_required)
     def get(self, key):
         screen_shot = self.get_screen_shot_by_key(key)
         self.json_response(screen_shot, SCREEN_SHOT_STRATEGY)
@@ -706,8 +675,3 @@ routes = [
     webapp2.Route('/api/data/screenshot/<key>', 'api.ScreenShotKeyHandler', name='api_data_screen_shot_key'),
     webapp2.Route('/api/data/screenshot', 'api.ScreenShotsHandler', name='api_data_screen_shot')
 ]
-
-# print "ADDING API ROUTES"
-# from main import application
-# for route in routes:
-#     application.router.add(route)

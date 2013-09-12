@@ -24,25 +24,12 @@ Authorization
 
 Clients making calls to the API on behalf of a user require a bearer access token which can be acquired via a simplified :ref:`OAuth2 <oauth2>` flow.
 
-Unless otherwise indicated, most services don't actually require authorization from a user. In these cases, the ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py`` passed via the ``p`` query parameter can be used in lieu of user authentication.
-
 
 .. _secured_services:
 
 """"""""""""""""
 Secured Services
 """"""""""""""""
-
-.. http:get:: /api/data/(service)
-
-  :query p: The ``COAL_API_PASSWORD`` as defined in ``mc_coal_config.py``.
-  :status 403: No authenticated user and/or invalid password provided.
-
-  **Examples**:
-
-  .. sourcecode:: http
-
-    GET /api/data/(service)?p=a_password HTTP/1.1
 
 .. http:post:: /api/data/(service)
 

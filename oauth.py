@@ -15,6 +15,7 @@ from wtforms.ext.csrf.session import SessionSecureForm
 from agar.auth import authentication_required
 
 from config import coal_config
+from models import Server
 from user_auth import UserHandler, authenticate
 
 
@@ -44,8 +45,26 @@ class Client(ndb.Model):
         return False
 
     @classmethod
-    def get_by_client_id(self, client_id):
-        key = ndb.Key(Client, client_id)
+    def is_agent(cls, client_or_id):
+        if isinstance(client_or_id, cls): 
+            key = client_or_id.key
+        else:
+            key = Client.get_key(client_or_id)
+        if key is not None:
+            return key == Server.global_key().get().agent_key
+        return False
+
+    @classmethod
+    def get_key_name(cls, client_id):
+        return client_id
+
+    @classmethod
+    def get_key(cls, client_id):
+        return ndb.Key(cls, cls.get_key_name(client_id))
+
+    @classmethod
+    def get_by_client_id(cls, client_id):
+        key = cls.get_key(client_id)
         return key.get()
 
     @classmethod
@@ -56,7 +75,7 @@ class Client(ndb.Model):
 class AuthorizationCode(ndb.Model):
     code = ndb.StringProperty(required=True)
     client_id = ndb.StringProperty(required=True)
-    user_key = ndb.KeyProperty(required=True)
+    user_key = ndb.KeyProperty()
     scope = ndb.StringProperty(repeated=True)
     expires_in = ndb.IntegerProperty(default=0)
     expires = ndb.ComputedProperty(lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in else None)
@@ -67,12 +86,20 @@ class AuthorizationCode(ndb.Model):
     def is_expired(self):
         return datetime.datetime.now() > self.expires if self.expires is not None else False
 
+    @classmethod
+    def get_key_name(cls, client_id, code):
+        return '{0}-{1}'.format(client_id, code)
+
+    @classmethod
+    def get_key(cls, client_id, code):
+        return ndb.Key(cls, cls.get_key_name(client_id, code))
+
 
 class Token(ndb.Model):
     access_token = ndb.StringProperty(required=True)
     refresh_token = ndb.StringProperty(required=True)
     client_id = ndb.StringProperty(required=True)
-    user_key = ndb.KeyProperty(required=True)
+    user_key = ndb.KeyProperty()
     scope = ndb.StringProperty(repeated=True)
     token_type = ndb.StringProperty()
     expires_in = ndb.IntegerProperty(default=0)
@@ -96,13 +123,14 @@ class Token(ndb.Model):
                 return False
         return True
 
+    @classmethod
+    def get_key(cls, access_token):
+        return ndb.Key(cls, access_token)
+
 
 class COALAuthorizationProvider(AuthorizationProvider):
-    def get_authorization_code_key_name(self, client_id, code):
-        return '{0}-{1}'.format(client_id, code)
-
     def _handle_exception(self, exc):
-        logging.info(exc)
+        logging.error(exc)
 
     @property
     def token_expires_in(self):
@@ -135,6 +163,8 @@ class COALAuthorizationProvider(AuthorizationProvider):
         return False
 
     def validate_redirect_uri(self, client_id, redirect_uri):
+        if Client.is_agent(client_id):
+            return True
         client = Client.get_by_client_id(client_id)
         if client is not None and redirect_uri in client.redirect_uris:
             return True
@@ -154,11 +184,17 @@ class COALAuthorizationProvider(AuthorizationProvider):
         return True
 
     def validate_access(self, client_id):
+        if Client.is_agent(client_id):
+            return True
         return webapp2.get_request().user.is_client_id_authorized(client_id)
 
     def from_authorization_code(self, client_id, code, scope):
-        key_name = self.get_authorization_code_key_name(client_id, code)
-        key = ndb.Key(AuthorizationCode, key_name)
+        if Client.is_agent(client_id):
+            agent = Client.get_by_client_id(client_id)
+            if code is not None and scope is not None and code == agent.secret and scope in agent.scope:
+                return code
+            return None
+        key = AuthorizationCode.get_key(client_id, code)
         auth_code = key.get()
         if auth_code is not None and auth_code.is_expired:
             key.delete()
@@ -173,8 +209,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
 
     def persist_authorization_code(self, client_id, code, scope):
         user = webapp2.get_request().user
-        key_name = self.get_authorization_code_key_name(client_id, code)
-        key = ndb.Key(AuthorizationCode, key_name)
+        key = AuthorizationCode.get_key(client_id, code)
         if key.get() is not None:
             raise Exception("duplicate_authorization_code")
         scope = scope.split() if scope else ['data']
@@ -182,20 +217,20 @@ class COALAuthorizationProvider(AuthorizationProvider):
         auth_code.put()
 
     def persist_token_information(self, client_id, scope, access_token, token_type, expires_in, refresh_token, data):
-        auth_code = data
-        key = ndb.Key(Token, access_token)
+        key = Token.get_key(access_token)
         if key.get() is not None:
             raise Exception("duplicate_access_token")
         if self.from_refresh_token(client_id, refresh_token, scope):
             raise Exception("duplicate_refresh_token")
         scope = scope.split() if scope else ['data']
-        token = Token(key=key, access_token=access_token, refresh_token=refresh_token, client_id=client_id, user_key=auth_code.user_key, scope=scope, token_type=token_type, expires_in=expires_in)
+        user_key = getattr(data, 'user_key', None) if data is not None else None
+        token = Token(key=key, access_token=access_token, refresh_token=refresh_token, client_id=client_id, user_key=user_key, scope=scope, token_type=token_type, expires_in=expires_in)
         token.put()
 
     def discard_authorization_code(self, client_id, code):
-        key_name = self.get_authorization_code_key_name(client_id, code)
-        key = ndb.Key(AuthorizationCode, key_name)
-        key.delete()
+        if not Client.is_agent(client_id):
+            key = AuthorizationCode.get_key(client_id, code)
+            key.delete()
 
     def discard_refresh_token(self, client_id, refresh_token):
         token = self.from_refresh_token(client_id, refresh_token, None)
@@ -203,11 +238,12 @@ class COALAuthorizationProvider(AuthorizationProvider):
             token.key.delete()
 
     def discard_client_user_tokens(self, client_id, user_key):
-        token_query = Token.query()
-        token_query = token_query.filter(Token.client_id == client_id)
-        token_query = token_query.filter(Token.user_key == user_key)
-        keys = [key for key in token_query.iter(keys_only=True)]
-        ndb.delete_multi(keys)
+        if not Client.is_agent(client_id):
+            token_query = Token.query()
+            token_query = token_query.filter(Token.client_id == client_id)
+            token_query = token_query.filter(Token.user_key == user_key)
+            keys = [key for key in token_query.iter(keys_only=True)]
+            ndb.delete_multi(keys)
 
     def get_registration_client_uri(self, client_id):
         """Get the fully qualified URL of the client configuration endpoint for the client_id.
@@ -265,7 +301,8 @@ class COALAuthorizationProvider(AuthorizationProvider):
         client = Client.get_by_client_id(client_id)
         if client is None:
             data['scope'] = ['data']
-            client = Client(key=ndb.Key(Client, client_id), client_id=client_id, **data)
+            key = Client.get_key(client_id)
+            client = Client(key=key, client_id=client_id, **data)
         else:
             client.populate(**data)
         client.put()
@@ -281,10 +318,13 @@ class COALAuthorizationProvider(AuthorizationProvider):
         token_query = Token.query()
         token_query = token_query.filter(Token.client_id == client_id)
         keys = [key for key in token_query.iter(keys_only=True)]
+        code_query = AuthorizationCode.query()
+        code_query = code_query.filter(AuthorizationCode.client_id == client_id)
+        keys += [key for key in code_query.iter(keys_only=True)]
         ndb.delete_multi(keys)
 
     def discard_client_information(self, client_id):
-        key = ndb.Key(Client, client_id)
+        key = Client.get_key(client_id)
         key.delete()
         self.discard_client_tokens(client_id)
 
@@ -296,8 +336,8 @@ class COALAuthorizationProvider(AuthorizationProvider):
 
     def validate_registration_access_token(self, client_id, registration_access_token):
         client = Client.get_by_client_id(client_id)
-        if client is not None and client.registration_access_token == registration_access_token:
-            return True
+        if client is not None and client.registration_access_token is not None:
+            return client.registration_access_token == registration_access_token
         return False
 
     def validate_client_secret_expired(self, client_id):
@@ -324,7 +364,7 @@ class COALResourceProvider(ResourceProvider):
         return webapp2.get_request().headers.get('Authorization', None)
 
     def validate_access_token(self, access_token, authorization):
-        key = ndb.Key(Token, access_token)
+        key = Token.get_key(access_token)
         token = key.get()
         if token is not None and not token.is_expired and token.validate_scope(self.SCOPE):
             authorization.is_valid = True
@@ -465,6 +505,45 @@ class TestHandler(webapp2.RequestHandler):
             body = u"}}"
         self.response.set_status(200)
         self.response.out.write(body)
+
+
+def authenticate_agent_oauth(handler):
+    authorization = agent_resource_provider.get_authorization()
+    return authorization if authorization is not None and authorization.is_valid else None
+
+
+def authenticate_agent_oauth_required(handler):
+    authorization = authenticate_agent_oauth(handler)
+    if authorization is None:
+        handler.abort(401)
+    return authorization
+
+
+def authenticate_oauth(handler):
+    authorization = resource_provider.get_authorization()
+    return authorization if authorization is not None and authorization.is_valid else None
+
+
+def authenticate_oauth_required(handler):
+    authorization = authenticate_oauth(handler)
+    if authorization is None:
+        handler.abort(401)
+    return authorization
+
+
+def authenticate_user(handler):
+    user = None
+    authorization = authenticate_oauth_required(handler)
+    if authorization.is_valid:
+        user = authorization.user_key.get() if authorization.user_key is not None else None
+    return user
+
+
+def authenticate_user_required(handler):
+    user = authenticate_user(handler)
+    if not (user and user.active):
+        handler.abort(403)
+    return user
 
 
 routes = [

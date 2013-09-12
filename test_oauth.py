@@ -60,11 +60,9 @@ class OauthTest(BaseTest, WebTest):
         }
         self.client = Client(key=key, **data)
         self.client.put()
-        # logging.disable(logging.ERROR)
 
     def tearDown(self):
         super(OauthTest, self).tearDown()
-        logging.disable(logging.NOTSET)
 
     def log_in_user(self, email=None, is_active=True, is_admin=False):
         email = email or TEST_USER_EMAIL
@@ -99,7 +97,7 @@ class OauthTest(BaseTest, WebTest):
             pass
 
     def get_authorization_code(self, email=None):
-        self.log_in_user(email=email)
+        self.user = self.log_in_user(email=email)
         url = '/oauth/auth'
         query_params = {
             'client_id': TEST_CLIENT_ID,
@@ -124,7 +122,6 @@ class OauthTest(BaseTest, WebTest):
         response = self.post(url, params)
         self.assertRedirects(response)
         self.assertRegexpMatches(response.headers['Location'], ur"https://localhost/\?code=.+")
-        self.assertEqual(1, Client.query().count())
         start = response.headers['Location'].find('=')
         code = response.headers['Location'][start+1:]
         self.log_out_user()
@@ -245,7 +242,7 @@ class AuthorizationCodeHandlerTest(OauthTest):
         response = self.post(url, params)
         self.assertRedirects(response)
         self.assertRegexpMatches(response.headers['Location'], ur"https://localhost/\?code=.+")
-        self.assertEqual(1, Client.query().count())
+        self.assertEqual(2, Client.query().count())
 
     def test_post_deny_invalid_client(self):
         url = self.url
@@ -298,7 +295,7 @@ class AuthorizationCodeHandlerTest(OauthTest):
         params = {'csrf_token': csrf_token, 'deny': 'Deny'}
         response = self.post(url, params)
         self.assertRedirects(response, to=TEST_REDIRECT_URI+"?error=access_denied")
-        self.assertEqual(1, Client.query().count())
+        self.assertEqual(2, Client.query().count())
 
     def test_post_incorrect_redirect_uri(self):
         self.get_authorization_code()
@@ -389,7 +386,9 @@ class TokenHandlerTest(OauthTest):
     def test_post_invalid(self):
         self.get_authorization_code()
         params = {}
+        logging.disable(logging.ERROR)
         response = self.post(self.url, params)
+        logging.disable(logging.NOTSET)
         self.assertBadRequest(response)
         self.assertEqual(0, Token.query().count())
         body = json.loads(response.body)
@@ -571,7 +570,9 @@ class RegistrationHandlerTest(OauthTest):
 
     def test_post_invalid_request(self):
         params = {}
+        logging.disable(logging.ERROR)
         response = self.post_json(self.url, params=params)
+        logging.disable(logging.NOTSET)
         self.assertBadRequest(response)
         body = json.loads(response.body)
         self.assertEqual(body['error'], 'invalid_request')
@@ -706,7 +707,9 @@ class ClientHanderTest(OauthTest):
             'client_uri': TEST_CLIENT_URI,
             'logo_uri': TEST_LOGO_URI
         }
+        logging.disable(logging.ERROR)
         response = self.put_json(self.url, params=params, bearer_token=self.client.registration_access_token)
+        logging.disable(logging.NOTSET)
         self.assertBadRequest(response)
         body = json.loads(response.body)
         self.assertEqual(body['error'], 'invalid_request')

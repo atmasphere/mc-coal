@@ -2,17 +2,15 @@
 
 import argparse
 import datetime
-import httplib
-import json
 import logging
 import os
 import pytz
 import re
 import sys
 import time
-import urllib
 
 from nbt import nbt
+import requests
 import timezones
 import yaml
 
@@ -37,12 +35,62 @@ class NoHostException(AgentException):
     pass
 
 
-class NoPasswordException(AgentException):
+class NoSecretException(AgentException):
     pass
 
 
 class NoPingException(AgentException):
     pass
+
+class AgentClient(object):
+    def __init__(self, host, secret, access_token=None, refresh_token=None, *args, **kwargs):
+        self.host = host
+        self.secret = secret
+        self.access_token = access_token
+        self.refresh_token = refresh_token
+        super(AgentClient, self).__init__(*args, **kwargs)
+
+    @property
+    def headers(self):
+        if self.access_token:
+            return {
+                'Authorization': 'Bearer {0}'.format(self.access_token)
+            }
+        return None
+
+    def request_tokens(self):
+        url = "http://{0}/oauth/token".format(self.host)
+        data = {
+            'client_id': 'mc-coal-agent',
+            'client_secret': self.secret,
+            'scope': 'agent'
+        }
+        if self.refresh_token is None:
+            data['grant_type'] = 'authorization_code'
+            data['code'] = self.secret
+            data['redirect_uri'] = '/'
+        else:
+            data['grant_type'] = 'refresh_token'
+            data['refresh_token'] = self.refresh_token
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+            token_response = response.json()
+            self.access_token = token_response['access_token']
+            self.refresh_token = token_response['refresh_token']
+        except requests.exceptions.RequestException:
+            self.access_token = None
+            self.refresh_token = None
+            raise
+
+    def post(self, url, params):
+        url = "http://{0}{1}".format(self.host, url)
+        response = requests.post(url, data=params, headers=self.headers)
+        if response.status_code == 401:
+            self.request_tokens()
+            response = requests.post(url, data=params, headers=self.headers)
+        response.raise_for_status()
+        return response
 
 
 def read_level(levelfile):
@@ -115,14 +163,10 @@ def execute_commands(commandfifo, commands):
                 command_fifo.write(c.encode('ISO-8859-2', errors='ignore'))
 
 
-def ping_host(host, password, running, server_day, server_time, raining, thundering, commandfifo, fail=True):
+def ping_host(client, running, server_day, server_time, raining, thundering, commandfifo, fail=True):
     logger = logging.getLogger('ping')
     try:
-        headers = {
-            "Content-type": "application/x-www-form-urlencoded",
-            "Accept": "text/plain"
-        }
-        params = {'server_name': host}
+        params = {'server_name': client.host}
         if running is not None:
             params['is_server_running'] = running
         if server_day is not None and server_time is not None:
@@ -130,24 +174,17 @@ def ping_host(host, password, running, server_day, server_time, raining, thunder
             params['server_time'] = server_time
         params['is_raining'] = raining
         params['is_thundering'] = thundering
-        params = urllib.urlencode(params)
-        conn = httplib.HTTPConnection(host)
-        conn.request("POST", "/api/agent/ping?p={0}".format(password), params, headers)
-        response = conn.getresponse()
-        if response.status == 200:
-            body = json.loads(response.read())
-            last_line = body['last_line']
-            commands = body['commands']
-            if commands:
-                execute_commands(commandfifo, commands)
-            return last_line
-        else:
-            logger.error(u"UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
-            logger.debug(u"{0}".format(response.read()))
-    except Exception, e:
-        logger.error(u"{0}".format(e))
-    if fail:
-        raise NoPingException()
+        response_json = client.post("/api/agent/ping", params=params).json()
+        commands = response_json['commands']
+        last_line = response_json['last_line']
+        logger.debug(u"PING: {0}, {1}".format(commands, last_line))
+        if commands:
+            execute_commands(commandfifo, commands)
+        return last_line
+    except requests.exceptions.RequestException as e:
+        logger.error(u"UNEXPECTED RESPONSE {0}".format(e))
+        if fail:
+            raise NoPingException()
 
 
 def is_moved_wrongly_warning(line):
@@ -162,7 +199,7 @@ def is_chat(line):
     return re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
 
 
-def post_line(host, line, password, zone, skip_chat):
+def post_line(client, line, zone, skip_chat):
     logger = logging.getLogger('log_line')
     if is_moved_wrongly_warning(line):
         logger.debug(u"SKIPPING '{0}'".format(line))
@@ -173,38 +210,28 @@ def post_line(host, line, password, zone, skip_chat):
     if skip_chat and is_chat(line):
         logger.debug(u"SKIPPING '{0}'".format(line))
         return
-    headers = {
-        "Content-type": "application/x-www-form-urlencoded",
-        "Accept": "text/plain"
-    }
-    params = urllib.urlencode({'line': line.encode('utf-8', errors='ignore'), 'zone': zone})
+    params = {'line': line.encode('utf-8', errors='ignore'), 'zone': zone}
     tries = 0
     while True:
-        tries = tries - 1
+        tries = tries + 1
         try:
-            conn = httplib.HTTPConnection(host)
-            conn.request("POST", "/api/agent/log_line?p={0}".format(password), params, headers)
-            response = conn.getresponse()
-            if response.status == 201 or response.status == 200:
-                logger.debug(u"REPORTED '{0}'".format(line))
-                break
-            else:
-                logger.error(u"UNEXPECTED RESPONSE: {0} {1}".format(response.status, response.reason))
-                logger.debug(u"{0}".format(response.read()))
-        except Exception, e:
-            logger.error(u"{0}".format(e))
+            response = client.post("/api/agent/log_line", params)
+            logger.debug(u"REPORTED ({0}): {1}".format(response.status_code, line))
+            break
+        except requests.exceptions.RequestException as e:
+            logger.error(u"UNEXPECTED RESPONSE {0}".format(e))
         timeout = 10 if tries < 10 else 30
         logger.info(u"SLEEPING FOR {0} SECONDS...".format(timeout))
         time.sleep(timeout)
 
 
-def line_reader(logfile, last_ping, last_time, host, password, levelfile, pidfile, commandfifo):
+def line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo):
     while True:
         if datetime.datetime.now() > last_ping + datetime.timedelta(seconds=5):
             running = is_server_running(pidfile)
             server_day, server_time, raining, thundering = read_level(levelfile)
             last_time = datetime.datetime.now()
-            ping_host(host, password, running, server_day, server_time, raining, thundering, commandfifo, fail=False)
+            ping_host(client, running, server_day, server_time, raining, thundering, commandfifo, fail=False)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()
@@ -217,7 +244,7 @@ def line_reader(logfile, last_ping, last_time, host, password, levelfile, pidfil
             yield line, last_ping, last_time
 
 
-def tail(host, filename, password, zone, parse_history, skip_chat, last_line, last_ping, last_time, levelfile, pidfile, commandfifo):
+def tail(client, filename, zone, parse_history, skip_chat, last_line, last_ping, last_time, levelfile, pidfile, commandfifo):
     logger = logging.getLogger('main')
     with open(filename, 'r') as logfile:
         st_results = os.stat(filename)
@@ -231,9 +258,9 @@ def tail(host, filename, password, zone, parse_history, skip_chat, last_line, la
             st_size = st_results[6]
             logfile.seek(st_size)
             read_last_line = True
-        for line, last_ping, last_time in line_reader(logfile, last_ping, last_time, host, password, levelfile, pidfile, commandfifo):
+        for line, last_ping, last_time in line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo):
             if read_last_line:
-                post_line(host, line, password, zone, skip_chat)
+                post_line(client, line, zone, skip_chat)
                 if skip_chat:
                     where = logfile.tell()
                     if where >= st_size:
@@ -258,14 +285,6 @@ def get_application_host():
     except:
         pass
     return None
-
-
-def get_password():
-    try:
-        from appengine_config import COAL_API_PASSWORD
-    except ImportError:
-        return None
-    return COAL_API_PASSWORD
 
 
 def get_local_zone():
@@ -325,8 +344,8 @@ def main(argv):
         help="The MC COAL server host name (default: {0})".format("'{0}'".format(coal_host) if coal_host else '<No default found in app.yaml>')
     )
     parser.add_argument(
-        '--coal_password',
-        help="The MC COAL server API password. The default value is pulled from 'appengine_config.py'"
+        '--agent_secret',
+        help="The MC COAL agent API secret."
     )
     parser.add_argument(
         '--mc_logfile',
@@ -376,9 +395,9 @@ def main(argv):
         coal_host = args.coal_host
         if not coal_host:
             raise NoHostException()
-        coal_password = args.coal_password or get_password()
-        if not coal_password:
-            raise NoPasswordException()
+        agent_secret = args.agent_secret
+        if not agent_secret:
+            raise NoSecretException()
         mc_logfile = args.mc_logfile
         mc_levelfile = args.mc_levelfile
         mc_pidfile = args.mc_pidfile
@@ -387,7 +406,8 @@ def main(argv):
         skip_chat_history = args.skip_chat_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
-        last_line = ping_host(coal_host, coal_password, None, None, None, None, None, mc_commandfile)
+        client = AgentClient(coal_host, agent_secret)
+        last_line = ping_host(client, None, None, None, None, None, mc_commandfile)
         parse_all = args.parse_all
         if parse_all:
             last_line = None
@@ -395,9 +415,8 @@ def main(argv):
         last_time = datetime.datetime.now()
         logger.info(u"Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
         tail(
-            coal_host,
+            client,
             mc_logfile,
-            coal_password,
             tz.zone,
             parse_mc_history,
             skip_chat_history,
@@ -414,8 +433,8 @@ def main(argv):
         logger.error(u"Invalid timezone: '{0}'".format(mc_timezone))
     except NoHostException:
         logger.error(u"No MC COAL server host name provided.")
-    except NoPasswordException:
-        logger.error(u"No MC COAL server API password provided.")
+    except NoSecretException:
+        logger.error(u"No agent secret provided.")
     except KeyboardInterrupt:
         logger.info(u"Canceled")
     except SystemExit:
