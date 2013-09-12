@@ -59,7 +59,7 @@ class AgentClient(object):
         return None
 
     def request_tokens(self):
-        url = "http://{0}/oauth/token".format(self.host)
+        url = "https://{0}/oauth/token".format(self.host)
         data = {
             'client_id': 'mc-coal-agent',
             'client_secret': self.secret,
@@ -84,7 +84,7 @@ class AgentClient(object):
             raise
 
     def post(self, url, params):
-        url = "http://{0}{1}".format(self.host, url)
+        url = "https://{0}{1}".format(self.host, url)
         response = requests.post(url, data=params, headers=self.headers)
         if response.status_code == 401:
             self.request_tokens()
