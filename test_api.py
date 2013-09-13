@@ -254,7 +254,7 @@ class AgentApiTest(ApiTest):
 
 
 class PingTest(AgentApiTest):
-    URL = '/api/v1/agent/ping'
+    URL = '/api/agent/ping'
     ALLOWED = ['POST']
 
     def test_post(self):
@@ -371,7 +371,7 @@ class PingTest(AgentApiTest):
 
 
 class LogLineTest(AgentApiTest):
-    URL = '/api/v1/agent/log_line'
+    URL = '/api/agent/log_line'
     ALLOWED = ['POST']
 
     def test_post_missing_param(self):
@@ -679,7 +679,7 @@ class LogLineTest(AgentApiTest):
 
 
 class DeathLogLineTest(AgentApiTest):
-    URL = '/api/v1/agent/log_line'
+    URL = '/api/agent/log_line'
     ALLOWED = ['POST']
 
     def test_all_deaths(self):

@@ -651,8 +651,8 @@ class ScreenShotKeyHandler(JsonHandler):
 
 
 routes = [
-    webapp2.Route('/api/v1/agent/ping', 'api.PingHandler', name='api_agent_ping'),
-    webapp2.Route('/api/v1/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line'),
+    webapp2.Route('/api/agent/ping', 'api.PingHandler', name='api_agent_ping'),
+    webapp2.Route('/api/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line'),
 
     webapp2.Route('/api/v1/data/servers', 'api.ServerHandler', name='api_data_servers'),
     webapp2.Route('/api/v1/data/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
