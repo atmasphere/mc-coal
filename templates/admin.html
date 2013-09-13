@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% set nav="Admin" %}
+
+{% block title %}Admin{% endblock %}
+
+{% block content %}
+    <div class="title box wrap">
+        <h2 class="box"><a href="{{ uri_for('users') }}">Users</a></h2>
+    </div>
+    <div class="title box wrap">
+        <h1 class="box">Agent Secret:</h1> {{ agent_secret }}
+{% endblock %}

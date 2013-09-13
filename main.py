@@ -17,7 +17,7 @@ from agar.env import on_production_server
 from base_handler import uri_for_pagination
 import channel
 from config import coal_config
-from models import get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command
+from models import get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command, Server
 import search
 from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin, authenticate_public
 
@@ -214,6 +214,17 @@ class ScreenShotRemoveHandler(UserHandler):
         self.redirect(webapp2.uri_for('screen_shots'))
 
 
+class AdminHandler(PagingHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self):
+        results, previous_cursor, next_cursor = self.get_results_with_cursors(
+            User.query_by_email(), User.query_by_email_reverse(), coal_config.RESULTS_PER_PAGE
+        )
+        agent_secret = Server.global_key().get().agent_key.get().secret
+        context = {'agent_secret': agent_secret}
+        self.render_template('admin.html', context=context)
+
+
 class UserForm(form.Form):
     active = fields.BooleanField(u'Active', [validators.Optional()])
     admin = fields.BooleanField(u'Admin', [validators.Optional()])
@@ -294,9 +305,10 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/screen_shot_uploaded', handler=ScreenShotUploadedHandler, strict_slash=True, name="screen_shot_uploaded"),
         RedirectRoute('/screen_shots', handler=ScreenShotsHandler, strict_slash=True, name="screen_shots"),
         RedirectRoute('/screen_shot/<key>/remove', handler=ScreenShotRemoveHandler, strict_slash=True, name="screen_shot_remove"),
-        RedirectRoute('/users', handler=UsersHandler, strict_slash=True, name="users"),
-        RedirectRoute('/user/<key>', handler=UserEditHandler, strict_slash=True, name="user"),
-        RedirectRoute('/user/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove")
+        RedirectRoute('/admin', handler=AdminHandler, strict_slash=True, name="admin"),
+        RedirectRoute('/admin/users', handler=UsersHandler, strict_slash=True, name="users"),
+        RedirectRoute('/admin/user/<key>', handler=UserEditHandler, strict_slash=True, name="user"),
+        RedirectRoute('/admin/user/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove")
     ],
     config={
         'webapp2_extras.sessions': {

@@ -245,8 +245,45 @@ class ScreenShotUploadTest(AuthTest):
     #     self.assertRedirects(response, '/')
 
 
+class AdminTest(AuthTest):
+    URL = '/admin'
+
+    def test_get_auth(self):
+        self.log_in_admin()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+
+    def test_login_again(self):
+        self.log_in_admin()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+        self.log_out_user()
+        response = self.get(self.URL)
+        self.assertRedirects(response)
+        self.log_in_admin()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+
+    def test_logout(self):
+        self.log_in_admin()
+        response = self.get(self.URL)
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+        self.log_out_user()
+        response = self.get(self.URL)
+        self.assertRedirects(response)
+
+    def test_get_not_admin(self):
+        self.log_in_user()
+        response = self.get(self.URL)
+        self.assertRedirects(response)
+
+
 class UsersTest(AuthTest):
-    URL = '/users'
+    URL = '/admin/users'
 
     def test_get_auth(self):
         self.log_in_admin()
