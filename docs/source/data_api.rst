@@ -4,36 +4,36 @@
 Data APIs
 *********
 
-These APIs allow read and limited write access to various elements in the COAL datastore.
+These APIs allow read and limited write access to various resources in the COAL datastore.
 
 ======
 Common
 ======
 
-The following sections define parts of the API that are common across all services.
+The following sections define parts of the API that are common across all resources.
 
 -------
 Request
 -------
 
-The following sections define common parts of API requests.
+The following sections define common parts of a resource request.
 
 ^^^^^^^^^^^^^
 Authorization
 ^^^^^^^^^^^^^
 
-Clients making calls to the API on behalf of a user require a bearer access token which can be acquired via a simplified :ref:`OAuth2 <oauth2>` flow.
+Clients making calls to the API on behalf of a user require a bearer access token which can be acquired via a simple :ref:`authorization <authorization>` flow.
 
 
-.. _secured_services:
+.. _secured_resources:
 
-""""""""""""""""
-Secured Services
-""""""""""""""""
+"""""""""""""""""
+Secured Resources
+"""""""""""""""""
 
-.. http:post:: /api/data/(service)
+.. http:post:: /api/v1/data/(resource)
 
-  :requestheader Authorization: An access token using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_. See :ref:`OAuth2 <oauth2>` for information on how to request an access token. The user that granted authorization for the access token will be considered the "authenticated user" for services that expect one.
+  :requestheader Authorization: An :ref:`access token <access_token>` using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_. The user that granted authorization for the access token will be considered the "authenticated user" for resources that expect one.
 
   :status 401 Unauthorized: Invalid or no ``Authorization`` request header provided.
   :status 403 Forbidden: The authorization was not granted by an active user.
@@ -42,7 +42,7 @@ Secured Services
 
   .. sourcecode:: http
 
-    POST /api/data/(service) HTTP/1.1
+    POST /api/v1/data/(resource) HTTP/1.1
     Authorization: Bearer 8wB8QtpULBVNuL2mqBaWdIRWX30qKtIK3E5QbOWP
 
 
@@ -50,7 +50,7 @@ Secured Services
 Response
 --------
 
-The following sections define common parts of API responses.
+The following sections define common parts of a resource response.
 
 ^^^^^^^^^^^^
 Status Codes
@@ -58,7 +58,7 @@ Status Codes
 
 - :http:statuscode:`200`
 
-  The body will be a JSON dictionary whose contents are service specific:
+  The body will be a JSON dictionary whose contents are resource specific:
 
   .. sourcecode:: javascript
 
@@ -70,7 +70,7 @@ Status Codes
 
 - :http:statuscode:`201`
 
-  The body will be a JSON dictionary whose contents are service specific:
+  The body will be a JSON dictionary whose contents are resource specific:
 
   .. sourcecode:: javascript
 
@@ -90,7 +90,7 @@ Status Codes
       "errors": "This was a bad request because..."
     }
 
-  The ``errors`` string is service and error specific.
+  The ``errors`` string is resource and error specific.
 
 - :http:statuscode:`403` -- The body will be empty.
 - :http:statuscode:`404` -- The body will be empty.
@@ -106,7 +106,7 @@ Status Codes
       "errors": "This request failed because..."
     }
 
-  The ``errors`` string is service and error specific.
+  The ``errors`` string is resource and error specific.
 
 ^^^^^^^^^^
 Timestamps
@@ -122,26 +122,26 @@ Timestamps
 
 .. _list:
 
--------------
-List Services
--------------
-Some services return a list of results that can span requests. These services all take a common set of query parameters and return a common set of response data to help iterate through large lists of data.
+--------------
+List Resources
+--------------
+Some resources return a list of results that can span requests. These resources all take a common set of query parameters and return a common set of response data to help iterate through large lists of data.
 
-.. http:get:: /api/data/(list_service)
+.. http:get:: /api/v1/data/(list_resource)
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
 
-  :status 200 OK: Successfully called the *list_service*.
+  :status 200 OK: Successfully called the *list_resource*.
 
     :Response Data:
-      - **cursor** -- If more results are available, this root level response value will be the next cursor string to be passed back into this service to grab the next set of results. If no more results are available, this field will be absent.
+      - **cursor** -- If more results are available, this root level response value will be the next cursor string to be passed back into this resource to grab the next set of results. If no more results are available, this field will be absent.
 
   **Example first request**:
 
   .. sourcecode:: http
 
-    GET /api/data/(list_service)?size=5 HTTP/1.1
+    GET /api/v1/data/(list_resource)?size=5 HTTP/1.1
 
   **Example first response**:
 
@@ -161,7 +161,7 @@ Some services return a list of results that can span requests. These services al
 
   .. sourcecode:: http
 
-    GET /api/data/(list_service)?size=5&cursor=hsajkhasjkdy8y3h3h8fhih38djhdjdj HTTP/1.1
+    GET /api/v1/data/(list_resources)?size=5&cursor=hsajkhasjkdy8y3h3h8fhih38djhdjdj HTTP/1.1
 
   **Example second response**:
 
@@ -180,7 +180,7 @@ Some services return a list of results that can span requests. These services al
 ==========
 Server API
 ==========
-.. http:get:: /api/data/server
+.. http:get:: /api/v1/data/servers
 
   Get the minecraft server information.
 
@@ -202,7 +202,7 @@ Server API
 
   .. sourcecode:: http
 
-    GET /api/data/server HTTP/1.1
+    GET /api/v1/data/servers HTTP/1.1
 
   **Example response**:
 
@@ -229,7 +229,7 @@ Server API
 ========
 User API
 ========
-.. http:get:: /api/data/user
+.. http:get:: /api/v1/data/users
 
   Get a :ref:`list <list>` of all users ordered by email.
 
@@ -239,7 +239,7 @@ User API
   :status 200 OK: Successfully queried the users.
 
     :Response Data: - **users** -- The list of users.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
     Each entry in **users** is a dictionary of the user information.
 
@@ -261,7 +261,7 @@ User API
 
   .. sourcecode:: http
 
-    GET /api/data/user HTTP/1.1
+    GET /api/v1/data/users HTTP/1.1
 
   **Example response**:
 
@@ -316,7 +316,7 @@ User API
       ]
     }
 
-.. http:get:: /api/data/user/(key)
+.. http:get:: /api/v1/data/users/(key)
 
   Get the information for the user (`key`).
 
@@ -330,7 +330,7 @@ User API
 
   .. sourcecode:: http
 
-    GET /api/data/user/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw HTTP/1.1
+    GET /api/v1/data/users/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw HTTP/1.1
 
   **Example response**:
 
@@ -355,7 +355,7 @@ User API
       "email": "t@gmail.com"
     }
 
-.. http:get:: /api/data/user/self
+.. http:get:: /api/v1/data/users/self
 
   Get the information for the authenticated user.
 
@@ -367,7 +367,7 @@ User API
 
   .. sourcecode:: http
 
-    GET /api/data/user/self HTTP/1.1
+    GET /api/v1/data/users/self HTTP/1.1
 
   **Example response**:
 
@@ -396,7 +396,7 @@ User API
 ==========
 Player API
 ==========
-.. http:get:: /api/data/player
+.. http:get:: /api/v1/data/players
 
   Get a :ref:`list <list>` of all minecraft players ordered by username.
 
@@ -406,7 +406,7 @@ Player API
   :status 200 OK: Successfully queried the players.
 
     :Response Data: - **players** -- The list of players.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
     Each entry in **players** is a dictionary of the player information.
 
@@ -423,7 +423,7 @@ Player API
 
   .. sourcecode:: http
 
-    GET /api/data/player HTTP/1.1
+    GET /api/v1/data/players HTTP/1.1
 
   **Example response**:
 
@@ -454,7 +454,7 @@ Player API
       ]
     }
 
-.. http:get:: /api/data/player/(key_username)
+.. http:get:: /api/v1/data/players/(key_username)
 
   Get the information for the player (`key_username`).
 
@@ -468,13 +468,13 @@ Player API
 
   .. sourcecode:: http
 
-    GET /api/data/player/gumptionthomas HTTP/1.1
+    GET /api/v1/data/players/gumptionthomas HTTP/1.1
 
   **OR**
 
   .. sourcecode:: http
 
-    GET /api/data/player/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM HTTP/1.1
+    GET /api/v1/data/players/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM HTTP/1.1
 
   **Example response**:
 
@@ -495,10 +495,10 @@ Player API
     }
 
 
-================
-Play Session API
-================
-.. http:get:: /api/data/play_session
+===========
+Session API
+===========
+.. http:get:: /api/v1/data/sessions
 
   Get a :ref:`list <list>` of all minecraft play sessions ordered by descending login timestamp.
 
@@ -509,30 +509,30 @@ Play Session API
 
   :status 200 OK: Successfully queried the play sessions.
 
-    :Response Data: - **play_sessions** -- The list of play sessions.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+    :Response Data: - **sessions** -- The list of play sessions.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **play_sessions** is a dictionary of the play session information.
+    Each entry in **sessions** is a dictionary of the play session information.
 
-    .. _play_session_response_data:
+    .. _session_response_data:
 
-    :Play Session: - **key** -- The play session key.
-                   - **username** -- The minecraft username associated with the play session.
-                   - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
-                   - **user_key** -- The user key. ``null`` if the username is not mapped to a player or the player is not mapped to a user.
-                   - **login_timestamp** -- The timestamp of the play session start. It will be reported in the agent's timezone.
-                   - **logout_timestamp** -- The timestamp of the play session end. It will be reported in the agent's timezone.
-                   - **duration** -- The length of the play session in seconds.
-                   - **login_log_line_key** -- The login log line key. May be ``null``.
-                   - **logout_log_line_key** -- The logout log line key. May be ``null``.
-                   - **created** -- The creation timestamp.
-                   - **updated** -- The updated timestamp.
+    :Session: - **key** -- The play session key.
+              - **username** -- The minecraft username associated with the play session.
+              - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
+              - **user_key** -- The user key. ``null`` if the username is not mapped to a player or the player is not mapped to a user.
+              - **login_timestamp** -- The timestamp of the play session start. It will be reported in the agent's timezone.
+              - **logout_timestamp** -- The timestamp of the play session end. It will be reported in the agent's timezone.
+              - **duration** -- The length of the play session in seconds.
+              - **login_logline_key** -- The login log line key. May be ``null``.
+              - **logout_logline_key** -- The logout log line key. May be ``null``.
+              - **created** -- The creation timestamp.
+              - **updated** -- The updated timestamp.
 
   **Example request**:
 
   .. sourcecode:: http
 
-    GET /api/data/play_session HTTP/1.1
+    GET /api/v1/data/sessions HTTP/1.1
 
   **Example response**:
 
@@ -544,7 +544,7 @@ Play Session API
   .. sourcecode:: javascript
 
     {
-      "play_sessions": [
+      "sessions": [
         {
           "username": "gumptionthomas",
           "updated": "2013-04-13 23:06:01 CDT-0500",
@@ -553,10 +553,10 @@ Play Session API
           "created": "2013-04-13 20:50:35 CDT-0500",
           "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
-          "login_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
+          "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw",
           "duration": 8126,
-          "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
+          "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
         },
         {
           "username": "vesicular",
@@ -566,15 +566,15 @@ Play Session API
           "created": "2013-04-13 19:48:29 CDT-0500",
           "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchjkLww",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIuCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIJdmVzaWN1bGFyDA",
-          "login_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY-NYfDA",
+          "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY-NYfDA",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGPnWHww",
           "duration": 1911,
-          "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYpesgDA"
+          "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYpesgDA"
         }
       ]
     }
 
-.. http:get:: /api/data/play_session/(key)
+.. http:get:: /api/v1/data/sessions/(key)
 
   Get the information for the play session (`key`).
 
@@ -582,13 +582,13 @@ Play Session API
 
   :status 200 OK: Successfully read the play session.
 
-    :Response Data: See :ref:`Play session response data <play_session_response_data>`
+    :Response Data: See :ref:`Play session response data <session_response_data>`
 
   **Example request**:
 
   .. sourcecode:: http
 
-    GET /api/data/play_session/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw HTTP/1.1
+    GET /api/v1/data/sessions/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw HTTP/1.1
 
   **Example response**:
 
@@ -607,13 +607,13 @@ Play Session API
       "created": "2013-04-13 20:50:35 CDT-0500",
       "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
       "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
-      "login_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
+      "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw",
       "duration": 8126,
-      "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
+      "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
     }
 
-.. http:get:: /api/data/player/(key_username)/session
+.. http:get:: /api/v1/data/players/(key_username)/sessions
 
   Get a :ref:`list <list>` of a player's minecraft play sessions ordered by descending login timestamp.
 
@@ -626,16 +626,16 @@ Play Session API
 
   :status 200 OK: Successfully queried the play sessions.
 
-    :Response Data: - **play_sessions** -- The list of the player's play sessions.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+    :Response Data: - **sessions** -- The list of the player's play sessions.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **play_sessions** is a dictionary of the player's play session information. See :ref:`Play session response data <play_session_response_data>`
+    Each entry in **sessions** is a dictionary of the player's play session information. See :ref:`Play session response data <session_response_data>`
 
   **Example request**:
 
   .. sourcecode:: http
 
-    GET /api/data/player/gumptionthomas/session HTTP/1.1
+    GET /api/v1/data/players/gumptionthomas/session HTTP/1.1
 
   **Example response**:
 
@@ -647,7 +647,7 @@ Play Session API
   .. sourcecode:: javascript
 
     {
-      "play_sessions": [
+      "sessions": [
         {
           "username": "gumptionthomas",
           "updated": "2013-04-15 22:31:43 CDT-0500",
@@ -656,10 +656,10 @@ Play Session API
           "created": "2013-04-15 22:31:19 CDT-0500",
           "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
-          "login_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYlOIjDA",
+          "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYlOIjDA",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGIWpHAw",
           "duration": 24,
-          "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYhZEkDA"
+          "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYhZEkDA"
         },
         {
           "username": "gumptionthomas",
@@ -669,10 +669,10 @@ Play Session API
           "created": "2013-04-13 20:50:35 CDT-0500",
           "user_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
-          "login_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
+          "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw",
           "duration": 8126,
-          "logout_log_line_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
+          "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
         }
       ]
     }
@@ -681,7 +681,7 @@ Play Session API
 ========
 Chat API
 ========
-.. http:get:: /api/data/chat
+.. http:get:: /api/v1/data/chats
 
   Get a :ref:`list <list>` of all minecraft chats ordered by descending timestamp.
 
@@ -694,7 +694,7 @@ Chat API
   :status 200 OK: Successfully queried the chats.
 
     :Response Data: - **chats** -- The list of chats.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
     Each entry in **chats** is a dictionary of the chat information.
 
@@ -714,7 +714,7 @@ Chat API
 
   .. sourcecode:: http
 
-    GET /api/data/chat HTTP/1.1
+    GET /api/v1/data/chats HTTP/1.1
 
   **Example response**:
 
@@ -752,7 +752,7 @@ Chat API
       ]
     }
 
-.. http:post:: /api/data/chat
+.. http:post:: /api/v1/data/chats
 
   Queue a new chat from the authenticated user. In game, the chat will appear as a "Server" chat with the user's minecraft username in angle brackets (much like a normal chat)::
 
@@ -770,7 +770,7 @@ Chat API
 
   .. sourcecode:: http
 
-    POST /api/data/chat HTTP/1.1
+    POST /api/v1/data/chats HTTP/1.1
 
   .. sourcecode:: http
 
@@ -783,7 +783,7 @@ Chat API
     HTTP/1.1 201 OK
     Content-Type: application/json
 
-.. http:get:: /api/data/chat/(key)
+.. http:get:: /api/v1/data/chats/(key)
 
   Get the information for the chat (`key`).
 
@@ -797,7 +797,7 @@ Chat API
 
   .. sourcecode:: http
 
-    GET /api/data/chat/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+    GET /api/v1/data/chats/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -820,7 +820,7 @@ Chat API
       "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys"
     }
 
-.. http:get:: /api/data/player/(key_username)/chat
+.. http:get:: /api/v1/data/players/(key_username)/chats
 
   Get a :ref:`list <list>` of a player's minecraft chats ordered by descending timestamp.
 
@@ -835,7 +835,7 @@ Chat API
   :status 200 OK: Successfully queried the chats.
 
     :Response Data: - **chats** -- The list of the player's chats.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
     Each entry in **chats** is a dictionary of the player's log line information. See :ref:`Chat response data <chat_response_data>`
 
@@ -843,7 +843,7 @@ Chat API
 
   .. sourcecode:: http
 
-    GET /api/data/player/gumptionthomas/chat HTTP/1.1
+    GET /api/v1/data/players/gumptionthomas/chat HTTP/1.1
 
   **Example response**:
 
@@ -885,7 +885,7 @@ Chat API
 =========
 Death API
 =========
-.. http:get:: /api/data/death
+.. http:get:: /api/v1/data/deaths
 
   Get a :ref:`list <list>` of all minecraft deaths ordered by descending timestamp.
 
@@ -898,7 +898,7 @@ Death API
   :status 200 OK: Successfully queried the deaths.
 
     :Response Data: - **deaths** -- The list of deaths.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
     Each entry in **deaths** is a dictionary of the death information.
 
@@ -918,7 +918,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/data/death HTTP/1.1
+    GET /api/v1/data/deaths HTTP/1.1
 
   **Example response**:
 
@@ -956,7 +956,7 @@ Death API
       ]
     }
 
-.. http:get:: /api/data/death/(key)
+.. http:get:: /api/v1/data/deaths/(key)
 
   Get the information for the death (`key`).
 
@@ -970,7 +970,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/data/death/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+    GET /api/v1/data/deaths/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -993,7 +993,7 @@ Death API
       "line": "2013-04-19 10:32:55 [INFO] gumptionthomas was shot by arrow"
     }
 
-.. http:get:: /api/data/player/(key_username)/death
+.. http:get:: /api/v1/data/players/(key_username)/deaths
 
   Get a :ref:`list <list>` of a player's minecraft deaths ordered by descending timestamp.
 
@@ -1008,7 +1008,7 @@ Death API
   :status 200 OK: Successfully queried the deaths.
 
     :Response Data: - **deaths** -- The list of the player's deaths.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
     Each entry in **deaths** is a dictionary of the player's log line information. See :ref:`Death response data <death_response_data>`
 
@@ -1016,7 +1016,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/data/player/gumptionthomas/death HTTP/1.1
+    GET /api/v1/data/players/gumptionthomas/death HTTP/1.1
 
   **Example response**:
 
@@ -1058,13 +1058,13 @@ Death API
 ============
 Log Line API
 ============
-.. http:get:: /api/data/log_line
+.. http:get:: /api/v1/data/loglines
 
   Get a :ref:`list <list>` of all minecraft log lines ordered by descending timestamp.
 
   :query tag: A tag to limit the type of log line results.
 
-    .. _log_line_tag_options:
+    .. _logline_tag_options:
 
     :Tag Options: - ``unknown``
                   - ``timestamp``
@@ -1087,12 +1087,12 @@ Log Line API
 
   :status 200 OK: Successfully queried the log lines.
 
-    :Response Data: - **log_lines** -- The list of log lines.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+    :Response Data: - **loglines** -- The list of log lines.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **log_lines** is a dictionary of the log line information.
+    Each entry in **loglines** is a dictionary of the log line information.
 
-    .. _log_line_response_data:
+    .. _logline_response_data:
 
     :Log Line: - **key** -- The log line key.
                - **line** -- The complete raw log line text.
@@ -1113,7 +1113,7 @@ Log Line API
 
   .. sourcecode:: http
 
-    GET /api/data/log_line HTTP/1.1
+    GET /api/v1/data/loglines HTTP/1.1
 
   **Example response**:
 
@@ -1125,7 +1125,7 @@ Log Line API
   .. sourcecode:: javascript
 
     {
-      "log_lines": [
+      "loglines": [
         {
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:32:56 CDT-0500",
@@ -1168,7 +1168,7 @@ Log Line API
       ]
     }
 
-.. http:get:: /api/data/log_line/(key)
+.. http:get:: /api/v1/data/loglines/(key)
 
   Get the information for the log line (`key`).
 
@@ -1176,13 +1176,13 @@ Log Line API
 
   :status 200 OK: Successfully read the log line.
 
-    :Response Data: See :ref:`Log line response data <log_line_response_data>`
+    :Response Data: See :ref:`Log line response data <logline_response_data>`
 
   **Example request**:
 
   .. sourcecode:: http
 
-    GET /api/data/log_line/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+    GET /api/v1/data/loglines/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -1213,13 +1213,13 @@ Log Line API
       "port": null
     }
 
-.. http:get:: /api/data/player/(key_username)/log_line
+.. http:get:: /api/v1/data/players/(key_username)/loglines
 
   Get a :ref:`list <list>` of a player's minecraft log lines ordered by descending timestamp.
 
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
-  :query tag: A tag to limit the type of log line results. For possible values see :ref:`Log line tag options <log_line_tag_options>`
+  :query tag: A tag to limit the type of log line results. For possible values see :ref:`Log line tag options <logline_tag_options>`
 
   :query q: A search string to limit the results to.
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
@@ -1229,16 +1229,16 @@ Log Line API
 
   :status 200 OK: Successfully queried the log lines.
 
-    :Response Data: - **log_lines** -- The list of the player's log lines.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+    :Response Data: - **loglines** -- The list of the player's log lines.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **log_lines** is a dictionary of the player's log line information. See :ref:`Log line response data <log_line_response_data>`
+    Each entry in **loglines** is a dictionary of the player's log line information. See :ref:`Log line response data <logline_response_data>`
 
   **Example request**:
 
   .. sourcecode:: http
 
-    GET /api/data/player/gumptionthomas/log_line HTTP/1.1
+    GET /api/v1/data/players/gumptionthomas/logline HTTP/1.1
 
   **Example response**:
 
@@ -1250,7 +1250,7 @@ Log Line API
   .. sourcecode:: javascript
 
     {
-      "log_lines": [
+      "loglines": [
         {
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:32:56 CDT-0500",
@@ -1321,7 +1321,7 @@ Log Line API
 ==============
 Screenshot API
 ==============
-.. http:get:: /api/data/screenshot
+.. http:get:: /api/v1/data/screenshot
 
   Get a :ref:`list <list>` of all screenshots ordered by descending create timestamp.
 
@@ -1333,7 +1333,7 @@ Screenshot API
   :status 200 OK: Successfully queried the screenshot.
 
     :Response Data: - **screenshots** -- The list of screenshots.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
     Each entry in **screenshots** is a dictionary of the screenshot information.
 
@@ -1353,7 +1353,7 @@ Screenshot API
 
   .. sourcecode:: http
 
-    GET /api/data/screenshot HTTP/1.1
+    GET /api/v1/data/screenshot HTTP/1.1
 
   **Example response**:
 
@@ -1391,7 +1391,7 @@ Screenshot API
       ]
     }
 
-.. http:get:: /api/data/screenshot/(key)
+.. http:get:: /api/v1/data/screenshot/(key)
 
   Get the information for the screenshot (`key`).
 
@@ -1405,7 +1405,7 @@ Screenshot API
 
   .. sourcecode:: http
 
-    GET /api/data/screenshot/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA HTTP/1.1
+    GET /api/v1/data/screenshot/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA HTTP/1.1
 
   **Example response**:
 
@@ -1428,7 +1428,7 @@ Screenshot API
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA"
     }
 
-.. http:get:: /api/data/player/(key_username)/screenshot
+.. http:get:: /api/v1/data/players/(key_username)/screenshots
 
   Get a :ref:`list <list>` of a player's uploaded screenshots ordered by descending create timestamp.
 
@@ -1442,7 +1442,7 @@ Screenshot API
   :status 200 OK: Successfully queried the screenshot.
 
     :Response Data: - **screenshots** -- The list of the player's uploaded screenshots.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this service to query the next set of results. If no more results are available, this field will be absent.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
     Each entry in **screenshots** is a dictionary of the player's uploaded screenshot information. See :ref:`Screen shot response data <screenshot_response_data>`
 
@@ -1450,7 +1450,7 @@ Screenshot API
 
   .. sourcecode:: http
 
-    GET /api/data/player/gumptionthomas/screenshot HTTP/1.1
+    GET /api/v1/data/players/gumptionthomas/screenshot HTTP/1.1
 
   **Example response**:
 

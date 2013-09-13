@@ -12,7 +12,6 @@ for d in os.environ["PATH"].split(":"):
         import dev_appserver
         dev_appserver.fix_sys_path()
 
-from config import coal_config
 import main
 import models
 from test_oauth import OauthTest
@@ -255,7 +254,7 @@ class AgentApiTest(ApiTest):
 
 
 class PingTest(AgentApiTest):
-    URL = '/api/agent/ping'
+    URL = '/api/v1/agent/ping'
     ALLOWED = ['POST']
 
     def test_post(self):
@@ -372,7 +371,7 @@ class PingTest(AgentApiTest):
 
 
 class LogLineTest(AgentApiTest):
-    URL = '/api/agent/log_line'
+    URL = '/api/v1/agent/log_line'
     ALLOWED = ['POST']
 
     def test_post_missing_param(self):
@@ -680,7 +679,7 @@ class LogLineTest(AgentApiTest):
 
 
 class DeathLogLineTest(AgentApiTest):
-    URL = '/api/agent/log_line'
+    URL = '/api/v1/agent/log_line'
     ALLOWED = ['POST']
 
     def test_all_deaths(self):
@@ -746,7 +745,7 @@ class KeyApiTest(ApiTest):
 
 
 class ServerTest(ApiTest):
-    URL = '/api/data/server'
+    URL = '/api/v1/data/servers'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -761,7 +760,7 @@ class ServerTest(ApiTest):
 
 
 class UsersTest(MultiPageApiTest):
-    URL = '/api/data/user'
+    URL = '/api/v1/data/users'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -786,7 +785,7 @@ class UsersTest(MultiPageApiTest):
 
 
 class UserKeyTest(KeyApiTest):
-    URL = '/api/data/user'
+    URL = '/api/v1/data/users'
     ALLOWED = ['GET']
 
     @property
@@ -821,7 +820,7 @@ class UserKeyTest(KeyApiTest):
 
 
 class PlayersTest(MultiPageApiTest):
-    URL = '/api/data/player'
+    URL = '/api/v1/data/players'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -845,7 +844,7 @@ class PlayersTest(MultiPageApiTest):
 
 
 class PlayerKeyTest(KeyApiTest):
-    URL = '/api/data/player'
+    URL = '/api/v1/data/players'
     ALLOWED = ['GET']
 
     @property
@@ -867,7 +866,7 @@ class PlayerKeyTest(KeyApiTest):
 
 
 class PlayerUsernameTest(KeyApiTest):
-    URL = '/api/data/player'
+    URL = '/api/v1/data/players'
     ALLOWED = ['GET']
 
     @property
@@ -889,7 +888,7 @@ class PlayerUsernameTest(KeyApiTest):
 
 
 class PlaySessionsTest(MultiPageApiTest):
-    URL = '/api/data/play_session'
+    URL = '/api/v1/data/sessions'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -910,7 +909,7 @@ class PlaySessionsTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        play_sessions = body['play_sessions']
+        play_sessions = body['sessions']
         self.assertLength(len(self.play_sessions), play_sessions)
         for i, play_session in enumerate(play_sessions):
             self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
@@ -919,12 +918,12 @@ class PlaySessionsTest(MultiPageApiTest):
 
     def test_get_username(self):
         username = self.players[0].username
-        url = "/api/data/player/{0}/session".format(username)
+        url = "/api/v1/data/players/{0}/sessions".format(username)
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        play_sessions = body['play_sessions']
+        play_sessions = body['sessions']
         self.assertLength(len(self.play_sessions) / 2, play_sessions)
         for i, play_session in enumerate(play_sessions):
             self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
@@ -936,7 +935,7 @@ class PlaySessionsTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        play_sessions = body['play_sessions']
+        play_sessions = body['sessions']
         self.assertLength(1, play_sessions)
         for i, play_session in enumerate(play_sessions):
             self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
@@ -947,7 +946,7 @@ class PlaySessionsTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        play_sessions = body['play_sessions']
+        play_sessions = body['sessions']
         self.assertLength(9, play_sessions)
         for i, play_session in enumerate(play_sessions):
             self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
@@ -958,7 +957,7 @@ class PlaySessionsTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        play_sessions = body['play_sessions']
+        play_sessions = body['sessions']
         self.assertLength(9, play_sessions)
         for i, play_session in enumerate(play_sessions):
             self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
@@ -969,12 +968,12 @@ class PlaySessionsTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        play_sessions = body['play_sessions']
+        play_sessions = body['sessions']
         self.assertLength(0, play_sessions)
 
 
 class PlaySessionKeyTest(KeyApiTest):
-    URL = '/api/data/play_session'
+    URL = '/api/v1/data/sessions'
     ALLOWED = ['GET']
 
     @property
@@ -997,7 +996,7 @@ class PlaySessionKeyTest(KeyApiTest):
 
 
 class ChatTest(MultiPageApiTest):
-    URL = '/api/data/chat'
+    URL = '/api/v1/data/chats'
     ALLOWED = ['GET', 'POST']
 
     def setUp(self):
@@ -1027,7 +1026,7 @@ class ChatTest(MultiPageApiTest):
 
     def test_get_username(self):
         username = "vesicular"
-        url = "/api/data/player/{0}/chat".format(username)
+        url = "/api/v1/data/players/{0}/chats".format(username)
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1134,7 +1133,7 @@ class ChatQueryTest(ChatTest):
             self.assertIsNotNone(log_line['timestamp'])
 
     def test_get_username(self):
-        url = "/api/data/player/gumptionthomas/chat?q=foobar"
+        url = "/api/v1/data/players/gumptionthomas/chats?q=foobar"
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1215,7 +1214,7 @@ class ChatQueryTest(ChatTest):
 
 
 class ChatKeyTest(KeyApiTest):
-    URL = '/api/data/chat'
+    URL = '/api/v1/data/chats'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -1237,7 +1236,7 @@ class ChatKeyTest(KeyApiTest):
 
 
 class DeathTest(MultiPageApiTest):
-    URL = '/api/data/death'
+    URL = '/api/v1/data/deaths'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -1270,7 +1269,7 @@ class DeathTest(MultiPageApiTest):
 
     def test_get_username(self):
         username = "gumptionthomas"
-        url = "/api/data/player/{0}/death".format(username)
+        url = "/api/v1/data/players/{0}/deaths".format(username)
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1342,7 +1341,7 @@ class DeathQueryTest(DeathTest):
             self.assertIsNotNone(log_line['timestamp'])
 
     def test_get_username(self):
-        url = "/api/data/player/gumptionthomas/death?q=anvil"
+        url = "/api/v1/data/players/gumptionthomas/deaths?q=anvil"
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1420,7 +1419,7 @@ class DeathQueryTest(DeathTest):
 
 
 class DeathKeyTest(KeyApiTest):
-    URL = '/api/data/death'
+    URL = '/api/v1/data/deaths'
     ALLOWED = ['GET']
 
     @property
@@ -1442,7 +1441,7 @@ class DeathKeyTest(KeyApiTest):
 
 
 class LogLineDataTest(MultiPageApiTest):
-    URL = '/api/data/log_line'
+    URL = '/api/v1/data/loglines'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -1461,7 +1460,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(len(self.log_lines), log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1470,12 +1469,12 @@ class LogLineDataTest(MultiPageApiTest):
 
     def test_get_username(self):
         username = "gumptionthomas"
-        url = "/api/data/player/{0}/log_line".format(username)
+        url = "/api/v1/data/players/{0}/loglines".format(username)
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(4, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1487,7 +1486,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1496,7 +1495,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1505,7 +1504,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1514,7 +1513,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(0, log_lines)
 
     def test_get_chats(self):
@@ -1523,7 +1522,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1546,7 +1545,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1554,12 +1553,12 @@ class LogLineDataQueryTest(LogLineDataTest):
             self.assertIsNotNone(log_line['timestamp'])
 
     def test_get_username(self):
-        url = "/api/data/player/gumptionthomas/log_line?q=foobar"
+        url = "/api/v1/data/players/gumptionthomas/loglines?q=foobar"
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(2, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(10, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1571,7 +1570,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         body = json.loads(response.body)
         self.assertLength(2, body)
         next_cursor = body['cursor']
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(10, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1581,7 +1580,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         body = json.loads(response.body)
         self.assertLength(2, body)
         next_cursor = body['cursor']
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(10, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1590,7 +1589,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         response = self.get(url='{0}?q={1}&tag=chat&cursor={2}'.format(self.URL, 'foobar', next_cursor))
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(5, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1598,12 +1597,12 @@ class LogLineDataQueryTest(LogLineDataTest):
             self.assertEqual('foobar {0}'.format(i+20), log_line['chat'])
 
     def test_get_chats(self):
-        url = "/api/data/log_line?q=foobar&tag=chat"
+        url = "/api/v1/data/loglines?q=foobar&tag=chat"
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(2, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(10, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1615,7 +1614,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1624,7 +1623,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1633,7 +1632,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
@@ -1642,12 +1641,12 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
-        log_lines = body['log_lines']
+        log_lines = body['loglines']
         self.assertLength(0, log_lines)
 
 
 class LogLineKeyDataTest(KeyApiTest):
-    URL = '/api/data/log_line'
+    URL = '/api/v1/data/loglines'
     ALLOWED = ['GET']
 
     @property
@@ -1678,7 +1677,7 @@ except ImportError:
 
 if Image is not None:
     class ScreenShotTest(MultiPageApiTest):
-        URL = '/api/data/screenshot'
+        URL = '/api/v1/data/screenshots'
         ALLOWED = ['GET']
 
         def setUp(self):
@@ -1735,7 +1734,7 @@ if Image is not None:
 
         def test_get_username(self):
             username = "gumptionthomas"
-            url = "/api/data/player/{0}/screenshot".format(username)
+            url = "/api/v1/data/players/{0}/screenshots".format(username)
             response = self.get(url=url)
             self.assertOK(response)
             body = json.loads(response.body)
@@ -1794,7 +1793,7 @@ if Image is not None:
 
 
     class ScreenShotKeyTest(KeyApiTest):
-        URL = '/api/data/screenshot'
+        URL = '/api/v1/data/screenshots'
         ALLOWED = ['GET']
 
         @property

@@ -7,7 +7,7 @@ Contents:
    :maxdepth: 2
 
    data_api
-   oauth2
+   authorization
 
 
 Indices and tables

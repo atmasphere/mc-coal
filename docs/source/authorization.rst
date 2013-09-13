@@ -1,10 +1,10 @@
-.. _oauth2:
+.. _authorization:
 
-******
-OAuth2
-******
+*************
+Authorization
+*************
 
-Clients making calls to the :ref:`Data APIs <data_api>` on behalf of a user require an :ref:`access token <access_token>` which can be acquired via this simplified `OAuth 2.0 <http://tools.ietf.org/html/draft-ietf-oauth-v2-31>`_ flow.
+Clients making calls to the :ref:`Data APIs <data_api>` on behalf of a user require an :ref:`access token <access_token>` which can be acquired via the following (simplified) `OAuth 2.0 <http://tools.ietf.org/html/draft-ietf-oauth-v2-31>`_ flow.
 
 1. :ref:`Register <client_regististration>` the client via :http:post:`/oauth/register` and record the :ref:`client configuration <client_configuration>` contained in the response. These :ref:`client configuration <client_configuration>` values should be kept secure.
 2. :ref:`Redirect <authorization_code>` the user's browser to :http:get:`/oauth/auth` with the required :ref:`client configuration <client_configuration>` values in the query parameters, including a ``redirect_uri``. If the user grants the authorization to the client, the user's browser will be redirected to the ``redirect_uri`` with an :ref:`authorization code <authorization_code>`.
@@ -283,7 +283,7 @@ Clients are granted a unique, one-time-use authorization code in response to an 
 Access Token
 ============
 
-Clients use an :ref:`authorization code <authorization_code>` to acquire an :ref:`access token <access_token>` and a :ref:`refresh token <refresh_token>`. These tokens are unique and tied to both the client and the user that granted the authorization code. Authorization for :ref:`secured Data APIs <secured_services>` requires that a valid access token be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
+Clients use an :ref:`authorization code <authorization_code>` to acquire an :ref:`access token <access_token>` and a :ref:`refresh token <refresh_token>`. These tokens are unique and tied to both the client and the user that granted the authorization code. Authorization for :ref:`secured Data APIs <secured_resources>` requires that a valid access token be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
 
 .. http:post:: /oauth/token
 

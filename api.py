@@ -305,8 +305,8 @@ PLAY_SESSION_FIELD_FUNCTIONS = {
     'login_timestamp': lambda o: api_datetime(o.login_timestamp, zone=o.zone),
     'logout_timestamp': lambda o: api_datetime(o.logout_timestamp, zone=o.zone),
     'duration': lambda o: o.duration.total_seconds(),
-    'login_log_line_key': lambda o: o.login_log_line_key.urlsafe() if o.login_log_line_key is not None else None,
-    'logout_log_line_key': lambda o: o.logout_log_line_key.urlsafe() if o.logout_log_line_key is not None else None,
+    'login_logline_key': lambda o: o.login_log_line_key.urlsafe() if o.login_log_line_key is not None else None,
+    'logout_logline_key': lambda o: o.logout_log_line_key.urlsafe() if o.logout_log_line_key is not None else None,
     'created': lambda o: api_datetime(o.created),
     'updated': lambda o: api_datetime(o.updated)
 }
@@ -339,7 +339,7 @@ class PlaySessionsHandler(MultiPageJsonHandler):
         since = self.request.form.since.data or None
         before = self.request.form.before.data or None
         query = PlaySession.query_latest(username=username, since=since, before=before)
-        self.json_response(self.fetch_page(query, results_name='play_sessions'), PLAY_SESSION_STRATEGY)
+        self.json_response(self.fetch_page(query, results_name='sessions'), PLAY_SESSION_STRATEGY)
 
 
 class PlaySessionKeyHandler(JsonHandler):
@@ -563,7 +563,7 @@ class LogLinesHandler(MultiPageJsonHandler):
             query_string = u"line:{0}".format(q)
             cursor = self.request.form.cursor.data or None
             results, next_cursor = LogLine.search_api(query_string, size=self.size, username=username, tag=tag, since=since, before=before, cursor=cursor)
-            response = {'log_lines': results}
+            response = {'loglines': results}
             if next_cursor is not None:
                 results, _ = LogLine.search_api(query_string, size=self.size, username=username, tag=tag, since=since, before=before, cursor=next_cursor)
                 if results:
@@ -571,7 +571,7 @@ class LogLinesHandler(MultiPageJsonHandler):
             self.json_response(response, LOG_LINE_STRATEGY)
         else:
             query = LogLine.query_api(username=username, tag=tag, since=since, before=before)
-            self.json_response(self.fetch_page(query, results_name='log_lines'), LOG_LINE_STRATEGY)
+            self.json_response(self.fetch_page(query, results_name='loglines'), LOG_LINE_STRATEGY)
 
 
 class LogLineKeyHandler(JsonHandler):
@@ -651,27 +651,27 @@ class ScreenShotKeyHandler(JsonHandler):
 
 
 routes = [
-    webapp2.Route('/api/agent/ping', 'api.PingHandler', name='api_agent_ping'),
-    webapp2.Route('/api/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line'),
+    webapp2.Route('/api/v1/agent/ping', 'api.PingHandler', name='api_agent_ping'),
+    webapp2.Route('/api/v1/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line'),
 
-    webapp2.Route('/api/data/server', 'api.ServerHandler', name='api_data_server'),
-    webapp2.Route('/api/data/user/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
-    webapp2.Route('/api/data/user', 'api.UsersHandler', name='api_data_user'),
-    webapp2.Route('/api/data/player/<key_username>/session', 'api.PlaySessionsHandler', name='api_data_player_session'),
-    webapp2.Route('/api/data/player/<key_username>/log_line', 'api.LogLinesHandler', name='api_data_player_log_line'),
-    webapp2.Route('/api/data/player/<key_username>/chat', 'api.ChatHandler', name='api_data_player_chat'),
-    webapp2.Route('/api/data/player/<key_username>/death', 'api.DeathHandler', name='api_data_player_death'),
-    webapp2.Route('/api/data/player/<key_username>/screenshot', 'api.ScreenShotsHandler', name='api_data_player_screen_shot'),
-    webapp2.Route('/api/data/player/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
-    webapp2.Route('/api/data/player', 'api.PlayersHandler', name='api_data_player'),
-    webapp2.Route('/api/data/play_session/<key>', 'api.PlaySessionKeyHandler', name='api_data_play_session_key'),
-    webapp2.Route('/api/data/play_session', 'api.PlaySessionsHandler', name='api_data_play_session'),
-    webapp2.Route('/api/data/chat/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
-    webapp2.Route('/api/data/chat', 'api.ChatHandler', name='api_data_chat'),
-    webapp2.Route('/api/data/death/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
-    webapp2.Route('/api/data/death', 'api.DeathHandler', name='api_data_death'),
-    webapp2.Route('/api/data/log_line/<key>', 'api.LogLineKeyHandler', name='api_data_log_line_key'),
-    webapp2.Route('/api/data/log_line', 'api.LogLinesHandler', name='api_data_log_line'),
-    webapp2.Route('/api/data/screenshot/<key>', 'api.ScreenShotKeyHandler', name='api_data_screen_shot_key'),
-    webapp2.Route('/api/data/screenshot', 'api.ScreenShotsHandler', name='api_data_screen_shot')
+    webapp2.Route('/api/v1/data/servers', 'api.ServerHandler', name='api_data_servers'),
+    webapp2.Route('/api/v1/data/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
+    webapp2.Route('/api/v1/data/users', 'api.UsersHandler', name='api_data_users'),
+    webapp2.Route('/api/v1/data/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
+    webapp2.Route('/api/v1/data/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
+    webapp2.Route('/api/v1/data/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
+    webapp2.Route('/api/v1/data/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
+    webapp2.Route('/api/v1/data/players/<key_username>/screenshots', 'api.ScreenShotsHandler', name='api_data_player_screenshots'),
+    webapp2.Route('/api/v1/data/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
+    webapp2.Route('/api/v1/data/players', 'api.PlayersHandler', name='api_data_players'),
+    webapp2.Route('/api/v1/data/sessions/<key>', 'api.PlaySessionKeyHandler', name='api_data_session_key'),
+    webapp2.Route('/api/v1/data/sessions', 'api.PlaySessionsHandler', name='api_data_sessions'),
+    webapp2.Route('/api/v1/data/chats/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
+    webapp2.Route('/api/v1/data/chats', 'api.ChatHandler', name='api_data_chats'),
+    webapp2.Route('/api/v1/data/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
+    webapp2.Route('/api/v1/data/deaths', 'api.DeathHandler', name='api_data_deaths'),
+    webapp2.Route('/api/v1/data/loglines/<key>', 'api.LogLineKeyHandler', name='api_data_logline_key'),
+    webapp2.Route('/api/v1/data/loglines', 'api.LogLinesHandler', name='api_data_loglines'),
+    webapp2.Route('/api/v1/data/screenshots/<key>', 'api.ScreenShotKeyHandler', name='api_data_screenshot_key'),
+    webapp2.Route('/api/v1/data/screenshots', 'api.ScreenShotsHandler', name='api_data_screenshots')
 ]
