@@ -199,6 +199,10 @@ class User(auth_models.User):
     def name(self):
         return self.username or self.nickname or self.email
 
+    @property
+    def user_id(self):
+        return self.nickname or self.email
+
     def record_chat_view(self, dt=None):
         if dt is None:
             dt = datetime.datetime.now()

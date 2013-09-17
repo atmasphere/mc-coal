@@ -19,10 +19,10 @@
         <div class="box">
             <form action="{{ uri_for('user_profile', next_url=next_url) }}" method="post">
                 <label>Email</label>
-                {{ macros.with_errors(form.email, class="span3") }}
+                {{ macros.with_errors(form.email, size="50") }}
 
                 <label>Nickname</label>
-                {{ macros.with_errors(form.nickname, class="span3") }}
+                {{ macros.with_errors(form.nickname, size="50") }}
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save</button>
