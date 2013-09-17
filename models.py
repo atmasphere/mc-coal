@@ -365,7 +365,7 @@ class Server(ndb.Model):
                     last_ping_ts
                 )
                 admin_emails = []
-                admin_emails = [user.email for user in User.query().filter(User.admin == True)]
+                admin_emails = [user.email for user in User.query().filter(User.admin == True) if user.email]
                 if admin_emails:
                     mail.send_mail(
                         sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),

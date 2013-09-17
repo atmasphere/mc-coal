@@ -64,6 +64,7 @@ def authenticate(handler, required=True, admin=False):
                 update = True
         if admin and not user.admin and User.query().filter(User.admin == True).count(keys_only=True, limit=1) == 0:
             user.admin = True
+            user.active = True
             update = True
         if update:
             user.put()
