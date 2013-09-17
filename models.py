@@ -197,7 +197,7 @@ class User(auth_models.User):
 
     @property
     def name(self):
-        return self.username or self.email
+        return self.username or self.nickname or self.email
 
     def record_chat_view(self, dt=None):
         if dt is None:
@@ -237,8 +237,8 @@ class User(auth_models.User):
     @classmethod
     def get_gae_user_auth_id(cls, gae_user_id=None, gae_user=None):
         if not gae_user_id:
-            gae_user_id = gae_user.user_id() if gae_user else 'ANON'
-        return 'gaeuser:{0}'.format(gae_user_id)
+            gae_user_id = gae_user.user_id() if gae_user else None
+        return 'gaeuser:{0}'.format(gae_user_id) if gae_user_id else None
 
     @classmethod
     def get_by_gae_user(cls, gae_user_id=None, gae_user=None):
@@ -258,8 +258,7 @@ class User(auth_models.User):
 
     @classmethod
     def get_indie_auth_id(cls, me=None):
-        me = me or 'ANON'
-        return 'indieuser:{0}'.format(me)
+        return 'indieuser:{0}'.format(me) if me else None
 
     @classmethod
     def lookup(cls, email=None, username=None):

@@ -85,7 +85,7 @@ class PagingHandler(UserHandler):
 
 
 class ChatForm(form.Form):
-    chat = fields.TextField(u'Chat', validators=[validators.DataRequired()])
+    chat = fields.StringField(u'Chat', validators=[validators.DataRequired()])
 
 
 class ChatsHandler(PagingHandler):
@@ -228,7 +228,7 @@ class AdminHandler(PagingHandler):
 class UserForm(form.Form):
     active = fields.BooleanField(u'Active', [validators.Optional()])
     admin = fields.BooleanField(u'Admin', [validators.Optional()])
-    username = fields.TextField(u'Username', validators=[validators.Optional()])
+    username = fields.StringField(u'Username', validators=[validators.Optional()])
 
 
 class UsersHandler(PagingHandler):
@@ -251,7 +251,7 @@ class UserEditHandler(UserHandler):
                 self.abort(404)
             form = UserForm(obj=user)
         except Exception, e:
-            logging.error(u"Error POSTing user: {0}".format(e))
+            logging.error(u"Error GETting user: {0}".format(e))
             self.abort(404)
         context = {'edit_user': user, 'form': form}
         self.render_template('user.html', context=context)
@@ -295,6 +295,34 @@ class UserRemoveHandler(UserHandler):
         self.redirect(webapp2.uri_for('users'))
 
 
+class UserProfileForm(form.Form):
+    email = fields.StringField(u'Email', [validators.Optional(), validators.Email(message=u'Invalid email address.')])
+    nickname = fields.StringField(u'Nickname', validators=[validators.Optional()])
+
+
+class UserProfileHandler(UserHandler):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        next_url = self.request.params.get('next_url', webapp2.uri_for('home'))
+        user = self.request.user
+        form = UserProfileForm(obj=user)
+        context = {'edit_user': user, 'form': form, 'next_url': next_url}
+        self.render_template('user_profile.html', context=context)
+
+    @authentication_required(authenticate=authenticate)
+    def post(self):
+        next_url = self.request.params.get('next_url', webapp2.uri_for('home'))
+        user = self.request.user
+        form = UserProfileForm(self.request.POST, user)
+        if form.validate():
+            user.email = form.email.data
+            user.nickname = form.nickname.data
+            user.put()
+            self.redirect(next_url)
+        context = {'edit_user': user, 'form': form, 'next_url': next_url}
+        self.render_template('user_profile.html', context=context)
+
+
 application = webapp2.WSGIApplication(
     [
         RedirectRoute('/', handler=HomeHandler, name="home"),
@@ -304,11 +332,12 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/screen_shot_upload', handler=ScreenShotUploadHandler, strict_slash=True, name="screen_shot_upload"),
         RedirectRoute('/screen_shot_uploaded', handler=ScreenShotUploadedHandler, strict_slash=True, name="screen_shot_uploaded"),
         RedirectRoute('/screen_shots', handler=ScreenShotsHandler, strict_slash=True, name="screen_shots"),
-        RedirectRoute('/screen_shot/<key>/remove', handler=ScreenShotRemoveHandler, strict_slash=True, name="screen_shot_remove"),
+        RedirectRoute('/screen_shots/<key>/remove', handler=ScreenShotRemoveHandler, strict_slash=True, name="screen_shot_remove"),
+        RedirectRoute('/profile', handler=UserProfileHandler, strict_slash=True, name="user_profile"),
         RedirectRoute('/admin', handler=AdminHandler, strict_slash=True, name="admin"),
         RedirectRoute('/admin/users', handler=UsersHandler, strict_slash=True, name="users"),
-        RedirectRoute('/admin/user/<key>', handler=UserEditHandler, strict_slash=True, name="user"),
-        RedirectRoute('/admin/user/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove")
+        RedirectRoute('/admin/users/<key>', handler=UserEditHandler, strict_slash=True, name="user"),
+        RedirectRoute('/admin/users/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove")
     ],
     config={
         'webapp2_extras.sessions': {

@@ -70,7 +70,7 @@ class OauthTest(BaseTest, WebTest):
         response = self.app.get('/gae_login_callback')
         cookies = response.headers.get('Set-Cookie')
         self.auth_cookie = cookies[0:cookies.find(';')] if cookies else None
-        self.assertRedirects(response, to='/')
+        self.assertRedirects(response)
         self.current_user = models.User.lookup(email=email)
         self.current_user.active = is_active
         self.current_user.put()

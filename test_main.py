@@ -1,4 +1,3 @@
-import datetime
 import os
 import sys
 
@@ -16,19 +15,23 @@ from agar.test.web_test import WebTest
 from models import User
 import main
 
-TEST_USER_EMAIL = 'admin@example.com'
+TEST_USER_EMAIL = 'test@example.com'
 
 
 class MainBaseTest(BaseTest, WebTest):
     APPLICATION = main.application
     URL = None
 
+    @property
+    def url(self):
+        return self.URL
+
     def log_in_user(self, email=TEST_USER_EMAIL, is_active=True, is_admin=False):
         super(MainBaseTest, self).log_in_user(email, is_admin=is_admin)
         response = self.get('/gae_login_callback')
         cookies = response.headers.get('Set-Cookie')
         self.auth_cookie = cookies[0:cookies.find(';')] if cookies else None
-        self.assertRedirects(response, to='/')
+        self.assertRedirects(response)
         self.current_user = User.lookup(email=email)
         self.current_user.active = is_active
         self.current_user.put()
@@ -57,7 +60,6 @@ class MainBaseTest(BaseTest, WebTest):
         self.assertRedirects(response)
 
     def assertLoggedIn(self, response):
-        # self.assertIn('Sign Out', response.body)
         pass
 
     def assertNotLoggedIn(self, response):
@@ -70,7 +72,8 @@ class MainBaseTest(BaseTest, WebTest):
     def setUp(self):
         super(MainBaseTest, self).setUp()
 
-    def get(self, url, params=None, headers=None):
+    def get(self, url=None, params=None, headers=None):
+        url = url or self.url
         self.app.reset()
         extra_environ = None
         if getattr(self, 'auth_cookie', None):
@@ -78,54 +81,54 @@ class MainBaseTest(BaseTest, WebTest):
         return self.app.get(url, params=params, headers=headers, extra_environ=extra_environ, status="*", expect_errors=True)
 
     def test_get_with_slash(self):
-        if self.URL:
-            url = self.URL
+        if self.url:
+            url = self.url
             if url != '/':
                 url += '/'
                 response = self.get(url)
-                self.assertRedirects(response, to=self.URL, code=301)
+                self.assertRedirects(response, to=self.url, code=301)
 
 
 class AuthTest(MainBaseTest):
     def test_get_auth(self):
-        if self.URL:
+        if self.url:
             self.log_in_user()
-            response = self.get(self.URL)
+            response = self.get()
             self.assertOK(response)
             self.assertLoggedIn(response)
 
     def test_get_no_auth(self):
-        if self.URL:
-            response = self.get(self.URL)
+        if self.url:
+            response = self.get()
             self.assertRedirects(response)
 
     def test_get_inactive(self):
-        if self.URL:
+        if self.url:
             self.log_in_user(email='hacker@example.com', is_active=False)
-            response = self.get(self.URL)
+            response = self.get()
             self.assertRedirects(response)
 
     def test_logout(self):
-        if self.URL:
+        if self.url:
             self.log_in_user()
-            response = self.get(self.URL)
+            response = self.get()
             self.assertOK(response)
             self.assertLoggedIn(response)
             self.log_out_user()
-            response = self.get(self.URL)
+            response = self.get()
             self.assertRedirects(response)
 
     def test_login_again(self):
-        if self.URL:
+        if self.url:
             self.log_in_user()
-            response = self.get(self.URL)
+            response = self.get()
             self.assertOK(response)
             self.assertLoggedIn(response)
             self.log_out_user()
-            response = self.get(self.URL)
+            response = self.get()
             self.assertRedirects(response)
             self.log_in_user()
-            response = self.get(self.URL)
+            response = self.get()
             self.assertOK(response)
             self.assertLoggedIn(response)
 
@@ -135,43 +138,52 @@ class HomeTest(AuthTest):
 
     def test_get(self):
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
 
     def test_get_no_auth(self):
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertIn('Log In', response.body)
 
     def test_get_inactive(self):
         self.log_in_user(email='hacker@example.com', is_active=False)
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertIn('Log Out', response.body)
 
     def test_logout(self):
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
         self.log_out_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertIn('Log In', response.body)
 
     def test_login_again(self):
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
         self.log_out_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertIn('Log In', response.body)
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
+
+
+class UserProfileTest(AuthTest):
+    URL = '/profile'
+
+    def test_get(self):
+        self.log_in_user()
+        response = self.get()
+        self.assertOK(response)
 
 
 class ChatsTest(AuthTest):
@@ -179,12 +191,12 @@ class ChatsTest(AuthTest):
 
     def test_get(self):
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
 
     def test_returns_html_content(self):
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertEqual('text/html', response.content_type)
 
 
@@ -193,17 +205,17 @@ class ChatsInfiniteScrollTest(AuthTest):
 
     def test_returns_status_OK(self):
         self.log_in_user()
-        response = self.get(self.URL, headers={'X-Requested-With': 'XMLHttpRequest'})
+        response = self.get(headers={'X-Requested-With': 'XMLHttpRequest'})
         self.assertOK(response)
 
     def test_returns_javascript_content(self):
         self.log_in_user()
-        response = self.get(self.URL, headers={'X-Requested-With': 'XMLHttpRequest'})
+        response = self.get(headers={'X-Requested-With': 'XMLHttpRequest'})
         self.assertEqual('text/javascript', response.content_type)
 
     def test_response_appends_event_rows(self):
         self.log_in_user()
-        response = self.get(self.URL, headers={'X-Requested-With': 'XMLHttpRequest'})
+        response = self.get(headers={'X-Requested-With': 'XMLHttpRequest'})
         response.mustcontain("""$('#live_events').append""")
 
 
@@ -212,7 +224,7 @@ class PlayersTest(AuthTest):
 
     def test_get(self):
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
 
 
@@ -221,7 +233,7 @@ class PlaySessionsTest(AuthTest):
 
     def test_get(self):
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
 
 
@@ -230,13 +242,13 @@ class ScreenShotUploadTest(AuthTest):
 
     def test_get(self):
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertIn("http://localhost/_ah/upload/", response.body)
 
     # def test_post(self):
     #     self.log_in_user()
-    #     response = self.get(self.URL)
+    #     response = self.get()
     #     body = response.body
     #     i = body.index("http://localhost/")
     #     j = body.index('"', i)
@@ -250,36 +262,46 @@ class AdminTest(AuthTest):
 
     def test_get_auth(self):
         self.log_in_admin()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
 
     def test_login_again(self):
         self.log_in_admin()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
         self.log_out_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertRedirects(response)
         self.log_in_admin()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
 
     def test_logout(self):
         self.log_in_admin()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
         self.log_out_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertRedirects(response)
 
     def test_get_not_admin(self):
+        self.log_in_user(email="admin@example.com", is_admin=True)
+        self.log_out_user()
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertRedirects(response)
+
+    def test_get_first_user(self):
+        self.log_in_user()
+        self.assertFalse(self.current_user.admin)
+        response = self.get()
+        self.assertOK(response)
+        self.assertLoggedIn(response)
+        self.assertTrue(self.current_user.admin)
 
 
 class UsersTest(AuthTest):
@@ -287,33 +309,35 @@ class UsersTest(AuthTest):
 
     def test_get_auth(self):
         self.log_in_admin()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
 
     def test_login_again(self):
         self.log_in_admin()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
         self.log_out_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertRedirects(response)
         self.log_in_admin()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
 
     def test_logout(self):
         self.log_in_admin()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
         self.log_out_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertRedirects(response)
 
     def test_get_not_admin(self):
+        self.log_in_user(email="admin@example.com", is_admin=True)
+        self.log_out_user()
         self.log_in_user()
-        response = self.get(self.URL)
+        response = self.get()
         self.assertRedirects(response)

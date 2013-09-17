@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import urllib2
+from urlparse import urlparse
 
 from google.appengine.api import users, urlfetch
 
@@ -61,6 +62,9 @@ def authenticate(handler, required=True, admin=False):
             if user.username != wlu['username']:
                 user.username = wlu['username']
                 update = True
+        if admin and not user.admin and User.query().filter(User.admin == True).count(keys_only=True, limit=1) == 0:
+            user.admin = True
+            update = True
         if update:
             user.put()
     if required and not (user and user.active):
@@ -101,6 +105,7 @@ class UserBase(object):
 
 
 class UserHandler(JinjaHandler, UserBase):
+    @property
     def logged_in(self):
         return self.user is not None
 
@@ -142,124 +147,73 @@ class LoginHandler(UserHandler):
         self.render_template('login.html', context=context)
 
 
-class GoogleAppEngineUserAuthHandler(UserHandler):
-    def login_callback(self):
-        next_url = self.request.params.get('next_url', '')
-        user = None
-        gae_user = users.get_current_user()
-        logging.info("GAE_USER: {0}".format(gae_user.email()))
-        if gae_user:
-            auth_id = User.get_gae_user_auth_id(gae_user=gae_user)
-            user = self.auth.store.user_model.get_by_auth_id(auth_id)
-            if user:
-                logging.info("EXISTING_USER: {0}".format(user.email))
-                # existing user. just log them in.
-                self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
-                # update access for gae admins
-                if users.is_current_user_admin():
-                    if not (user.active and user.admin):
-                        user.active = True
-                        user.admin = True
-                user.last_login = datetime.datetime.now()
-                user.put()
-            else:
-                # check whether there's a user currently logged in
-                # then, create a new user if no one is signed in,
-                # otherwise add this auth_id to currently logged in user.
-                if self.logged_in and self.user:
-                    u = self.user
-                    if auth_id not in u.auth_ids:
-                        u.auth_ids.append(auth_id)
-                    u.populate(
-                        email=u.email or gae_user.email(),
-                        nickname=u.nickname or gae_user.nickname(),
-                        last_login=datetime.datetime.now()
-                    )
-                    if users.is_current_user_admin():
-                        u.admin = True
-                    u.put()
+class AuthHandler(UserHandler):
+    def login_auth_id(self, auth_id, is_admin=False, email=None, nickname=None):
+        next_url = self.request.params.get('next_url', None)
+        user = self.auth.store.user_model.get_by_auth_id(auth_id)
+        if user:
+            # Existing user
+            self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
+        else:
+            if not self.logged_in:
+                # New user
+                ok, user = self.auth.store.user_model.create_user(auth_id, email=email, nickname=nickname)
+                if ok:
+                    self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
+                    next_url = webapp2.uri_for('user_profile', next_url=next_url or webapp2.uri_for('home'))
                 else:
-                    logging.info("NEW_USER")
-                    ok, user = self.auth.store.user_model.create_user(
-                        auth_id,
-                        email=gae_user.email(),
-                        nickname=gae_user.nickname(),
-                        active=users.is_current_user_admin(),
-                        admin=users.is_current_user_admin(),
-                        last_login=datetime.datetime.now()
-                    )
-                    if ok:
-                        self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
-                    else:
-                        logging.error('create_user() returned False with strings: %s' % user)
-                        user = None
-                        self.auth.unset_session()
-        if not (user and user.active):
+                    user = None
+                    self.auth.unset_session()
+                    logging.error('create_user() returned False with strings: %s' % user)
+            else:
+                # Existing logged-in user with new auth_id
+                user = self.user
+                if auth_id not in user.auth_ids:
+                    user.auth_ids.append(auth_id)
+                user.email = user.email or email
+                user.nickname = user.nickname or nickname
+        if is_admin and not (user.active and user.admin):
+            user.active = True
+            user.admin = True
+        user.last_login = datetime.datetime.now()
+        user.put()
+        if not (user and user.active and next_url):
             next_url = webapp2.uri_for('home')
-        self.redirect(next_url or webapp2.uri_for('home'))
+        self.redirect(next_url)
 
 
-class IndieAuthUserHandler(UserHandler):
+class GoogleAppEngineUserHandler(AuthHandler):
+    def login_callback(self):
+        gae_user = users.get_current_user()
+        auth_id = User.get_gae_user_auth_id(gae_user=gae_user) if gae_user else None
+        is_admin = users.is_current_user_admin()
+        email = gae_user.email() if gae_user else None
+        nickname = gae_user.nickname() if gae_user else None
+        self.login_auth_id(auth_id, is_admin=is_admin, email=email, nickname=nickname)
+
+
+class IndieAuthUserHandler(AuthHandler):
     def login_callback(self):
         token = self.request.params.get('token', None)
-        next_url = self.request.params.get('next_url', '')
-        user = None
         url = "http://indieauth.com/verify?token={0}".format(token)
-        try:
-            response = urlfetch.fetch(url)
-            auth_data = json.loads(response.content)
-            me = auth_data.get('me', None)
-            error = auth_data.get('error', None)
-            error_description = auth_data.get('error', None)
-            if error is not None:
-                raise Exception("{0}: {1}".format(error, error_description))
-            if me:
-                auth_id = User.get_indie_auth_id(me=me)
-                user = self.auth.store.user_model.get_by_auth_id(auth_id)
-                if user:
-                    logging.info("EXISTING_USER: {0}".format(user.nickname))
-                    # existing user. just log them in.
-                    self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
-                    user.last_login = datetime.datetime.now()
-                    user.put()
-                else:
-                    # check whether there's a user currently logged in
-                    # then, create a new user if no one is signed in,
-                    # otherwise add this auth_id to currently logged in user.
-                    if self.logged_in and self.user:
-                        u = self.user
-                        if auth_id not in u.auth_ids:
-                            u.auth_ids.append(auth_id)
-                        u.populate(
-                            nickname=u.nickname or me,
-                            last_login=datetime.datetime.now()
-                        )
-                        u.put()
-                    else:
-                        logging.info("NEW_USER")
-                        ok, user = self.auth.store.user_model.create_user(
-                            auth_id,
-                            nickname=me,
-                            active=True,
-                            admin=False,
-                            last_login=datetime.datetime.now()
-                        )
-                        if ok:
-                            self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
-                        else:
-                            logging.error('create_user() returned False with strings: %s' % user)
-                            user = None
-                            self.auth.unset_session()
-        except Exception, e:
-            logging.error("IndieAuth Error: {0}".format(e))
-        if not (user and user.active):
-            next_url = webapp2.uri_for('home')
-        self.redirect(next_url or webapp2.uri_for('home'))
+        response = urlfetch.fetch(url)
+        auth_data = json.loads(response.content)
+        error = auth_data.get('error', None)
+        error_description = auth_data.get('error', None)
+        if error is not None:
+            message = "IndieAuth Error {0}: {1}".format(error, error_description)
+            logging.error(message)
+            raise Exception(message)
+        me = auth_data.get('me', None)
+        if me:
+            me = urlparse(me).netloc or me
+        auth_id = User.get_indie_auth_id(me=me)
+        self.login_auth_id(auth_id, nickname=me)
 
 
 routes = [
-        RedirectRoute('/login', handler='user_auth.LoginHandler', name='login'),
-        RedirectRoute('/logout', handler='user_auth.UserHandler:logout', name='logout'),
-        RedirectRoute('/gae_login_callback', handler='user_auth.GoogleAppEngineUserAuthHandler:login_callback', name='gae_login_callback'),
-        RedirectRoute('/ia_login_callback', handler='user_auth.IndieAuthUserHandler:login_callback', name='ia_login_callback')
+    RedirectRoute('/login', handler='user_auth.LoginHandler', name='login'),
+    RedirectRoute('/logout', handler='user_auth.UserHandler:logout', name='logout'),
+    RedirectRoute('/gae_login_callback', handler='user_auth.GoogleAppEngineUserHandler:login_callback', name='gae_login_callback'),
+    RedirectRoute('/ia_login_callback', handler='user_auth.IndieAuthUserHandler:login_callback', name='ia_login_callback')
 ]

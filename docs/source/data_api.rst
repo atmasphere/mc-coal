@@ -12,24 +12,27 @@ Common
 
 The following sections define parts of the API that are common across all resources.
 
--------
-Request
--------
+.. _secured_resources:
 
-The following sections define common parts of a resource request.
-
-^^^^^^^^^^^^^
-Authorization
-^^^^^^^^^^^^^
+-----------------
+Secured Resources
+-----------------
 
 Clients making calls to the API on behalf of a user require a bearer access token which can be acquired via a simple :ref:`authorization <authorization>` flow.
 
+.. http:get:: /api/v1/data/(resource)
 
-.. _secured_resources:
+  :requestheader Authorization: An :ref:`access token <access_token>` using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_. The user that granted authorization for the access token will be considered the "authenticated user" for resources that expect one.
 
-"""""""""""""""""
-Secured Resources
-"""""""""""""""""
+  :status 401 Unauthorized: Invalid or no ``Authorization`` request header provided.
+  :status 403 Forbidden: The authorization was not granted by an active user.
+
+  **Example**:
+
+  .. sourcecode:: http
+
+    GET /api/v1/data/(resource) HTTP/1.1
+    Authorization: Bearer 8wB8QtpULBVNuL2mqBaWdIRWX30qKtIK3E5QbOWP
 
 .. http:post:: /api/v1/data/(resource)
 
@@ -38,7 +41,7 @@ Secured Resources
   :status 401 Unauthorized: Invalid or no ``Authorization`` request header provided.
   :status 403 Forbidden: The authorization was not granted by an active user.
 
-  **Examples**:
+  **Example**:
 
   .. sourcecode:: http
 
@@ -46,15 +49,9 @@ Secured Resources
     Authorization: Bearer 8wB8QtpULBVNuL2mqBaWdIRWX30qKtIK3E5QbOWP
 
 
---------
-Response
---------
-
-The following sections define common parts of a resource response.
-
-^^^^^^^^^^^^
+------------
 Status Codes
-^^^^^^^^^^^^
+------------
 
 - :http:statuscode:`200`
 
@@ -108,9 +105,9 @@ Status Codes
 
   The ``errors`` string is resource and error specific.
 
-^^^^^^^^^^
+----------
 Timestamps
-^^^^^^^^^^
+----------
 
   Unless otherwise specified, all timestamps are of the form ``%Y-%m-%d %H:%M:%S %Z-%z`` (see `Python strftime formatting <http://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_) and converted to the ``COAL_TIMEZONE`` as defined in ``mc_coal_config.py`` or UTC if not defined.
 
@@ -161,7 +158,7 @@ Some resources return a list of results that can span requests. These resources 
 
   .. sourcecode:: http
 
-    GET /api/v1/data/(list_resources)?size=5&cursor=hsajkhasjkdy8y3h3h8fhih38djhdjdj HTTP/1.1
+    GET /api/v1/data/(list_resource)?size=5&cursor=hsajkhasjkdy8y3h3h8fhih38djhdjdj HTTP/1.1
 
   **Example second response**:
 

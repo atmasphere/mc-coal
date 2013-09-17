@@ -27,7 +27,7 @@
             {% else %}
                 <div class="player wrap {% if user.key == u.key %}you{% endif %}">
                     {% if u.username %}<div class="avatar" style="background-image: url(https://minotar.net/helm/{{ u.username }}/40)"></div>{% endif %}
-                    <h3 class="data">{{ u.email }}</h3>
+                    <h3 class="data">{{ u.email or u.nickname }}</h3>
                     <div class="data"><h4>Minecraft Username:</h4>{{ u.player.username or 'NONE' }}</div>
                     <div class="data"><h4>Is Active:</h4>{% if u.active %}True{% else %}False{% endif %}</div>
                     <div class="data"><h4>Is Admin:</h4>{% if u.admin %}True{% else %}False{% endif %}</div>
