@@ -266,6 +266,11 @@ class AdminTest(AuthTest):
         self.assertOK(response)
         self.assertLoggedIn(response)
 
+    def test_get_inactive(self):
+        self.log_in_user(email="admin@example.com", is_admin=True)
+        self.log_out_user()
+        super(AdminTest, self).test_get_inactive()
+
     def test_login_again(self):
         self.log_in_admin()
         response = self.get()
@@ -312,6 +317,11 @@ class UsersTest(AuthTest):
         response = self.get()
         self.assertOK(response)
         self.assertLoggedIn(response)
+
+    def test_get_inactive(self):
+        self.log_in_user(email="admin@example.com", is_admin=True)
+        self.log_out_user()
+        super(UsersTest, self).test_get_inactive()
 
     def test_login_again(self):
         self.log_in_admin()
