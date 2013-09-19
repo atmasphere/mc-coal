@@ -156,7 +156,7 @@ NUM_PLAY_SESSION_FIELDS = 11
 NUM_LOG_LINE_FIELDS = 14
 NUM_CHAT_FIELDS = 9
 NUM_DEATH_FIELDS = 9
-NUM_SCREENSHOT_FIELDS = 9
+NUM_SCREENSHOT_FIELDS = 7
 
 
 class ApiTest(OauthTest):
@@ -1076,7 +1076,7 @@ class ChatTest(MultiPageApiTest):
     def test_post(self):
         username = "gumptionthomas"
         self.player = models.Player.get_or_create(username)
-        self.user.username = username
+        self.user.usernames = [username]
         self.user.put()
         chat = u'Hello world...'
         params = {'chat': chat}
@@ -1682,7 +1682,7 @@ if Image is not None:
 
         def setUp(self):
             super(ScreenShotTest, self).setUp()
-            self.user.username = 'gumptionthomas'
+            self.user.usernames = ['gumptionthomas']
             self.user.put()
             self.now = datetime.datetime.now()
             self.players = []
@@ -1732,11 +1732,10 @@ if Image is not None:
                 self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
                 self.assertEqual(self.screenshots[i].get_serving_url(), screenshot['original_url'])
                 # self.assertEqual(self.screenshots[i].blurred_image_serving_url, screenshot['blurred_url'])
-                self.assertEqual(self.screenshots[i].username, screenshot['username'])
+                self.assertEqual(self.screenshots[i].user_key.urlsafe(), screenshot['user_key'])
 
-        def test_get_username(self):
-            username = "gumptionthomas"
-            url = "/api/v1/data/players/{0}/screenshots".format(username)
+        def test_get_user(self):
+            url = "/api/v1/data/users/{0}/screenshots".format(self.user.key.urlsafe())
             response = self.get(url=url)
             self.assertOK(response)
             body = json.loads(response.body)
@@ -1747,7 +1746,7 @@ if Image is not None:
                 self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
                 self.assertEqual(self.screenshots[i].get_serving_url(), screenshot['original_url'])
                 self.assertEqual(self.screenshots[i].blurred_image_serving_url, screenshot['blurred_url'])
-                self.assertEqual(self.screenshots[i].username, screenshot['username'])
+                self.assertEqual(self.screenshots[i].user_key.urlsafe(), screenshot['user_key'])
 
         def test_get_since_before(self):
             for screen_shot in self.screenshots:
@@ -1804,7 +1803,7 @@ if Image is not None:
 
         def setUp(self):
             super(ScreenShotKeyTest, self).setUp()
-            self.user.username = 'gumptionthomas'
+            self.user.usernames = ['gumptionthomas']
             self.user.put()
             self.now = datetime.datetime.now()
             self.blob_info = self.create_blob_info(IMAGE_PATH)
@@ -1837,4 +1836,4 @@ if Image is not None:
             self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
             self.assertEqual(self.screenshot.get_serving_url(), screenshot['original_url'])
             self.assertEqual(self.screenshot.blurred_image_serving_url, screenshot['blurred_url'])
-            self.assertEqual(self.screenshot.username, screenshot['username'])
+            self.assertEqual(self.screenshot.user.key.urlsafe(), screenshot['user_key'])

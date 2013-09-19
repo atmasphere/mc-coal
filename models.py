@@ -179,7 +179,6 @@ class User(auth_models.User):
     authorized_client_ids = ndb.StringProperty(repeated=True)
     email = ndb.StringProperty()
     nickname = ndb.StringProperty()
-    username = ndb.StringProperty()
     usernames = ndb.StringProperty(repeated=True)
     last_login = ndb.DateTimeProperty()
     last_chat_view = ndb.DateTimeProperty()
@@ -197,12 +196,18 @@ class User(auth_models.User):
         return get_whitelist_user(self.email)
 
     @property
-    def name(self):
-        return self.username or self.nickname or self.email
+    def username(self):
+        if self.usernames:
+            return self.usernames[0]
+        return None
 
     @property
-    def user_id(self):
+    def name(self):
         return self.nickname or self.email
+
+    @property
+    def play_name(self):
+        return self.username or self.nickname or self.email
 
     def record_chat_view(self, dt=None):
         if dt is None:
@@ -438,7 +443,7 @@ class Player(ServerModel):
     @property
     def user(self):
         if self.username:
-            return User.query().filter(User.username == self.username).get()
+            return User.query().filter(User.usernames == self.username).get()
         return None
 
     @property
@@ -510,7 +515,7 @@ class UsernameModel(ServerModel):
         return Player.lookup(self.username)
 
     def is_user(self, user):
-        return self.username == user.username if user else False
+        return self.username in user.usernames if self.username and user else False
 
 
 @ae_ndb_serializer
@@ -834,7 +839,7 @@ def blur(screen_shot_key):
 
 
 @ae_ndb_serializer
-class ScreenShot(NdbImage, UsernameModel):
+class ScreenShot(NdbImage, ServerModel):
     user_key = ndb.KeyProperty()
     random_id = ndb.FloatProperty()
     blurred_image_key = ndb.KeyProperty(kind=NdbImage)
@@ -902,10 +907,10 @@ class ScreenShot(NdbImage, UsernameModel):
         return screen_shot
 
     @classmethod
-    def query_latest(cls, username=None, since=None, before=None):
+    def query_latest(cls, user_key=None, since=None, before=None):
         query = cls.server_query().order(-cls.created)
-        if username:
-            query = query.filter(cls.username == username)
+        if user_key:
+            query = query.filter(cls.user_key == user_key)
         if since:
             query = query.filter(cls.created >= since)
         if before:

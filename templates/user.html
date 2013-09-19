@@ -20,7 +20,7 @@
         <div class="box">
             <form action="{{ uri_for('user', key=edit_user.key.urlsafe()) }}" method="post">
                 <label>Username</label>
-                {{ macros.with_errors(form.username, class="span3") }}
+                {{ macros.with_errors(form.usernames, class="span3") }}
 
                 <label>Active</label>
                 {{ macros.with_errors(form.active, class="span3") }}

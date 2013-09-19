@@ -28,7 +28,7 @@
         {% block menu %}
         <nav>
             <ul>
-                <li class="user"><a href="{{ uri_for('user_profile') }}">{{ user.user_id|truncate(15, True) }}</a></li>{% if user.admin %}<a href="{{ uri_for('admin') }}"><li {% if nav=="Admin" %}class="on"{% endif %}>Admin</li></a>{% endif %}<a href="{{ uri_for('screen_shots') }}"><li {% if nav=="ScreenShots" %}class="on"{% endif %}>Screens</li></a><a href="{{ uri_for('players') }}"><li {% if nav=="Players" %}class="on"{% endif %}>Players</li></a><a href="{{ uri_for('play_sessions') }}"><li {% if nav=="Sessions" %}class="on"{% endif %}>Sessions</li></a><a href="{{ uri_for('chats') }}"><li {% if nav=="Chats" %}class="on"{% endif %}>Chats</li></a>
+                <li class="user"><a href="{{ uri_for('user_profile') }}">{{ user.name|truncate(15, True) }}</a></li>{% if user.admin %}<a href="{{ uri_for('admin') }}"><li {% if nav=="Admin" %}class="on"{% endif %}>Admin</li></a>{% endif %}<a href="{{ uri_for('screen_shots') }}"><li {% if nav=="ScreenShots" %}class="on"{% endif %}>Screens</li></a><a href="{{ uri_for('players') }}"><li {% if nav=="Players" %}class="on"{% endif %}>Players</li></a><a href="{{ uri_for('play_sessions') }}"><li {% if nav=="Sessions" %}class="on"{% endif %}>Sessions</li></a><a href="{{ uri_for('chats') }}"><li {% if nav=="Chats" %}class="on"{% endif %}>Chats</li></a>
             </ul>
         </nav>
         {% endblock %}

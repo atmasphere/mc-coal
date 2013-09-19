@@ -10,34 +10,18 @@
 
         <div class="box">
         {% for u in users %}
-            {% if u.player %}
-                <div class="player wrap {% if u.player.is_user(user) %}you{% endif %}">
-                    <div class="activity {% if u.player.is_playing %}on{% endif %}"></div>
-                    <div class="avatar" style="background-image: url(https://minotar.net/helm/{{ u.player.username }}/40)"></div>
-                    <h3 class="data">{{ u.email or u.nickname }}</h3>
-                    <div class="data"><h4>Minecraft Username:</h4>{{ u.player.username }}</div>
-                    <div class="data"><h4>Is Active:</h4>{% if u.active %}True{% else %}False{% endif %}</div>
-                    <div class="data"><h4>Is Admin:</h4>{% if u.admin %}True{% else %}False{% endif %}</div>
-                    <div class="online">
-                        <h4>Last COAL Login</h4>
-                        <div class="data">{% if u.last_login %}{{ u.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ u.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>
-                    </div>
-                    <div class="name">{% if not u.white_list %}<a href="{{ uri_for('user', key=u.key.urlsafe()) }}">Edit</a>{% else %}Not Editable{% endif %}</div>
+            <div class="player wrap {% if user.key == u.key %}you{% endif %}">
+                {% if u.username %}<div class="avatar" style="background-image: url(https://minotar.net/helm/{{ u.username }}/40)"></div>{% endif %}
+                <h3 class="data">{{ u.name }}</h3>
+                <div class="data"><h4>Minecraft Usernames:</h4>{{ u.usernames or 'NONE' }}</div>
+                <div class="data"><h4>Is Active:</h4>{% if u.active %}True{% else %}False{% endif %}</div>
+                <div class="data"><h4>Is Admin:</h4>{% if u.admin %}True{% else %}False{% endif %}</div>
+                <div class="online">
+                    <h4>Last COAL Login</h4>
+                    <div class="data">{% if u.last_login %}{{ u.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ u.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>
                 </div>
-            {% else %}
-                <div class="player wrap {% if user.key == u.key %}you{% endif %}">
-                    {% if u.username %}<div class="avatar" style="background-image: url(https://minotar.net/helm/{{ u.username }}/40)"></div>{% endif %}
-                    <h3 class="data">{{ u.email or u.nickname }}</h3>
-                    <div class="data"><h4>Minecraft Username:</h4>{{ u.player.username or 'NONE' }}</div>
-                    <div class="data"><h4>Is Active:</h4>{% if u.active %}True{% else %}False{% endif %}</div>
-                    <div class="data"><h4>Is Admin:</h4>{% if u.admin %}True{% else %}False{% endif %}</div>
-                    <div class="online">
-                        <h4>Last COAL Login</h4>
-                        <div class="data">{% if u.last_login %}{{ u.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ u.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>
-                    </div>
-                    <div class="name">{% if not u.white_list %}<a href="{{ uri_for('user', key=u.key.urlsafe()) }}">Edit</a>{% else %}Not Editable{% endif %}</div>
-                </div>
-            {% endif %}
+                <div class="name">{% if not u.white_list %}<a href="{{ uri_for('user', key=u.key.urlsafe()) }}">Edit</a>{% else %}Not Editable{% endif %}</div>
+            </div>
         {% endfor %}
         </div>
     </div>

@@ -421,7 +421,7 @@ class ChatHandler(MultiPageJsonHandler):
     def post(self):
         user = self.request.user
         chat = u"/say {0}".format(self.request.form.chat.data)
-        Command.push(user.name, chat)
+        Command.push(user.play_name, chat)
         self.response.set_status(201)
 
 
@@ -591,10 +591,9 @@ class LogLineKeyHandler(JsonHandler):
         self.json_response(log_line, LOG_LINE_STRATEGY)
 
 
-SCREEN_SHOT_FIELDS = ['username', 'random_id']
+SCREEN_SHOT_FIELDS = ['random_id']
 SCREEN_SHOT_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
-    'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
     'original_url': lambda o: o.get_serving_url(),
     'blurred_url': lambda o: o.blurred_image_serving_url,
@@ -610,26 +609,31 @@ class ScreenShotForm(MultiPageForm):
 
 
 class ScreenShotsHandler(MultiPageJsonHandler):
-    def get_player_by_key_or_username(self, key_username, abort_404=True):
-        try:
-            player_key = ndb.Key(urlsafe=key_username)
-            player = player_key.get()
-        except Exception:
-            player = Player.lookup(key_username)
-        if abort_404 and not player:
-            self.abort(404)
-        return player
+    def get_user_by_key(self, key, abort=True):
+        fail_code = 404
+        if key == 'self':
+            fail_code = 403
+            user = self.request.user
+        else:
+            try:
+                user_key = ndb.Key(urlsafe=key)
+                user = user_key.get()
+            except Exception:
+                user = None
+        if abort and not user:
+            self.abort(fail_code)
+        return user
 
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ScreenShotForm)
-    def get(self, key_username=None):
-        username = None
-        if key_username:
-            player = self.get_player_by_key_or_username(key_username)
-            username = player.username
+    def get(self, key=None):
+        user_key = None
+        if key:
+            user = self.get_user_by_key(key)
+            user_key = user.key
         since = self.request.form.since.data or None
         before = self.request.form.before.data or None
-        query = ScreenShot.query_latest(username=username, since=since, before=before)
+        query = ScreenShot.query_latest(user_key=user_key, since=since, before=before)
         self.json_response(self.fetch_page(query, results_name='screenshots'), SCREEN_SHOT_STRATEGY)
 
 
@@ -655,13 +659,13 @@ routes = [
     webapp2.Route('/api/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line'),
 
     webapp2.Route('/api/v1/data/servers', 'api.ServerHandler', name='api_data_servers'),
+    webapp2.Route('/api/v1/data/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),
     webapp2.Route('/api/v1/data/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
     webapp2.Route('/api/v1/data/users', 'api.UsersHandler', name='api_data_users'),
     webapp2.Route('/api/v1/data/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
     webapp2.Route('/api/v1/data/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
     webapp2.Route('/api/v1/data/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
     webapp2.Route('/api/v1/data/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
-    webapp2.Route('/api/v1/data/players/<key_username>/screenshots', 'api.ScreenShotsHandler', name='api_data_player_screenshots'),
     webapp2.Route('/api/v1/data/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
     webapp2.Route('/api/v1/data/players', 'api.PlayersHandler', name='api_data_players'),
     webapp2.Route('/api/v1/data/sessions/<key>', 'api.PlaySessionKeyHandler', name='api_data_session_key'),

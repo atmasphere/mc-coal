@@ -9,7 +9,7 @@ import webapp2
 
 from webapp2_extras.routes import RedirectRoute
 
-from wtforms import form, fields, validators
+from wtforms import form, fields, validators, widgets
 
 from agar.auth import authentication_required
 from agar.env import on_production_server
@@ -134,7 +134,7 @@ class ChatsHandler(PagingHandler):
             'next_cursor': next_cursor,
             'previous_cursor': previous_cursor,
             'channel_token': channel_token,
-            'username': user.name,
+            'username': user.play_name,
         })
         self.render_template('chats.html', context=context)
 
@@ -147,7 +147,7 @@ class ChatsHandler(PagingHandler):
             form = ChatForm(self.request.POST)
             if form.validate():
                 chat = u"/say {0}".format(form.chat.data)
-                Command.push(user.name, chat)
+                Command.push(user.play_name, chat)
         except Exception, e:
             logging.error(u"Error POSTing chat: {0}".format(e))
             self.abort(500)
@@ -225,10 +225,40 @@ class AdminHandler(PagingHandler):
         self.render_template('admin.html', context=context)
 
 
+class StringListField(fields.Field):
+    widget = widgets.TextInput()
+
+    def __init__(self, label='', validators=None, remove_duplicates=True, **kwargs):
+        super(StringListField, self).__init__(label, validators, **kwargs)
+        self.remove_duplicates = remove_duplicates
+
+    def _value(self):
+        if self.data:
+            return u', '.join(self.data)
+        else:
+            return u''
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            self.data = [x.strip() for x in valuelist[0].split(',')]
+        else:
+            self.data = []
+        if self.remove_duplicates:
+            self.data = list(self._remove_duplicates(self.data))
+
+    @classmethod
+    def _remove_duplicates(cls, seq):
+        d = {}
+        for item in seq:
+            if item and item not in d:
+                d[item] = True
+                yield item
+
+
 class UserForm(form.Form):
     active = fields.BooleanField(u'Active', [validators.Optional()])
     admin = fields.BooleanField(u'Admin', [validators.Optional()])
-    username = fields.StringField(u'Username', validators=[validators.Optional()])
+    usernames = StringListField(u'Usernames', validators=[validators.Optional()])
 
 
 class UsersHandler(PagingHandler):
@@ -269,7 +299,7 @@ class UserEditHandler(UserHandler):
             if form.validate():
                 user.active = form.active.data
                 user.admin = form.admin.data
-                user.username = form.username.data
+                user.usernames = form.usernames.data
                 user.put()
                 self.redirect(webapp2.uri_for('users'))
         except Exception, e:

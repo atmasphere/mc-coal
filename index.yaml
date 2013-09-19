@@ -94,7 +94,7 @@ indexes:
 - kind: ScreenShot
   ancestor: yes
   properties:
-  - name: username
+  - name: user_key
   - name: created
     direction: desc
 
