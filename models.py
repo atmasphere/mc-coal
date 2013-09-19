@@ -209,6 +209,13 @@ class User(auth_models.User):
     def play_name(self):
         return self.username or self.nickname or self.email
 
+    def set_usernames(self, usernames):
+        for username in usernames:
+            u = User.lookup(username=username)
+            if u is not None and u.key != self.key:
+                raise Exception("Username already taken: {0}".format(username))
+        self.usernames = usernames
+
     def record_chat_view(self, dt=None):
         if dt is None:
             dt = datetime.datetime.now()
@@ -280,7 +287,7 @@ class User(auth_models.User):
             if email is not None:
                 query = query.filter(ndb.StringProperty('email') == email)
             if username is not None:
-                query = query.filter(ndb.StringProperty('username') == username)
+                query = query.filter(ndb.StringProperty('usernames') == username)
             return query.get()
         return None
 

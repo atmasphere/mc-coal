@@ -255,10 +255,27 @@ class StringListField(fields.Field):
                 yield item
 
 
+class UniqueUsernames(object):
+    def __init__(self, user=None):
+        self.user = user
+
+    def __call__(self, form, field):
+        user = self.user or form.user
+        usernames = field.data
+        for username in usernames:
+            u = User.lookup(username=username)
+            if u is not None and u.key != user.key:
+                raise validators.ValidationError("Username '{0}' is already assigned to a user".format(username))
+
+
 class UserForm(form.Form):
     active = fields.BooleanField(u'Active', [validators.Optional()])
     admin = fields.BooleanField(u'Admin', [validators.Optional()])
-    usernames = StringListField(u'Usernames', validators=[validators.Optional()])
+    usernames = StringListField(u'Usernames', validators=[validators.Optional(), UniqueUsernames()])
+
+    def __init__(self, user=None, *args, **kwargs):
+        super(UserForm, self).__init__(*args, **kwargs)
+        self.user = user
 
 
 class UsersHandler(PagingHandler):
@@ -279,7 +296,7 @@ class UserEditHandler(UserHandler):
             user = user_key.get()
             if user is None or get_whitelist_user(user.email) is not None:
                 self.abort(404)
-            form = UserForm(obj=user)
+            form = UserForm(user=user, obj=user)
         except Exception, e:
             logging.error(u"Error GETting user: {0}".format(e))
             self.abort(404)
@@ -295,10 +312,11 @@ class UserEditHandler(UserHandler):
                 self.abort(404)
             if user.white_list is not None:
                 self.abort(405)  # Method Not Allowed
-            form = UserForm(self.request.POST, user)
+            form = UserForm(user=user, formdata=self.request.POST, obj=user)
             if form.validate():
                 user.active = form.active.data
                 user.admin = form.admin.data
+                user.set_usernames(form.usernames.data)
                 user.usernames = form.usernames.data
                 user.put()
                 self.redirect(webapp2.uri_for('users'))
