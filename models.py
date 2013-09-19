@@ -231,9 +231,7 @@ class User(auth_models.User):
         authorization_provider.discard_client_user_tokens(client_id, self.key)
 
     def is_username(self, username):
-        if username is not None:
-            return username == self.username
-        return False
+        return username in self.usernames if username is not None else False
 
     def is_player(self, player):
         if player is not None:
