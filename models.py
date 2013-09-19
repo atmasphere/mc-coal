@@ -180,7 +180,7 @@ class User(auth_models.User):
     email = ndb.StringProperty()
     nickname = ndb.StringProperty()
     username = ndb.StringProperty()
-    usernames = ndb.StringProperty()
+    usernames = ndb.StringProperty(repeated=True)
     last_login = ndb.DateTimeProperty()
     last_chat_view = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
