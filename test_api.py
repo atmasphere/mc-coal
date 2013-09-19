@@ -1682,6 +1682,8 @@ if Image is not None:
 
         def setUp(self):
             super(ScreenShotTest, self).setUp()
+            self.user.username = 'gumptionthomas'
+            self.user.put()
             self.now = datetime.datetime.now()
             self.players = []
             self.players.append(models.Player.get_or_create("gumptionthomas"))
@@ -1689,7 +1691,7 @@ if Image is not None:
             self.screenshots = []
             self.blob_info = self.create_blob_info(IMAGE_PATH)
             for i in range(5):
-                screen_shot = models.ScreenShot.create(username='gumptionthomas', blob_info=self.blob_info)
+                screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info)
                 self.screenshots.insert(0, screen_shot)
             self.assertEqual(5, models.ScreenShot.query().count())
             #For speed, don't actually generate the blurs for these images
@@ -1716,7 +1718,7 @@ if Image is not None:
 
         def test_get(self):
             for i in range(5):
-                screen_shot = models.ScreenShot.create(username='gumptionthomas', blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+                screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
                 self.screenshots.append(screen_shot)
             self.assertEqual(10, models.ScreenShot.query().count())
             # self.run_deferred(5)
@@ -1753,7 +1755,7 @@ if Image is not None:
             import time
             self.screenshots = []
             for i in range(5):
-                screen_shot = models.ScreenShot.create(username='gumptionthomas', blob_info=self.blob_info)
+                screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info)
                 self.screenshots.insert(0, screen_shot)
                 time.sleep(1)
             url = "{0}?since={1}".format(self.URL, self.screenshots[0].created.strftime("%Y-%m-%d %H:%M:%S"))
@@ -1802,10 +1804,12 @@ if Image is not None:
 
         def setUp(self):
             super(ScreenShotKeyTest, self).setUp()
+            self.user.username = 'gumptionthomas'
+            self.user.put()
             self.now = datetime.datetime.now()
             self.blob_info = self.create_blob_info(IMAGE_PATH)
             self.player = models.Player.get_or_create("gumptionthomas")
-            self.screenshot = models.ScreenShot.create(username='gumptionthomas', blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+            self.screenshot = models.ScreenShot.create(self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
             # self.run_deferred()
 
         @property

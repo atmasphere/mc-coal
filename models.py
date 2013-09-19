@@ -180,6 +180,7 @@ class User(auth_models.User):
     email = ndb.StringProperty()
     nickname = ndb.StringProperty()
     username = ndb.StringProperty()
+    usernames = ndb.StringProperty()
     last_login = ndb.DateTimeProperty()
     last_chat_view = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
@@ -224,9 +225,14 @@ class User(auth_models.User):
             self.put()
         authorization_provider.discard_client_user_tokens(client_id, self.key)
 
+    def is_username(self, username):
+        if username is not None:
+            return username == self.username
+        return False
+
     def is_player(self, player):
         if player is not None:
-            return player.username == self.username
+            return self.is_username(player.username)
         return False
 
     @classmethod
@@ -282,6 +288,14 @@ class User(auth_models.User):
     @classmethod
     def query_by_email_reverse(cls):
         return cls.query().order(-cls.email)
+
+
+# @ae_ndb_serializer
+# class Invite(ndb.Model):
+#     user_key = ndb.KeyProperty()
+#     redeemed = ndb.DateTimeProperty(auto_now_add=True)
+#     created = ndb.DateTimeProperty(auto_now_add=True)
+#     updated = ndb.DateTimeProperty(auto_now=True)
 
 
 @ae_ndb_serializer
@@ -821,6 +835,7 @@ def blur(screen_shot_key):
 
 @ae_ndb_serializer
 class ScreenShot(NdbImage, UsernameModel):
+    user_key = ndb.KeyProperty()
     random_id = ndb.FloatProperty()
     blurred_image_key = ndb.KeyProperty(kind=NdbImage)
     created = ndb.DateTimeProperty(auto_now_add=True)
@@ -832,6 +847,10 @@ class ScreenShot(NdbImage, UsernameModel):
         blurred_image = instance.blurred_image
         if blurred_image is not None:
             blurred_image.key.delete()
+
+    @property
+    def user(self):
+        return self.user_key.get() if self.user_key is not None else None
 
     @property
     def blurred_image(self):
@@ -858,9 +877,10 @@ class ScreenShot(NdbImage, UsernameModel):
         self.put()
 
     @classmethod
-    def create(cls, username, **kwargs):
+    def create(cls, user, **kwargs):
         instance = super(ScreenShot, cls).create(parent=Server.global_key(), **kwargs)
-        instance.username = username
+        instance.user_key = user.key if user else None
+        instance.username = user.username if user else None
         instance.random_id = random.random()
         instance.put()
         deferred.defer(blur, instance.key.urlsafe())

@@ -19,7 +19,7 @@ def datetime_filter(value, format='%A, %B %d, %Y %I:%M:%S %p'):
 
 
 def username_pronoun_filter(username, user):
-    return "YOU" if username == user.username else username
+    return "YOU" if user.is_username(username) else username
 
 
 def escape_javascript_filter(value):

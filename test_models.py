@@ -31,7 +31,7 @@ class ScreenShotTest(BaseTest):
         self.screen_shots = []
         blob_info = self.create_blob_info(IMAGE_PATH)
         for i in range(5):
-            screen_shot = models.ScreenShot.create(username='bill', blob_info=blob_info)
+            screen_shot = models.ScreenShot.create(None, blob_info=blob_info)
             self.screen_shots.append(screen_shot)
         self.assertEqual(5, models.ScreenShot.query().count())
         #For speed, don't actually generate the blurs for these images
@@ -73,7 +73,7 @@ class ScreenShotTest(BaseTest):
 
     def test_create_blob(self):
         blob_info = self.create_blob_info(IMAGE_PATH)
-        image = models.ScreenShot.create('bill', blob_info=blob_info)
+        image = models.ScreenShot.create(None, blob_info=blob_info)
         self.assertIsNotNone(image)
         self.assertIsNone(image.blurred_image_serving_url)
         image_data = open(IMAGE_PATH, 'rb').read()
@@ -85,7 +85,7 @@ class ScreenShotTest(BaseTest):
 
     def test_delete(self):
         blob_info = self.create_blob_info(IMAGE_PATH)
-        screen_shot = models.ScreenShot.create('bill', blob_info=blob_info)
+        screen_shot = models.ScreenShot.create(None, blob_info=blob_info)
         # self.run_deferred()
         self.assertIsNotNone(screen_shot)
         # self.assertIsNotNone(screen_shot.blurred_image_serving_url)
