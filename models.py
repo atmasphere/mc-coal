@@ -3,6 +3,7 @@ import datetime
 import logging
 import re
 import random
+import string
 
 from google.appengine.ext import blobstore, ndb, deferred
 from google.appengine.api import users, memcache, mail, app_identity
@@ -23,6 +24,7 @@ from image import NdbImage
 import search
 
 
+UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
 AGENT_CLIENT_ID = 'mc-coal-agent'
 TICKS_PER_PLAY_SECOND = 20
 UNKNOWN_TAG = 'unknown'
@@ -37,6 +39,8 @@ OVERLOADED_TAG = 'overloaded'
 STOPPING_TAG = 'stopping'
 STARTING_TAG = 'starting'
 DEATH_TAG = 'death'
+CLAIM_TAG = 'claim'
+COAL_TAG = 'coal'
 LOGIN_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGIN_TAG]
 LOGOUT_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGOUT_TAG]
 CHAT_TAGS = [TIMESTAMP_TAG, CHAT_TAG]
@@ -44,6 +48,8 @@ OVERLOADED_TAGS = [TIMESTAMP_TAG, SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG]
 STOPPING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STOPPING_TAG]
 STARTING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STARTING_TAG]
 DEATH_TAGS = [TIMESTAMP_TAG, DEATH_TAG]
+CLAIM_TAGS = [TIMESTAMP_TAG, CLAIM_TAG]
+COAL_TAGS = [TIMESTAMP_TAG, COAL_TAG]
 TIMESTAMP_TAGS = [TIMESTAMP_TAG, UNKNOWN_TAG]
 REGEX_TAGS = [
     (
@@ -57,6 +63,18 @@ REGEX_TAGS = [
             ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) lost connection: disconnect.+"
         ],
         LOGOUT_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \[Server\] \<COAL\> (?P<chat>.+)",
+        ],
+        COAL_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \<(?P<username>\w+)\> coal:claim:(?P<code>.+)",
+        ],
+        CLAIM_TAGS
     ),
     (
         [
@@ -209,6 +227,14 @@ class User(auth_models.User):
     def play_name(self):
         return self.username or self.nickname or self.email
 
+    @property
+    def unauthenticated_claims(self):
+        return UsernameClaim.query_unauthenticated_by_user_key(self.key).fetch()
+
+    def add_username(self, username):
+        if username not in self.usernames:
+            self.usernames.append(username)
+
     def set_usernames(self, usernames):
         for username in usernames:
             u = User.lookup(username=username)
@@ -298,6 +324,56 @@ class User(auth_models.User):
     @classmethod
     def query_by_email_reverse(cls):
         return cls.query().order(-cls.email)
+
+
+@ae_ndb_serializer
+class UsernameClaim(ndb.Model):
+    user_key = ndb.KeyProperty()
+    username = ndb.StringProperty()
+    code = ndb.StringProperty()
+    authenticated = ndb.DateTimeProperty()
+    created = ndb.DateTimeProperty(auto_now_add=True)
+    updated = ndb.DateTimeProperty(auto_now=True)
+
+    def _pre_put_hook(self):
+        if self.code is None:
+            self.code = ''.join([random.choice(UNICODE_ASCII_DIGITS) for x in xrange(5)])
+
+    @classmethod
+    def authenticate(cls, username, code):
+        claim_query = cls.query()
+        claim_query = claim_query.filter(cls.username == username)
+        claim_query = claim_query.filter(cls.code == code)
+        claim_query = claim_query.filter(cls.authenticated == None)
+        claim = claim_query.get()
+        if claim is not None:
+            user = claim.user_key.get()
+            if user is not None:
+                claim.authenticated = datetime.datetime.now()
+                claim.put()
+                user.add_username(username)
+                user.put()
+                return True
+        return False
+
+    @classmethod
+    def get_or_create(cls, username, user_key):
+        claim_query = cls.query(ancestor=user_key)
+        claim_query = claim_query.filter(cls.username == username)
+        claim_query = claim_query.filter(cls.user_key == user_key)
+        claim_query = claim_query.filter(cls.authenticated == None)
+        claim = claim_query.get()
+        if claim is None:
+            claim = cls(parent=user_key, username=username, user_key=user_key)
+            claim.put()
+        return claim
+
+    @classmethod
+    def query_unauthenticated_by_user_key(cls, user_key):
+        claim_query = cls.query(ancestor=user_key)
+        claim_query = claim_query.filter(cls.user_key == user_key)
+        claim_query = claim_query.filter(cls.authenticated == None)
+        return claim_query
 
 
 # @ae_ndb_serializer
@@ -537,6 +613,7 @@ class LogLine(UsernameModel):
     death_message = ndb.StringProperty()
     username_mob = ndb.StringProperty()
     weapon = ndb.StringProperty()
+    code = ndb.StringProperty()
     tags = ndb.StringProperty(repeated=True)
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
@@ -619,6 +696,13 @@ class LogLine(UsernameModel):
             open_sessions_query = PlaySession.query_open()
             for session in open_sessions_query:
                 session.close(log_line.timestamp, log_line.key)
+        if CLAIM_TAG in log_line.tags:
+            if UsernameClaim.authenticate(log_line.username, log_line.code):
+                message = "Username claim succeeded."
+            else:
+                message = "Username claim failed."
+            chat = u"/tell {0} {1}".format(log_line.username, message)
+            Command.push('COAL', chat)
         return log_line
 
     @classmethod

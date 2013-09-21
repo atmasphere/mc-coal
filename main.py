@@ -17,7 +17,7 @@ from agar.env import on_production_server
 from base_handler import uri_for_pagination
 import channel
 from config import coal_config
-from models import get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command, Server
+from models import get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
 import search
 from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin, authenticate_public
 
@@ -264,8 +264,9 @@ class UniqueUsernames(object):
         usernames = field.data
         for username in usernames:
             u = User.lookup(username=username)
-            if u is not None and u.key != user.key:
-                raise validators.ValidationError("Username '{0}' is already assigned to a user".format(username))
+            if u is not None:
+                if user is None or u.key != user.key:
+                    raise validators.ValidationError("Username '{0}' is already assigned to a user".format(username))
 
 
 class UserForm(form.Form):
@@ -348,13 +349,29 @@ class UserProfileForm(form.Form):
     nickname = fields.StringField(u'Nickname', validators=[validators.Optional()])
 
 
+class UniqueUsername(object):
+    def __init__(self, user=None):
+        self.user = user
+
+    def __call__(self, form, field):
+        username = field.data
+        u = User.lookup(username=username)
+        if u is not None:
+            raise validators.ValidationError("Username '{0}' is already assigned to a user".format(username))
+
+
+class UsernameClaimForm(form.Form):
+    username = fields.StringField(u'Username', validators=[validators.DataRequired(), UniqueUsername()])
+
+
 class UserProfileHandler(UserHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         next_url = self.request.params.get('next_url', webapp2.uri_for('home'))
         user = self.request.user
         form = UserProfileForm(obj=user)
-        context = {'edit_user': user, 'form': form, 'next_url': next_url}
+        claim_form = UsernameClaimForm()
+        context = {'edit_user': user, 'form': form, 'claim_form': claim_form, 'next_url': next_url}
         self.render_template('user_profile.html', context=context)
 
     @authentication_required(authenticate=authenticate)
@@ -367,14 +384,27 @@ class UserProfileHandler(UserHandler):
             user.nickname = form.nickname.data
             user.put()
             self.redirect(next_url)
-        context = {'edit_user': user, 'form': form, 'next_url': next_url}
+        claim_form = UsernameClaimForm()
+        context = {'edit_user': user, 'form': form, 'claim_form': claim_form, 'next_url': next_url}
         self.render_template('user_profile.html', context=context)
+
+
+class UsernameClaimHandler(UserHandler):
+    @authentication_required(authenticate=authenticate)
+    def post(self):
+        next_url = self.request.params.get('next_url', webapp2.uri_for('user_profile'))
+        form = UsernameClaimForm(self.request.POST)
+        if form.validate():
+            username = form.username.data
+            UsernameClaim.get_or_create(username=username, user_key=self.request.user.key)
+        self.redirect(next_url)
 
 
 application = webapp2.WSGIApplication(
     [
         RedirectRoute('/', handler=HomeHandler, name="home"),
         RedirectRoute('/chats', handler=ChatsHandler, strict_slash=True, name="chats"),
+        RedirectRoute('/players/claim', handler=UsernameClaimHandler, strict_slash=True, name="username_claim"),
         RedirectRoute('/players', handler=PlayersHandler, strict_slash=True, name="players"),
         RedirectRoute('/sessions', handler=PlaySessionsHandler, strict_slash=True, name="play_sessions"),
         RedirectRoute('/screen_shot_upload', handler=ScreenShotUploadHandler, strict_slash=True, name="screen_shot_upload"),
