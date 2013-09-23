@@ -89,6 +89,11 @@ indexes:
   ancestor: yes
   properties:
   - name: created
+
+- kind: ScreenShot
+  ancestor: yes
+  properties:
+  - name: created
     direction: desc
 
 - kind: ScreenShot
