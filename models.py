@@ -937,6 +937,7 @@ class ScreenShot(NdbImage, ServerModel):
 
     @classmethod
     def _pre_delete_hook(cls, key):
+        super(ScreenShot, cls)._pre_delete_hook(key)
         instance = key.get()
         blurred_image = instance.blurred_image
         if blurred_image is not None:
@@ -957,7 +958,7 @@ class ScreenShot(NdbImage, ServerModel):
             return blurred_image.get_serving_url()
         return None
 
-    def create_blurred(self):
+    def generate_blurred_image_data(self):
         blob_reader = blobstore.BlobReader(self.blob_key)
         pil_image = Image.open(blob_reader)
         screen_shot_filter = GaussianBlurFilter()
@@ -966,7 +967,10 @@ class ScreenShot(NdbImage, ServerModel):
         pil_image.save(output, format="png")
         pil_image_data = output.getvalue()
         output.close()
-        blurred_image = NdbImage.create(parent=self.key, data=pil_image_data, mime_type='image/png')
+        return pil_image_data
+
+    def create_blurred(self):
+        blurred_image = NdbImage.create(parent=self.key, data=self.generate_blurred_image_data(), mime_type='image/png')
         self.blurred_image_key = blurred_image.key
         self.put()
 

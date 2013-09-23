@@ -195,7 +195,7 @@ class ScreenShotsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            ScreenShot.query_latest(), ScreenShot.query_oldest(), coal_config.RESULTS_PER_PAGE
+            ScreenShot.query_latest(), ScreenShot.query_oldest(), 5
         )
         context = {'screen_shots': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('screen_shots.html', context=context)

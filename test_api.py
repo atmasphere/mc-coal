@@ -1,3 +1,4 @@
+import base64
 import datetime
 import json
 import logging
@@ -12,6 +13,8 @@ for d in os.environ["PATH"].split(":"):
         import dev_appserver
         dev_appserver.fix_sys_path()
 
+from google.appengine.ext import blobstore, testbed, deferred
+
 import main
 import models
 from test_oauth import OauthTest
@@ -19,6 +22,8 @@ from test_oauth import OauthTest
 
 TIME_ZONE = 'America/Chicago'
 LOG_LINE = 'Test line'
+IMAGE_PATH = 'static/img/coal_sprite.png'
+
 TIME_STAMP_LOG_LINE = '2012-10-07 15:10:09 [INFO] Preparing level "world"'
 SERVER_START_LOG_LINE = '2012-10-15 16:05:00 [INFO] Starting minecraft server version 1.3.2'
 SERVER_STOP_LOG_LINE = '2012-10-15 16:26:11 [INFO] Stopping server'
@@ -1667,173 +1672,164 @@ class LogLineKeyDataTest(KeyApiTest):
         self.assertEqual(self.log_line.username, log_line['username'])
 
 
-try:
-    from PIL import Image
-    import base64
-    from google.appengine.ext import blobstore, testbed, deferred
-    IMAGE_PATH = 'static/img/coal_sprite.png'
-except ImportError:
-    Image = None
+class ScreenShotTest(MultiPageApiTest):
+    URL = '/api/v1/data/screenshots'
+    ALLOWED = ['GET']
 
-if Image is not None:
-    class ScreenShotTest(MultiPageApiTest):
-        URL = '/api/v1/data/screenshots'
-        ALLOWED = ['GET']
+    def setUp(self):
+        super(ScreenShotTest, self).setUp()
+        self.user.usernames = ['gumptionthomas']
+        self.user.put()
+        self.now = datetime.datetime.now()
+        self.players = []
+        self.players.append(models.Player.get_or_create("gumptionthomas"))
+        self.players.append(models.Player.get_or_create("vesicular"))
+        self.screenshots = []
+        self.blob_info = self.create_blob_info(IMAGE_PATH)
+        for i in range(5):
+            screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info)
+            self.screenshots.insert(0, screen_shot)
+        self.assertEqual(5, models.ScreenShot.query().count())
+        #For speed, don't actually generate the blurs for these images
+        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
+        taskqueue_stub.FlushQueue('default')
 
-        def setUp(self):
-            super(ScreenShotTest, self).setUp()
-            self.user.usernames = ['gumptionthomas']
-            self.user.put()
-            self.now = datetime.datetime.now()
-            self.players = []
-            self.players.append(models.Player.get_or_create("gumptionthomas"))
-            self.players.append(models.Player.get_or_create("vesicular"))
-            self.screenshots = []
-            self.blob_info = self.create_blob_info(IMAGE_PATH)
-            for i in range(5):
-                screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info)
-                self.screenshots.insert(0, screen_shot)
-            self.assertEqual(5, models.ScreenShot.query().count())
-            #For speed, don't actually generate the blurs for these images
-            taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
-            taskqueue_stub.FlushQueue('default')
+    @property
+    def blobs(self):
+        return self.testbed.get_stub('blobstore').storage._blobs
 
-        @property
-        def blobs(self):
-            return self.testbed.get_stub('blobstore').storage._blobs
+    def run_deferred(self, expected_tasks=1):
+        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
+        tasks = taskqueue_stub.GetTasks('default')
+        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
+        for task in tasks:
+            deferred.run(base64.b64decode(task['body']))
 
-        def run_deferred(self, expected_tasks=1):
-            taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
-            tasks = taskqueue_stub.GetTasks('default')
-            self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
-            for task in tasks:
-                deferred.run(base64.b64decode(task['body']))
+    def create_blob_info(self, path, image_data=None):
+        if not image_data:
+            image_data = open(path, 'rb').read()
+        path = os.path.basename(path)
+        self.testbed.get_stub('blobstore').CreateBlob(path, image_data)
+        return blobstore.BlobInfo(blobstore.BlobKey(path))
 
-        def create_blob_info(self, path, image_data=None):
-            if not image_data:
-                image_data = open(path, 'rb').read()
-            path = os.path.basename(path)
-            self.testbed.get_stub('blobstore').CreateBlob(path, image_data)
-            return blobstore.BlobInfo(blobstore.BlobKey(path))
-
-        def test_get(self):
-            for i in range(5):
-                screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
-                self.screenshots.append(screen_shot)
-            self.assertEqual(10, models.ScreenShot.query().count())
-            # self.run_deferred(5)
-            response = self.get(url='{0}?size={1}'.format(self.URL, 50))
-            self.assertOK(response)
-            body = json.loads(response.body)
-            self.assertLength(1, body)
-            screenshots = body['screenshots']
-            self.assertLength(len(self.screenshots), screenshots)
-            for i, screenshot in enumerate(screenshots):
-                self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-                self.assertEqual(self.screenshots[i].get_serving_url(), screenshot['original_url'])
-                # self.assertEqual(self.screenshots[i].blurred_image_serving_url, screenshot['blurred_url'])
-                self.assertEqual(self.screenshots[i].user_key.urlsafe(), screenshot['user_key'])
-
-        def test_get_user(self):
-            url = "/api/v1/data/users/{0}/screenshots".format(self.user.key.urlsafe())
-            response = self.get(url=url)
-            self.assertOK(response)
-            body = json.loads(response.body)
-            self.assertLength(1, body)
-            screenshots = body['screenshots']
-            self.assertLength(5, screenshots)
-            for i, screenshot in enumerate(screenshots):
-                self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-                self.assertEqual(self.screenshots[i].get_serving_url(), screenshot['original_url'])
-                self.assertEqual(self.screenshots[i].blurred_image_serving_url, screenshot['blurred_url'])
-                self.assertEqual(self.screenshots[i].user_key.urlsafe(), screenshot['user_key'])
-
-        def test_get_since_before(self):
-            for screen_shot in self.screenshots:
-                screen_shot.key.delete()
-            import time
-            self.screenshots = []
-            for i in range(5):
-                screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info)
-                self.screenshots.insert(0, screen_shot)
-                time.sleep(1)
-            url = "{0}?since={1}".format(self.URL, self.screenshots[0].created.strftime("%Y-%m-%d %H:%M:%S"))
-            response = self.get(url=url)
-            self.assertOK(response)
-            body = json.loads(response.body)
-            self.assertLength(1, body)
-            screenshots = body['screenshots']
-            self.assertLength(1, screenshots)
-            for i, screenshot in enumerate(screenshots):
-                self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-            url = "{0}?before={1}".format(self.URL, self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S"))
-            response = self.get(url=url)
-            self.assertOK(response)
-            body = json.loads(response.body)
-            self.assertLength(1, body)
-            screenshots = body['screenshots']
-            self.assertLength(len(self.screenshots)-2, screenshots)
-            for i, screenshot in enumerate(screenshots):
-                self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-            url = "{0}?since={1}&before={2}".format(self.URL, self.screenshots[4].created.strftime("%Y-%m-%d %H:%M:%S"), self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S"))
-            response = self.get(url=url)
-            self.assertOK(response)
-            body = json.loads(response.body)
-            self.assertLength(1, body)
-            screenshots = body['screenshots']
-            self.assertLength(3, screenshots)
-            for i, screenshot in enumerate(screenshots):
-                self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-            url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
-            response = self.get(url=url)
-            self.assertOK(response)
-            body = json.loads(response.body)
-            self.assertLength(1, body)
-            screenshots = body['screenshots']
-            self.assertLength(0, screenshots)
-
-
-    class ScreenShotKeyTest(KeyApiTest):
-        URL = '/api/v1/data/screenshots'
-        ALLOWED = ['GET']
-
-        @property
-        def url(self):
-            return "{0}/{1}".format(self.URL, self.screenshot.key.urlsafe())
-
-        def setUp(self):
-            super(ScreenShotKeyTest, self).setUp()
-            self.user.usernames = ['gumptionthomas']
-            self.user.put()
-            self.now = datetime.datetime.now()
-            self.blob_info = self.create_blob_info(IMAGE_PATH)
-            self.player = models.Player.get_or_create("gumptionthomas")
-            self.screenshot = models.ScreenShot.create(self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
-            # self.run_deferred()
-
-        @property
-        def blobs(self):
-            return self.testbed.get_stub('blobstore').storage._blobs
-
-        def run_deferred(self, expected_tasks=1):
-            taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
-            tasks = taskqueue_stub.GetTasks('default')
-            self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
-            for task in tasks:
-                deferred.run(base64.b64decode(task['body']))
-
-        def create_blob_info(self, path, image_data=None):
-            if not image_data:
-                image_data = open(path, 'rb').read()
-            path = os.path.basename(path)
-            self.testbed.get_stub('blobstore').CreateBlob(path, image_data)
-            return blobstore.BlobInfo(blobstore.BlobKey(path))
-
-        def test_get(self):
-            response = self.get()
-            self.assertOK(response)
-            screenshot = json.loads(response.body)
+    def test_get(self):
+        for i in range(5):
+            screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+            self.screenshots.append(screen_shot)
+        self.assertEqual(10, models.ScreenShot.query().count())
+        # self.run_deferred(5)
+        response = self.get(url='{0}?size={1}'.format(self.URL, 50))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        screenshots = body['screenshots']
+        self.assertLength(len(self.screenshots), screenshots)
+        for i, screenshot in enumerate(screenshots):
             self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-            self.assertEqual(self.screenshot.get_serving_url(), screenshot['original_url'])
-            self.assertEqual(self.screenshot.blurred_image_serving_url, screenshot['blurred_url'])
-            self.assertEqual(self.screenshot.user.key.urlsafe(), screenshot['user_key'])
+            self.assertEqual(self.screenshots[i].get_serving_url(), screenshot['original_url'])
+            # self.assertEqual(self.screenshots[i].blurred_image_serving_url, screenshot['blurred_url'])
+            self.assertEqual(self.screenshots[i].user_key.urlsafe(), screenshot['user_key'])
+
+    def test_get_user(self):
+        url = "/api/v1/data/users/{0}/screenshots".format(self.user.key.urlsafe())
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        screenshots = body['screenshots']
+        self.assertLength(5, screenshots)
+        for i, screenshot in enumerate(screenshots):
+            self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
+            self.assertEqual(self.screenshots[i].get_serving_url(), screenshot['original_url'])
+            self.assertEqual(self.screenshots[i].blurred_image_serving_url, screenshot['blurred_url'])
+            self.assertEqual(self.screenshots[i].user_key.urlsafe(), screenshot['user_key'])
+
+    def test_get_since_before(self):
+        for screen_shot in self.screenshots:
+            screen_shot.key.delete()
+        import time
+        self.screenshots = []
+        for i in range(5):
+            screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info)
+            self.screenshots.insert(0, screen_shot)
+            time.sleep(1)
+        url = "{0}?since={1}".format(self.URL, self.screenshots[0].created.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        screenshots = body['screenshots']
+        self.assertLength(1, screenshots)
+        for i, screenshot in enumerate(screenshots):
+            self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
+        url = "{0}?before={1}".format(self.URL, self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        screenshots = body['screenshots']
+        self.assertLength(len(self.screenshots)-2, screenshots)
+        for i, screenshot in enumerate(screenshots):
+            self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
+        url = "{0}?since={1}&before={2}".format(self.URL, self.screenshots[4].created.strftime("%Y-%m-%d %H:%M:%S"), self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        screenshots = body['screenshots']
+        self.assertLength(3, screenshots)
+        for i, screenshot in enumerate(screenshots):
+            self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
+        url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        screenshots = body['screenshots']
+        self.assertLength(0, screenshots)
+
+
+class ScreenShotKeyTest(KeyApiTest):
+    URL = '/api/v1/data/screenshots'
+    ALLOWED = ['GET']
+
+    @property
+    def url(self):
+        return "{0}/{1}".format(self.URL, self.screenshot.key.urlsafe())
+
+    def setUp(self):
+        super(ScreenShotKeyTest, self).setUp()
+        self.user.usernames = ['gumptionthomas']
+        self.user.put()
+        self.now = datetime.datetime.now()
+        self.blob_info = self.create_blob_info(IMAGE_PATH)
+        self.player = models.Player.get_or_create("gumptionthomas")
+        self.screenshot = models.ScreenShot.create(self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+        # self.run_deferred()
+
+    @property
+    def blobs(self):
+        return self.testbed.get_stub('blobstore').storage._blobs
+
+    def run_deferred(self, expected_tasks=1):
+        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
+        tasks = taskqueue_stub.GetTasks('default')
+        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
+        for task in tasks:
+            deferred.run(base64.b64decode(task['body']))
+
+    def create_blob_info(self, path, image_data=None):
+        if not image_data:
+            image_data = open(path, 'rb').read()
+        path = os.path.basename(path)
+        self.testbed.get_stub('blobstore').CreateBlob(path, image_data)
+        return blobstore.BlobInfo(blobstore.BlobKey(path))
+
+    def test_get(self):
+        response = self.get()
+        self.assertOK(response)
+        screenshot = json.loads(response.body)
+        self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
+        self.assertEqual(self.screenshot.get_serving_url(), screenshot['original_url'])
+        self.assertEqual(self.screenshot.blurred_image_serving_url, screenshot['blurred_url'])
+        self.assertEqual(self.screenshot.user.key.urlsafe(), screenshot['user_key'])

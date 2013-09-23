@@ -17,10 +17,27 @@ from google.appengine.ext import blobstore, testbed, deferred, ndb
 from agar.test.base_test import BaseTest
 
 import channel
+import image
 import main
 import models
+import string
+import random
 
 IMAGE_PATH = 'static/img/coal_sprite.png'
+
+def create_blob_info(path, image_data=None):
+    if not image_data:
+        image_data = open(path, 'rb').read()
+    path = os.path.basename(path)
+    ScreenShotTest.TESTBED.get_stub('blobstore').CreateBlob(path, image_data)
+    return blobstore.BlobInfo(blobstore.BlobKey(path))
+
+
+def mock_post_data(data, filename=None, mime_type=None):
+    if not filename:
+        filename = ''.join([random.choice(string.ascii_uppercase) for x in xrange(50)])
+    blob_info = create_blob_info(filename, image_data=data)
+    return blob_info.key()
 
 
 class ScreenShotTest(BaseTest):
@@ -28,6 +45,9 @@ class ScreenShotTest(BaseTest):
 
     def setUp(self):
         super(ScreenShotTest, self).setUp()
+        ScreenShotTest.TESTBED = self.testbed
+        minimock.mock('image.NdbImage.post_data', returns_func=mock_post_data, tracker=None)
+        self.image_data = None
         self.screen_shots = []
         blob_info = self.create_blob_info(IMAGE_PATH)
         for i in range(5):
@@ -37,6 +57,11 @@ class ScreenShotTest(BaseTest):
         #For speed, don't actually generate the blurs for these images
         taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         taskqueue_stub.FlushQueue('default')
+
+    def tearDown(self):
+        super(ScreenShotTest, self).tearDown()
+        ScreenShotTest.TESTBED = None
+        minimock.restore()
 
     @property
     def blobs(self):
@@ -49,12 +74,6 @@ class ScreenShotTest(BaseTest):
         for task in tasks:
             deferred.run(base64.b64decode(task['body']))
 
-    def test_random(self):
-        found_keys = set()
-        for i in range(20):
-            found_keys.add(models.ScreenShot.random().key)
-        self.assertLess(0, len(found_keys))
-
     def create_blob_info(self, path, image_data=None):
         if not image_data:
             image_data = open(path, 'rb').read()
@@ -62,40 +81,52 @@ class ScreenShotTest(BaseTest):
         self.testbed.get_stub('blobstore').CreateBlob(path, image_data)
         return blobstore.BlobInfo(blobstore.BlobKey(path))
 
-    # def test_create_data(self):
-    #     image_data = open(IMAGE_PATH, 'rb').read()
-    #     screen_shot = models.ScreenShot.create('bill', data=image_data, filename=IMAGE_PATH)
-    #     self.assertIsNotNone(screen_shot)
-    #     self.assertIsNone(screen_shot.blurred_image_serving_url)
-    #     self.assertEqual(image_data, screen_shot.image_data)
-    #     self.run_deferred()
-    #     self.assertIsNotNone(screen_shot.blurred_image_serving_url)
+    def test_random(self):
+        found_keys = set()
+        for i in range(20):
+            found_keys.add(models.ScreenShot.random().key)
+        self.assertLess(0, len(found_keys))
+
+    def test_create_data(self):
+        self.image_data = open(IMAGE_PATH, 'rb').read()
+        screen_shot = models.ScreenShot.create(None, data=self.image_data, filename=IMAGE_PATH)
+        self.assertIsNotNone(screen_shot)
+        self.assertEqual(self.image_data, screen_shot.image_data)
+        self.assertEqual(1, len(self.blobs))
+        # Create the blurred version
+        self.run_deferred()
+        self.assertIsNotNone(screen_shot.blurred_image_serving_url)
+        self.assertEqual(2, len(self.blobs))
 
     def test_create_blob(self):
         blob_info = self.create_blob_info(IMAGE_PATH)
-        image = models.ScreenShot.create(None, blob_info=blob_info)
-        self.assertIsNotNone(image)
-        self.assertIsNone(image.blurred_image_serving_url)
+        screen_shot = models.ScreenShot.create(None, blob_info=blob_info)
+        self.assertIsNotNone(screen_shot)
+        self.assertIsNone(screen_shot.blurred_image_serving_url)
         image_data = open(IMAGE_PATH, 'rb').read()
-        self.assertEqual(image_data, image.image_data)
-        self.assertEqual(1, len(self.blobs))    # Just IMAGE_PATH
-        # self.run_deferred()
-        # self.assertIsNotNone(image.blurred_image_serving_url)
-        # self.assertEqual(2, len(self.blobs))    # IMAGE_PATH & blur
+        self.assertEqual(image_data, screen_shot.image_data)
+        self.assertEqual(1, len(self.blobs))
+        # Create the blurred version
+        self.run_deferred()
+        self.assertIsNotNone(screen_shot.blurred_image_serving_url)
+        self.assertEqual(2, len(self.blobs))
 
     def test_delete(self):
         blob_info = self.create_blob_info(IMAGE_PATH)
         screen_shot = models.ScreenShot.create(None, blob_info=blob_info)
-        # self.run_deferred()
+        # Create the blurred version
+        self.run_deferred()
         self.assertIsNotNone(screen_shot)
-        # self.assertIsNotNone(screen_shot.blurred_image_serving_url)
+        self.assertIsNotNone(screen_shot.blurred_image_serving_url)
         self.assertEqual(6, models.ScreenShot.query().count())
-        self.assertEqual(0, models.NdbImage.query().count())
+        self.assertEqual(1, models.NdbImage.query().count())
+        self.assertEqual(2, len(self.blobs))
         image_data = open(IMAGE_PATH, 'rb').read()
         self.assertEqual(image_data, screen_shot.image_data)
         screen_shot.key.delete()
         self.assertEqual(5, models.ScreenShot.query().count())
         self.assertEqual(0, models.NdbImage.query().count())
+        self.assertEqual(0, len(self.blobs))
 
 
 class ServerTest(BaseTest):

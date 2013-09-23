@@ -32,7 +32,7 @@
         </div>
         <br/>
         <div class="box">
-        <h4>Verified Usernames</h4>
+        <h4>Players</h4>
         {% for username in user.usernames %}
             <div class="player wrap {% if user.is_username(username) %}you{% endif %}">
                 <div class="avatar" style="background-image: url(https://minotar.net/helm/{{ username }}/40)"></div>
@@ -41,20 +41,22 @@
         {% endfor %}
         </div>
         <br/>
-        <div class="box">
-        <h4>Unverified Usernames</h4>
-        {% for claim in user.unauthenticated_claims %}
-            <div class="player wrap">
-                <div class="avatar" style="background-image: url(https://minotar.net/helm/{{ claim.username }}/40)"></div>
-                <div class="name">{{ claim.username }}</div>
+        {% if user.unauthenticated_claims %}
+            <div class="box">
+            <h4>Unverified Usernames</h4>
+            {% for claim in user.unauthenticated_claims %}
+                <div class="player wrap">
+                    <div class="avatar" style="background-image: url(https://minotar.net/helm/{{ claim.username }}/40)"></div>
+                    <div class="name">{{ claim.username }}</div>
+                </div>
+                <div class="data"><h4>Verification Code (type into minecraft chat):</h4><code>coal:claim:{{ claim.code }}</code></div>
+            {% endfor %}
             </div>
-            <div class="data"><h4>Verification Code (type into minecraft chat):</h4><code>coal:claim:{{ claim.code }}</code></div>
-        {% endfor %}
-        </div>
+        {% endif %}
         <br/>
         <div class="box">
             <form action="{{ uri_for('username_claim', next_url=uri_for('user_profile', next_url=next_url)) }}" method="post">
-                <label>Add New Minecraft Username</label>
+                <label>Claim Minecraft Username</label>
                 {{ macros.with_errors(claim_form.username, size="50") }}
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Claim</button>

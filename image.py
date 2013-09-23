@@ -141,8 +141,7 @@ class NdbImage(ndb.Model):
                     memcache.set(key, serving_url, time=3600, namespace=namespace)
         return serving_url
 
-    def put_data(self, data, filename=None, mime_type=None):
-        previous_blob_info = self.blob_info
+    def post_data(self, data, filename=None, mime_type=None):
         filename = filename or self.key_as_string
         mime_type = mime_type or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
         url = blobstore.create_upload_url('/_bscs/data')
@@ -156,12 +155,7 @@ class NdbImage(ndb.Model):
             if "location" in result.headers:
                 location = result.headers["location"]
                 key = location[location.rfind("/") + 1:]
-                if key:
-                    self.blob_key = ndb.BlobKey(key)
-                    self.put()
-                    if previous_blob_info is not None:
-                        previous_blob_info.delete()
-                return self.blob_key
+                return ndb.BlobKey(key) if key else None
             else:
                 return None
         except Exception as e:
@@ -255,7 +249,13 @@ class NdbImage(ndb.Model):
             new_format = images.PNG
         if new_format is not None:
             data = images.crop(data, 0.0, 0.0, 1.0, 1.0, output_encoding=new_format, quality=100)
-        image.put_data(data, mime_type=mime_type)
+        previous_blob_info = image.blob_info
+        blob_key = image.post_data(data, filename=filename, mime_type=mime_type)
+        if blob_key is not None:
+            image.blob_key = blob_key
+            image.put()
+            if previous_blob_info is not None:
+                previous_blob_info.delete()
         return image.key.get()
 
 
