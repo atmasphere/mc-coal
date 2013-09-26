@@ -44,7 +44,7 @@ class AuthConfig(Config):
 #: The configuration object for ``agar.auth`` settings.
 config = AuthConfig.get_config()
 
-def authentication_required(authenticate=None, require_https=False):
+def authentication_required(authenticate=None, request_property_name=None, require_https=False):
     """
     A decorator to authenticate a `webapp2.RequestHandler`_.
     The decorator will assign the return value from the ``authenticate`` function to the request ``user`` attribute
@@ -62,6 +62,8 @@ def authentication_required(authenticate=None, require_https=False):
     """
     if authenticate is None:
         authenticate = config.DEFAULT_AUTHENTICATE_FUNCTION
+    if request_property_name is None:
+        request_property_name = config.AUTHENTICATION_PROPERTY
     def decorator(request_method):
         @wraps(request_method)
         def wrapped(self, *args, **kwargs):
@@ -71,7 +73,7 @@ def authentication_required(authenticate=None, require_https=False):
                 scheme, netloc, path, query, fragment = urlparse.urlsplit(self.request.url)
                 if on_server and scheme and scheme.lower() != 'https':
                     self.abort(403)
-            setattr(self.request, config.AUTHENTICATION_PROPERTY, authenticate(self))
+            setattr(self.request, request_property_name, authenticate(self))
             request_method(self, *args, **kwargs)
         return wrapped
     return decorator

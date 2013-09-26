@@ -18,7 +18,7 @@ from restler.serializers import ModelStrategy
 from config import coal_config
 from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG
-from oauth import authenticate_agent_oauth_required, authenticate_user_required
+from oauth import Client, authenticate_agent_oauth_required, authenticate_user_required
 
 
 def validate_params(form_class):
@@ -113,7 +113,7 @@ class PingForm(form.Form):
 
 
 class PingHandler(JsonHandler):
-    @authentication_required(authenticate=authenticate_agent_oauth_required)
+    @authentication_required(authenticate=authenticate_agent_oauth_required, request_property_name='authentication')
     @validate_params(form_class=PingForm)
     def post(self):
         form = self.request.form
@@ -123,7 +123,8 @@ class PingHandler(JsonHandler):
         is_raining = form.is_raining.data
         is_thundering = form.is_thundering.data
         timestamp = form.timestamp.data
-        server = Server.global_key().get()
+        client = Client.get_by_client_id(self.request.authentication.client_id)
+        server = client.server
         server.update_is_running(
             is_server_running,
             last_ping=datetime.datetime.now(),
@@ -147,13 +148,14 @@ class LogLineForm(form.Form):
 
 
 class LogLineHandler(JsonHandler):
-    @authentication_required(authenticate=authenticate_agent_oauth_required)
+    @authentication_required(authenticate=authenticate_agent_oauth_required, request_property_name='authentication')
     @validate_params(form_class=LogLineForm)
     def post(self):
+        client = Client.get_by_client_id(self.request.authentication.client_id)
         status_code = 200
         line = self.request.form.line.data
         zone = self.request.form.zone.data
-        existing_line = LogLine.lookup_line(line)
+        existing_line = LogLine.lookup_line(client.server_key, line)
         if existing_line is None:
             log_line = LogLine.create(line, zone)
             if log_line is not None:

@@ -15,12 +15,12 @@ from wtforms.ext.csrf.session import SessionSecureForm
 from agar.auth import authentication_required
 
 from config import coal_config
-from models import Server
 from user_auth import UserHandler, authenticate
 
 
 class Client(ndb.Model):
     client_id = ndb.StringProperty(required=True)
+    server_key = ndb.KeyProperty()
     name = ndb.StringProperty()
     uri = ndb.StringProperty()
     logo_uri = ndb.StringProperty()
@@ -39,6 +39,10 @@ class Client(ndb.Model):
         secret_expires = self.secret_expires
         return datetime.datetime.now() > secret_expires if secret_expires is not None else False
 
+    @property
+    def server(self):
+        return self.server_key.get() if self.server_key else None
+
     def validate_secret(self, secret):
         if self.secret is not None and not self.is_secret_expired:
             return secret == self.secret
@@ -47,11 +51,11 @@ class Client(ndb.Model):
     @classmethod
     def is_agent(cls, client_or_id):
         if isinstance(client_or_id, cls): 
-            key = client_or_id.key
+            client = client_or_id
         else:
-            key = Client.get_key(client_or_id)
-        if key is not None:
-            return key == Server.global_key().get().agent_key
+            client = Client.get_key(client_or_id).get()
+        if client is not None:
+            return client.server_key is not None
         return False
 
     @classmethod

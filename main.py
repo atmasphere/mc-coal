@@ -220,8 +220,8 @@ class AdminHandler(PagingHandler):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
             User.query_by_email(), User.query_by_email_reverse(), coal_config.RESULTS_PER_PAGE
         )
-        agent_secret = Server.global_key().get().agent_key.get().secret
-        context = {'agent_secret': agent_secret}
+        agent_client = Server.global_key().get().agent_key.get()
+        context = {'agent_client_id': agent_client.client_id, 'agent_secret': agent_client.secret}
         self.render_template('admin.html', context=context)
 
 

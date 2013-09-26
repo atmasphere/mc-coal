@@ -35,6 +35,10 @@ class NoHostException(AgentException):
     pass
 
 
+class NoClientException(AgentException):
+    pass
+
+
 class NoSecretException(AgentException):
     pass
 
@@ -43,8 +47,12 @@ class NoPingException(AgentException):
     pass
 
 class AgentClient(object):
-    def __init__(self, host, secret, access_token=None, refresh_token=None, *args, **kwargs):
+    def __init__(self, host, client_id, secret, access_token=None, refresh_token=None, *args, **kwargs):
         self.host = host
+        self.scheme = 'https'
+        if self.host == 'localhost:8080':
+            self.scheme = 'http'
+        self.client_id = client_id
         self.secret = secret
         self.access_token = access_token
         self.refresh_token = refresh_token
@@ -59,9 +67,9 @@ class AgentClient(object):
         return None
 
     def request_tokens(self):
-        url = "https://{0}/oauth/token".format(self.host)
+        url = "{0}://{1}/oauth/token".format(self.scheme, self.host)
         data = {
-            'client_id': 'mc-coal-agent',
+            'client_id': self.client_id,
             'client_secret': self.secret,
             'scope': 'agent'
         }
@@ -84,7 +92,7 @@ class AgentClient(object):
             raise
 
     def post(self, url, params):
-        url = "https://{0}{1}".format(self.host, url)
+        url = "{0}://{1}{2}".format(self.scheme, self.host, url)
         response = requests.post(url, data=params, headers=self.headers)
         if response.status_code == 401:
             self.request_tokens()
@@ -129,8 +137,8 @@ def read_pid(pidfile):
             pid = pidfile.read()
             if pid:
                 return pid.strip()
-    except Exception, e:
-        logger.error(e)
+    except IOError, e:
+        logger.warn("Can't read the PID file '{0}': {1}".format(e.filename, e.strerror))
     return None
 
 
@@ -344,6 +352,10 @@ def main(argv):
         help="The MC COAL server host name (default: {0})".format("'{0}'".format(coal_host) if coal_host else '<No default found in app.yaml>')
     )
     parser.add_argument(
+        '--agent_client_id',
+        help="The MC COAL agent client ID."
+    )
+    parser.add_argument(
         '--agent_secret',
         help="The MC COAL agent API secret."
     )
@@ -395,6 +407,9 @@ def main(argv):
         coal_host = args.coal_host
         if not coal_host:
             raise NoHostException()
+        agent_client_id = args.agent_client_id
+        if not agent_client_id:
+            raise NoClientException()
         agent_secret = args.agent_secret
         if not agent_secret:
             raise NoSecretException()
@@ -406,7 +421,7 @@ def main(argv):
         skip_chat_history = args.skip_chat_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
-        client = AgentClient(coal_host, agent_secret)
+        client = AgentClient(coal_host, agent_client_id, agent_secret)
         last_line = ping_host(client, None, None, None, None, None, mc_commandfile)
         parse_all = args.parse_all
         if parse_all:
@@ -433,6 +448,8 @@ def main(argv):
         logger.error(u"Invalid timezone: '{0}'".format(mc_timezone))
     except NoHostException:
         logger.error(u"No MC COAL server host name provided.")
+    except NoClientException:
+        logger.error(u"No agent client ID provided.")
     except NoSecretException:
         logger.error(u"No agent secret provided.")
     except KeyboardInterrupt:

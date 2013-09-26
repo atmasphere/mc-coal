@@ -479,41 +479,49 @@ class Server(ndb.Model):
                     )
 
     @classmethod
-    def create(cls, key_name, **kwargs):
-        from oauth import Client, authorization_provider
-        agent = Client.get_or_insert(
-            Client.get_key_name(AGENT_CLIENT_ID),
-            client_id=AGENT_CLIENT_ID,
-            redirect_uris=['/'],
-            scope=['agent'],
-            secret=authorization_provider.generate_client_secret()
-        )
-        kwargs['agent_key'] = agent.key
-        instance = cls.get_or_insert('global_server', **kwargs)
+    def create(cls, **kwargs):
+        instance = cls(**kwargs)
+        instance.put()
         if instance.agent_key is None:
-            instance.agent_key = agent.key
+            from oauth import Client, authorization_provider
+            existing_agent_client = True
+            while existing_agent_client:
+                random_int = ''.join([random.choice(UNICODE_ASCII_DIGITS) for x in xrange(5)])
+                client_id = Client.get_key_name("{0}-{1}".format(AGENT_CLIENT_ID, random_int))
+                agent_client_key = Client.get_key(client_id)
+                existing_agent_client = agent_client_key.get()
+            agent_client = Client(
+                key=agent_client_key,
+                client_id=client_id,
+                server_key=instance.key,
+                redirect_uris=['/'],
+                scope=['agent'],
+                secret=authorization_provider.generate_client_secret()
+            )
+            agent_client.put()
+            instance.agent_key = agent_client.key
             instance.put()
         return instance
 
     @classmethod
-    def get_or_insert_key(cls):
-        data = memcache.get('global_key')
-        if data is not None:
-            return ndb.Key(urlsafe=data)
-        else:
-            server = Server.create('global_server')
-            memcache.add('global_key', server.key.urlsafe())
-            return server.key
-
-    @classmethod
     def global_key(cls):
-        return cls.get_or_insert_key()
+        server_key = None
+        data = memcache.get('global_server_key')
+        if data is not None:
+            server_key = ndb.Key(urlsafe=data)
+        else:
+            server = Server.query().order(Server.created).get()
+            if server is None:
+                server = Server.create()
+            server_key = server.key
+            memcache.add('global_server_key', server_key.urlsafe())
+        return server_key
 
 
 class ServerModel(ndb.Model):
     @classmethod
-    def server_query(cls):
-        return cls.query(ancestor=Server.global_key())
+    def server_query(cls, server_key=None):
+        return cls.query(ancestor=server_key or Server.global_key())
 
 
 @ae_ndb_serializer
@@ -706,8 +714,8 @@ class LogLine(UsernameModel):
         return log_line
 
     @classmethod
-    def lookup_line(cls, line):
-        return cls.server_query().filter(cls.line == line).get()
+    def lookup_line(cls, server_key, line):
+        return cls.server_query(server_key=server_key).filter(cls.line == line).get()
 
     @classmethod
     def query_latest(cls):
