@@ -1,3 +1,6 @@
+from testing_utils import fix_sys_path
+fix_sys_path()
+
 import base64
 import datetime
 import os

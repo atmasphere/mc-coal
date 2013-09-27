@@ -1,3 +1,6 @@
+from testing_utils import fix_sys_path
+fix_sys_path()
+
 from agar.test.base_test import BaseTest
 
 import main
