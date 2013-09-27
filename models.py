@@ -521,7 +521,8 @@ class Server(ndb.Model):
 class ServerModel(ndb.Model):
     @classmethod
     def server_query(cls, server_key=None):
-        return cls.query(ancestor=server_key or Server.global_key())
+        server_key = server_key or Server.global_key()
+        return cls.query(ancestor=server_key)
 
 
 @ae_ndb_serializer
@@ -983,8 +984,8 @@ class ScreenShot(NdbImage, ServerModel):
         self.put()
 
     @classmethod
-    def create(cls, user, **kwargs):
-        instance = super(ScreenShot, cls).create(parent=Server.global_key(), **kwargs)
+    def create(cls, user, server_key, **kwargs):
+        instance = super(ScreenShot, cls).create(parent=server_key, **kwargs)
         instance.user_key = user.key if user else None
         instance.username = user.username if user else None
         instance.random_id = random.random()

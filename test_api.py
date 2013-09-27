@@ -169,6 +169,7 @@ class ApiTest(OauthTest):
 
     def setUp(self):
         super(ApiTest, self).setUp()
+        self.server = models.Server.create()
         self.access_token, self.refresh_token = self.get_tokens()
 
     def tearDown(self):
@@ -216,8 +217,7 @@ class AgentApiTest(ApiTest):
         self.access_token, self.refresh_token = self.get_agent_tokens()
 
     def get_agent_tokens(self, email=None):
-        server = models.Server.global_key().get()
-        agent_client = server.agent
+        agent_client = self.server.agent
         url = '/oauth/token'
         params = {
             'code': agent_client.secret,
@@ -264,7 +264,7 @@ class PingTest(AgentApiTest):
         self.assertLength(2, body)
         self.assertIsNone(body['last_line'])
         self.assertEmpty(body['commands'])
-        self.assertIsNone(models.Server.global_key().get().is_running)
+        self.assertIsNone(models.Server.query().get().is_running)
 
     def test_post_no_server_name(self):
         logging.disable(logging.ERROR)
@@ -281,7 +281,7 @@ class PingTest(AgentApiTest):
         self.assertLength(2, body)
         self.assertIsNone(body['last_line'])
         self.assertEmpty(body['commands'])
-        self.assertTrue(models.Server.global_key().get().is_running)
+        self.assertTrue(models.Server.query().get().is_running)
 
     def test_post_server_not_running(self):
         params = {'server_name': 'test', 'is_server_running': False}
@@ -291,7 +291,7 @@ class PingTest(AgentApiTest):
         self.assertLength(2, body)
         self.assertIsNone(body['last_line'])
         self.assertEmpty(body['commands'])
-        self.assertFalse(models.Server.global_key().get().is_running)
+        self.assertFalse(models.Server.query().get().is_running)
 
     def test_post_last_line(self):
         params = {'line': TIME_STAMP_LOG_LINE, 'zone': TIME_ZONE}
@@ -325,7 +325,7 @@ class PingTest(AgentApiTest):
 
     def test_post_level_data(self):
         self.post_level_data()
-        server = models.Server.global_key().get()
+        server = models.Server.query().get()
         self.assertTrue(server.is_running)
         self.assertEqual(10, server.last_server_day)
         self.assertEqual(1000, server.last_server_time)
@@ -335,7 +335,7 @@ class PingTest(AgentApiTest):
     def test_post_level_data_past(self):
         now = datetime.datetime.now()
         self.post_level_data(now=now, timestamp=now - datetime.timedelta(seconds=20))
-        server = models.Server.global_key().get()
+        server = models.Server.query().get()
         self.assertTrue(server.is_running)
         self.assertEqual(10, server.last_server_day)
         self.assertEqual(1000, server.last_server_time)
@@ -345,7 +345,7 @@ class PingTest(AgentApiTest):
     def test_post_level_data_day_past(self):
         now = datetime.datetime.now()
         self.post_level_data(now=now, timestamp=now - datetime.timedelta(seconds=1220)) #One game day + 400 ticks
-        server = models.Server.global_key().get()
+        server = models.Server.query().get()
         self.assertTrue(server.is_running)
         self.assertEqual(10, server.last_server_day)
         self.assertEqual(1000, server.last_server_time)
@@ -422,7 +422,7 @@ class LogLineTest(AgentApiTest):
         self.assertCreated(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual('1.3.2', models.Server.global_key().get().version)
+        self.assertEqual('1.3.2', models.Server.query().get().version)
         self.assertEqual(1, models.LogLine.query().count())
         log_line = models.LogLine.query().get()
         self.assertEqual(SERVER_START_LOG_LINE, log_line.line)
@@ -1681,7 +1681,7 @@ class ScreenShotTest(MultiPageApiTest):
         self.screenshots = []
         self.blob_info = self.create_blob_info(IMAGE_PATH)
         for i in range(5):
-            screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info)
+            screen_shot = models.ScreenShot.create(self.user, self.server.key, blob_info=self.blob_info)
             self.screenshots.insert(0, screen_shot)
         self.assertEqual(5, models.ScreenShot.query().count())
         #For speed, don't actually generate the blurs for these images
@@ -1708,7 +1708,7 @@ class ScreenShotTest(MultiPageApiTest):
 
     def test_get(self):
         for i in range(5):
-            screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+            screen_shot = models.ScreenShot.create(self.user, self.server.key, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
             self.screenshots.append(screen_shot)
         self.assertEqual(10, models.ScreenShot.query().count())
         # self.run_deferred(5)
@@ -1744,7 +1744,7 @@ class ScreenShotTest(MultiPageApiTest):
         import time
         self.screenshots = []
         for i in range(5):
-            screen_shot = models.ScreenShot.create(self.user, blob_info=self.blob_info)
+            screen_shot = models.ScreenShot.create(self.user, self.server.key, blob_info=self.blob_info)
             self.screenshots.insert(0, screen_shot)
             time.sleep(1)
         url = "{0}?since={1}".format(self.URL, self.screenshots[0].created.strftime("%Y-%m-%d %H:%M:%S"))
@@ -1798,7 +1798,7 @@ class ScreenShotKeyTest(KeyApiTest):
         self.now = datetime.datetime.now()
         self.blob_info = self.create_blob_info(IMAGE_PATH)
         self.player = models.Player.get_or_create("gumptionthomas")
-        self.screenshot = models.ScreenShot.create(self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+        self.screenshot = models.ScreenShot.create(self.user, self.server.key, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
         # self.run_deferred()
 
     @property

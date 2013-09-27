@@ -187,7 +187,7 @@ class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserB
     @authentication_required(authenticate=authenticate)
     def post(self):
         blob_info = self.get_uploads('file')[0]
-        ScreenShot.create(self.request.user, blob_info=blob_info)
+        ScreenShot.create(self.request.user, Server.global_key(), blob_info=blob_info)
         self.redirect(webapp2.uri_for('screen_shots'))
 
 
@@ -220,8 +220,10 @@ class AdminHandler(PagingHandler):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
             User.query_by_email(), User.query_by_email_reverse(), coal_config.RESULTS_PER_PAGE
         )
-        agent_client = Server.global_key().get().agent_key.get()
-        context = {'agent_client_id': agent_client.client_id, 'agent_secret': agent_client.secret}
+        servers = []
+        for server in Server.query():
+            servers.append(server)
+        context = {'servers': servers}
         self.render_template('admin.html', context=context)
 
 
