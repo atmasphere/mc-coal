@@ -148,7 +148,7 @@ DEATH_LOG_LINES = [
 TEST_USER_EMAIL = 'admin@example.com'
 
 NUM_PLAYER_FIELDS = 6
-NUM_USER_FIELDS = 11
+NUM_USER_FIELDS = 9
 NUM_SERVER_FIELDS = 9
 NUM_PLAY_SESSION_FIELDS = 11
 NUM_LOG_LINE_FIELDS = 14
@@ -474,7 +474,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('yo yo', log_line.chat)
         self.assertEqual(models.CHAT_TAGS, log_line.tags)
         self.assertEqual(1, models.Player.query().count())
-        player = models.Player.lookup(log_line.username, self.server.key)
+        player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNotNone(player)
 
     def test_post_chat_log_line_2(self):
@@ -510,7 +510,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('yo yo', log_line.chat)
         self.assertEqual(models.CHAT_TAGS, log_line.tags)
         self.assertEqual(1, models.Player.query().count())
-        player = models.Player.lookup(log_line.username, self.server.key)
+        player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNotNone(player)
 
     def test_post_chat_log_line_4(self):
@@ -545,9 +545,9 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(models.LOGOUT_TAGS, log_line.tags)
         self.assertEqual(0, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
+        play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNone(play_session)
-        player = models.Player.lookup(log_line.username, self.server.key)
+        player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNone(player.last_login_timestamp)
         self.assertIsNone(player.last_session_duration)
         log_line.key.delete()
@@ -566,9 +566,9 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(models.LOGOUT_TAGS, log_line.tags)
         self.assertEqual(0, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
+        play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNone(play_session)
-        player = models.Player.lookup(log_line.username, self.server.key)
+        player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNone(player.last_login_timestamp)
         self.assertIsNone(player.last_session_duration)
 
@@ -587,10 +587,10 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(models.LOGIN_TAGS, log_line.tags)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
+        play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNotNone(play_session)
         self.assertEqual(1, models.Player.query().count())
-        player = models.Player.lookup(log_line.username, self.server.key)
+        player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNotNone(player)
         self.assertTrue(player.is_playing)
         self.assertEqual(datetime.datetime(2012, 10, 10, 0, 52, 55), player.last_login_timestamp)
@@ -611,10 +611,10 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(models.LOGIN_TAGS, log_line.tags)
         self.assertEqual(2, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
+        play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNotNone(play_session)
         self.assertEqual(1, models.Player.query().count())
-        player = models.Player.lookup(log_line.username, self.server.key)
+        player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNotNone(player)
         self.assertTrue(player.is_playing)
         self.assertEqual(datetime.datetime(2013, 3, 9, 3, 6, 34), player.last_login_timestamp)
@@ -652,13 +652,13 @@ class LogLineTest(AgentApiTest):
         response = self.post(params=params)
         self.assertCreated(response)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
+        play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNotNone(play_session)
         params = {'line': DISCONNECT_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(params=params)
         self.assertCreated(response)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
+        play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNone(play_session)
 
     def test_login_server_stop(self):
@@ -666,13 +666,13 @@ class LogLineTest(AgentApiTest):
         response = self.post(params=params)
         self.assertCreated(response)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
+        play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNotNone(play_session)
         params = {'line': SERVER_STOP_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(params=params)
         self.assertCreated(response)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
+        play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNone(play_session)
 
 
@@ -697,7 +697,7 @@ class DeathLogLineTest(AgentApiTest):
             self.assertEqual(weapon, log_line.weapon)
             self.assertEqual(models.DEATH_TAGS, log_line.tags)
             self.assertEqual(1, models.Player.query().count())
-            player = models.Player.lookup(log_line.username, self.server.key)
+            player = models.Player.lookup(self.server.key, log_line.username)
             self.assertIsNotNone(player)
             log_line.key.delete()
 
@@ -825,7 +825,7 @@ class PlayersTest(MultiPageApiTest):
         super(PlayersTest, self).setUp()
         self.players = []
         for i in range(10):
-            self.players.append(models.Player.get_or_create("Player_{0}".format(i), self.server.key))
+            self.players.append(models.Player.get_or_create(self.server.key, "Player_{0}".format(i)))
             self.players[i].last_login_timestamp = datetime.datetime.now()
 
     def test_get(self):
@@ -851,7 +851,7 @@ class PlayerKeyTest(KeyApiTest):
 
     def setUp(self):
         super(PlayerKeyTest, self).setUp()
-        self.player = models.Player.get_or_create("Test_Player", self.server.key)
+        self.player = models.Player.get_or_create(self.server.key, "Test_Player")
         self.player.last_login_timestamp = datetime.datetime.now()
 
     def test_get(self):
@@ -873,7 +873,7 @@ class PlayerUsernameTest(KeyApiTest):
 
     def setUp(self):
         super(PlayerUsernameTest, self).setUp()
-        self.player = models.Player.get_or_create("Test_Player", self.server.key)
+        self.player = models.Player.get_or_create(self.server.key, "Test_Player")
         self.player.last_login_timestamp = datetime.datetime.now()
 
     def test_get(self):
@@ -894,12 +894,12 @@ class PlaySessionsTest(MultiPageApiTest):
         self.now = datetime.datetime.now()
         self.players = []
         for i in range(2):
-            self.players.append(models.Player.get_or_create("Player_{0}".format(i), self.server.key))
+            self.players.append(models.Player.get_or_create(self.server.key, "Player_{0}".format(i)))
             self.players[i].last_login_timestamp = datetime.datetime.now()
         self.play_sessions = []
         for i in range(10):
             player = self.players[i % 2]
-            play_session = models.PlaySession.create(player.username, self.server.key, self.now - datetime.timedelta(seconds=10*i), TIME_ZONE, None)
+            play_session = models.PlaySession.create(self.server.key, player.username, self.now - datetime.timedelta(seconds=10*i), TIME_ZONE, None)
             self.play_sessions.append(play_session)
 
     def test_get(self):
@@ -980,9 +980,9 @@ class PlaySessionKeyTest(KeyApiTest):
 
     def setUp(self):
         super(PlaySessionKeyTest, self).setUp()
-        self.player = models.Player.get_or_create("Test_Player", self.server.key)
+        self.player = models.Player.get_or_create(self.server.key, "Test_Player")
         self.player.last_login_timestamp = datetime.datetime.now()
-        self.play_session = models.PlaySession.create(self.player.username, self.server.key, datetime.datetime.now(), TIME_ZONE, None)
+        self.play_session = models.PlaySession.create(self.server.key, self.player.username, datetime.datetime.now(), TIME_ZONE, None)
 
     def test_get(self):
         response = self.get()
@@ -1001,8 +1001,8 @@ class ChatTest(MultiPageApiTest):
         super(ChatTest, self).setUp()
         self.now = datetime.datetime.now()
         self.players = []
-        self.players.append(models.Player.get_or_create("gumptionthomas", self.server.key))
-        self.players.append(models.Player.get_or_create("vesicular", self.server.key))
+        self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
+        self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
         self.log_lines = []
         for i in range(len(CHAT_LOG_LINES_CRON)):
             log_line = models.LogLine.create(CHAT_LOG_LINES_CRON[i], TIME_ZONE)
@@ -1073,7 +1073,7 @@ class ChatTest(MultiPageApiTest):
 
     def test_post(self):
         username = "gumptionthomas"
-        self.player = models.Player.get_or_create(username, self.server.key)
+        self.player = models.Player.get_or_create(self.server.key, username)
         self.user.usernames = [username]
         self.user.put()
         chat = u'Hello world...'
@@ -1217,7 +1217,7 @@ class ChatKeyTest(KeyApiTest):
 
     def setUp(self):
         super(ChatKeyTest, self).setUp()
-        self.player = models.Player.get_or_create("vesicular", self.server.key)
+        self.player = models.Player.get_or_create(self.server.key, "vesicular")
         self.log_line = models.LogLine.create(CHAT_LOG_LINE, TIME_ZONE)
 
     @property
@@ -1241,8 +1241,8 @@ class DeathTest(MultiPageApiTest):
         super(DeathTest, self).setUp()
         self.now = datetime.datetime.now()
         self.players = []
-        self.players.append(models.Player.get_or_create("gumptionthomas", self.server.key))
-        self.players.append(models.Player.get_or_create("vesicular", self.server.key))
+        self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
+        self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
         self.log_lines = []
         for i in range(len(DEATH_LOG_LINES_CRON)):
             log_line = models.LogLine.create(DEATH_LOG_LINES_CRON[i], TIME_ZONE)
@@ -1426,7 +1426,7 @@ class DeathKeyTest(KeyApiTest):
 
     def setUp(self):
         super(DeathKeyTest, self).setUp()
-        self.player = models.Player.get_or_create("gumptionthomas", self.server.key)
+        self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
         self.log_line = models.LogLine.create(SHOT_DEATH_LOG_LINE, TIME_ZONE)
 
     def test_get(self):
@@ -1446,8 +1446,8 @@ class LogLineDataTest(MultiPageApiTest):
         super(LogLineDataTest, self).setUp()
         self.now = datetime.datetime.now()
         self.players = []
-        self.players.append(models.Player.get_or_create("gumptionthomas", self.server.key))
-        self.players.append(models.Player.get_or_create("vesicular", self.server.key))
+        self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
+        self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
         self.log_lines = []
         for i in range(len(TIMESTAMP_LOG_LINES_CRON)):
             log_line = models.LogLine.create(TIMESTAMP_LOG_LINES_CRON[i], TIME_ZONE)
@@ -1653,7 +1653,7 @@ class LogLineKeyDataTest(KeyApiTest):
 
     def setUp(self):
         super(LogLineKeyDataTest, self).setUp()
-        self.player = models.Player.get_or_create("gumptionthomas", self.server.key)
+        self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
         self.log_line = models.LogLine.create(CONNECT_LOG_LINE, TIME_ZONE)
 
     def test_get(self):
@@ -1675,12 +1675,12 @@ class ScreenShotTest(MultiPageApiTest):
         self.user.put()
         self.now = datetime.datetime.now()
         self.players = []
-        self.players.append(models.Player.get_or_create("gumptionthomas", self.server.key))
-        self.players.append(models.Player.get_or_create("vesicular", self.server.key))
+        self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
+        self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
         self.screenshots = []
         self.blob_info = self.create_blob_info(IMAGE_PATH)
         for i in range(5):
-            screen_shot = models.ScreenShot.create(self.user, self.server.key, blob_info=self.blob_info)
+            screen_shot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info)
             self.screenshots.insert(0, screen_shot)
         self.assertEqual(5, models.ScreenShot.query().count())
         #For speed, don't actually generate the blurs for these images
@@ -1707,7 +1707,7 @@ class ScreenShotTest(MultiPageApiTest):
 
     def test_get(self):
         for i in range(5):
-            screen_shot = models.ScreenShot.create(self.user, self.server.key, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+            screen_shot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
             self.screenshots.append(screen_shot)
         self.assertEqual(10, models.ScreenShot.query().count())
         # self.run_deferred(5)
@@ -1743,7 +1743,7 @@ class ScreenShotTest(MultiPageApiTest):
         import time
         self.screenshots = []
         for i in range(5):
-            screen_shot = models.ScreenShot.create(self.user, self.server.key, blob_info=self.blob_info)
+            screen_shot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info)
             self.screenshots.insert(0, screen_shot)
             time.sleep(1)
         url = "{0}?since={1}".format(self.URL, self.screenshots[0].created.strftime("%Y-%m-%d %H:%M:%S"))
@@ -1796,8 +1796,8 @@ class ScreenShotKeyTest(KeyApiTest):
         self.user.put()
         self.now = datetime.datetime.now()
         self.blob_info = self.create_blob_info(IMAGE_PATH)
-        self.player = models.Player.get_or_create("gumptionthomas", self.server.key)
-        self.screenshot = models.ScreenShot.create(self.user, self.server.key, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+        self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
+        self.screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
         # self.run_deferred()
 
     @property

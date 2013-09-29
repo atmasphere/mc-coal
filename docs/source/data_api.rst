@@ -243,14 +243,12 @@ User API
     .. _user_response_data:
 
     :User: - **key** -- The user key.
-           - **player_key** -- The user's minecraft player key. ``null`` if the user is not mapped to a minecraft player.
            - **username** -- The user's minecraft username. Empty string if the user is not mapped to a minecraft player.
            - **email** -- The user's email.
            - **nickname** -- The user's nickname.
            - **active** -- A boolean indicating whether the user is active.
            - **admin** -- A boolean indicating whether the user is an admin.
            - **last_coal_login** -- The timestamp of the user's last COAL login.
-           - **last_chat_view** -- The timestamp of the user's last chat view.
            - **created** -- The user's creation timestamp.
            - **updated** -- The user's updated timestamp.
 
@@ -276,8 +274,6 @@ User API
           "updated": "2013-03-14 17:23:09 CDT-0500",
           "created": "2013-03-04 17:43:37 CST-0600",
           "admin": false,
-          "player_key": null,
-          "last_chat_view": "2013-03-14 17:23:09 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchiZdQw",
           "active": true,
           "last_coal_login": null,
@@ -289,8 +285,6 @@ User API
           "updated": "2013-04-14 18:56:59 CDT-0500",
           "created": "2013-03-04 17:53:12 CST-0600",
           "admin": true,
-          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIuCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIJcXVhemlmZW5lDA",
-          "last_chat_view": "2013-04-14 18:48:47 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchiBfQw",
           "active": true,
           "last_coal_login": "2013-04-12 14:04:39 CDT-0500",
@@ -302,8 +296,6 @@ User API
           "updated": "2013-04-14 18:37:35 CDT-0500",
           "created": "2013-03-04 15:05:52 CST-0600",
           "admin": true,
-          "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
-          "last_chat_view": "2013-04-14 18:37:35 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
           "active": true,
           "last_coal_login": "2013-04-13 14:03:33 CDT-0500",
@@ -343,8 +335,6 @@ User API
       "updated": "2013-04-14 18:37:35 CDT-0500",
       "created": "2013-03-04 15:05:52 CST-0600",
       "admin": true,
-      "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
-      "last_chat_view": "2013-04-14 18:37:35 CDT-0500",
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
       "active": true,
       "last_coal_login": "2013-04-13 14:03:33 CDT-0500",
@@ -380,8 +370,6 @@ User API
       "updated": "2013-04-14 18:37:35 CDT-0500",
       "created": "2013-03-04 15:05:52 CST-0600",
       "admin": true,
-      "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
-      "last_chat_view": "2013-04-14 18:37:35 CDT-0500",
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
       "active": true,
       "last_coal_login": "2013-04-13 14:03:33 CDT-0500",

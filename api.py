@@ -227,9 +227,7 @@ class ServerHandler(JsonHandler):
 USER_FIELDS = ['active', 'admin', 'email', 'nickname', 'username']
 USER_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
-    'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
     'last_coal_login': lambda o: api_datetime(o.last_login),
-    'last_chat_view': lambda o: api_datetime(o.last_chat_view),
     'created': lambda o: api_datetime(o.created),
     'updated': lambda o: api_datetime(o.updated)
 }
@@ -288,7 +286,7 @@ class PlayerKeyUsernameHandler(JsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username, Server.global_key())
+            player = Player.lookup(Server.global_key(), key_username)
         if abort_404 and not player:
             self.abort(404)
         return player
@@ -326,7 +324,7 @@ class PlaySessionsHandler(MultiPageJsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username, Server.global_key())
+            player = Player.lookup(Server.global_key(), key_username)
         if abort_404 and not player:
             self.abort(404)
         return player
@@ -390,7 +388,7 @@ class ChatHandler(MultiPageJsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username, Server.global_key())
+            player = Player.lookup(Server.global_key(), key_username)
         if abort_404 and not player:
             self.abort(404)
         return player
@@ -473,7 +471,7 @@ class DeathHandler(MultiPageJsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username, Server.global_key())
+            player = Player.lookup(Server.global_key(), key_username)
         if abort_404 and not player:
             self.abort(404)
         return player
@@ -547,7 +545,7 @@ class LogLinesHandler(MultiPageJsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username, Server.global_key())
+            player = Player.lookup(Server.global_key(), key_username)
         if abort_404 and not player:
             self.abort(404)
         return player

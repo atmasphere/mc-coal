@@ -204,12 +204,6 @@ class User(auth_models.User):
     updated = ndb.DateTimeProperty(auto_now=True)
 
     @property
-    def player(self):
-        if self.username:
-            return Player.get_or_create(self.username)
-        return None
-
-    @property
     def white_list(self):
         return get_whitelist_user(self.email)
 
@@ -241,6 +235,11 @@ class User(auth_models.User):
             if u is not None and u.key != self.key:
                 raise Exception("Username already taken: {0}".format(username))
         self.usernames = usernames
+
+    def get_player(self, server_key):
+        if self.username:
+            return Player.get_or_create(server_key, self.username)
+        return None
 
     def record_chat_view(self, dt=None):
         if dt is None:
@@ -542,11 +541,11 @@ class Player(ServerModel):
 
     @property
     def is_playing(self):
-        return PlaySession.current(self.username, self.server_key) is not None
+        return PlaySession.current(self.server_key, self.username) is not None
 
     @property
     def last_session_duration(self):
-        last_session = PlaySession.last(self.username, self.server_key)
+        last_session = PlaySession.last(self.server_key, self.username)
         return last_session.duration if last_session is not None else None
 
     @property
@@ -566,7 +565,7 @@ class Player(ServerModel):
         search.remove_player(key)
 
     @classmethod
-    def get_or_create(cls, username, server_key):
+    def get_or_create(cls, server_key, username):
         return cls.get_or_insert(username, parent=server_key, username=username)
 
     @classmethod
@@ -582,7 +581,7 @@ class Player(ServerModel):
         return cls.server_query(server_key).order(cls.username)
 
     @classmethod
-    def lookup(cls, username, server_key):
+    def lookup(cls, server_key, username):
         key = None
         if username is not None:
             key = ndb.Key(cls, username, parent=server_key)
@@ -605,7 +604,7 @@ class UsernameModel(ServerModel):
 
     @property
     def player(self):
-        return Player.lookup(self.username, self.server_key)
+        return Player.lookup(self.server_key, self.username)
 
     def is_user(self, user):
         return self.username in user.usernames if self.username and user else False
@@ -632,7 +631,7 @@ class LogLine(UsernameModel):
 
     def _pre_put_hook(self):
         if self.username and '@' not in self.username:
-            Player.get_or_create(self.username, self.server_key)
+            Player.get_or_create(self.server_key, self.username)
         if not self.tags:
             self.tags = [UNKNOWN_TAG]
         if TIMESTAMP_TAG not in self.tags and self.timestamp is not None:
@@ -701,9 +700,9 @@ class LogLine(UsernameModel):
         log_line = cls(parent=server.key, line=line, zone=zone, **kwargs)
         log_line.put()
         if LOGIN_TAG in log_line.tags:
-            PlaySession.create(log_line.username, log_line.server_key, log_line.timestamp, zone, log_line.key)
+            PlaySession.create(log_line.server_key, log_line.username, log_line.timestamp, zone, log_line.key)
         if LOGOUT_TAG in log_line.tags:
-            PlaySession.close_current(log_line.username, log_line.server_key, log_line.timestamp, log_line.key)
+            PlaySession.close_current(log_line.server_key, log_line.username, log_line.timestamp, log_line.key)
         if STARTING_TAG in log_line.tags or STOPPING_TAG in log_line.tags:
             open_sessions_query = PlaySession.query_open(log_line.server_key)
             for session in open_sessions_query:
@@ -860,8 +859,8 @@ class PlaySession(UsernameModel):
 
     @classmethod
     @ndb.transactional
-    def create(cls, username, server_key, timestamp, zone, login_log_line_key, **kwargs):
-        current = cls.current(username, server_key)
+    def create(cls, server_key, username, timestamp, zone, login_log_line_key, **kwargs):
+        current = cls.current(server_key, username)
         if current:
             current.close(timestamp, login_log_line_key)
         instance = cls(
@@ -873,14 +872,14 @@ class PlaySession(UsernameModel):
             **kwargs
         )
         instance.put()
-        player = Player.get_or_create(username, instance.server_key)
+        player = Player.get_or_create(instance.server_key, username)
         player.last_login_timestamp = timestamp
         player.put()
         return instance
 
     @classmethod
-    def close_current(cls, username, server_key, timestamp, logout_log_line_key):
-        current = cls.current(username, server_key)
+    def close_current(cls, server_key, username, timestamp, logout_log_line_key):
+        current = cls.current(server_key, username)
         if current:
             current.close(timestamp, logout_log_line_key)
         return current
@@ -894,15 +893,15 @@ class PlaySession(UsernameModel):
         return cls.query_open(server_key).order(-cls.login_timestamp)
 
     @classmethod
-    def query_current(cls, username, server_key):
+    def query_current(cls, server_key, username):
         return cls.query_open(server_key).filter(cls.username == username)
 
     @classmethod
-    def current(cls, username, server_key):
-        return cls.query_current(username, server_key).get()
+    def current(cls, server_key, username):
+        return cls.query_current(server_key, username).get()
 
     @classmethod
-    def last(cls, username, server_key):
+    def last(cls, server_key, username):
         return cls.query_latest(server_key, username=username).get()
 
     @classmethod
@@ -987,7 +986,7 @@ class ScreenShot(NdbImage, ServerModel):
         self.put()
 
     @classmethod
-    def create(cls, user, server_key, **kwargs):
+    def create(cls, server_key, user, **kwargs):
         instance = super(ScreenShot, cls).create(parent=server_key, **kwargs)
         instance.user_key = user.key if user else None
         instance.username = user.username if user else None

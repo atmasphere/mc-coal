@@ -191,7 +191,7 @@ class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserB
     @authentication_required(authenticate=authenticate)
     def post(self):
         blob_info = self.get_uploads('file')[0]
-        ScreenShot.create(self.request.user, Server.global_key(), blob_info=blob_info)
+        ScreenShot.create(Server.global_key(), self.request.user, blob_info=blob_info)
         self.redirect(webapp2.uri_for('screen_shots'))
 
 

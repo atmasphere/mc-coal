@@ -4,7 +4,7 @@ import base64
 import datetime
 import os
 
-from google.appengine.ext import blobstore, testbed, deferred, ndb
+from google.appengine.ext import blobstore, testbed, deferred
 
 import minimock
 
@@ -48,7 +48,7 @@ class ScreenShotTest(BaseTest):
         self.screen_shots = []
         blob_info = self.create_blob_info(IMAGE_PATH)
         for i in range(5):
-            screen_shot = models.ScreenShot.create(None, self.server.key, blob_info=blob_info)
+            screen_shot = models.ScreenShot.create(self.server.key, None, blob_info=blob_info)
             self.screen_shots.append(screen_shot)
         self.assertEqual(5, models.ScreenShot.query().count())
         #For speed, don't actually generate the blurs for these images
@@ -86,7 +86,7 @@ class ScreenShotTest(BaseTest):
 
     def test_create_data(self):
         self.image_data = open(IMAGE_PATH, 'rb').read()
-        screen_shot = models.ScreenShot.create(None, self.server.key, data=self.image_data, filename=IMAGE_PATH)
+        screen_shot = models.ScreenShot.create(self.server.key, None, data=self.image_data, filename=IMAGE_PATH)
         self.assertIsNotNone(screen_shot)
         self.assertEqual(self.image_data, screen_shot.image_data)
         self.assertEqual(1, len(self.blobs))
@@ -97,7 +97,7 @@ class ScreenShotTest(BaseTest):
 
     def test_create_blob(self):
         blob_info = self.create_blob_info(IMAGE_PATH)
-        screen_shot = models.ScreenShot.create(None, self.server.key, blob_info=blob_info)
+        screen_shot = models.ScreenShot.create(self.server.key, None, blob_info=blob_info)
         self.assertIsNotNone(screen_shot)
         self.assertIsNone(screen_shot.blurred_image_serving_url)
         image_data = open(IMAGE_PATH, 'rb').read()
@@ -110,7 +110,7 @@ class ScreenShotTest(BaseTest):
 
     def test_delete(self):
         blob_info = self.create_blob_info(IMAGE_PATH)
-        screen_shot = models.ScreenShot.create(None, self.server.key, blob_info=blob_info)
+        screen_shot = models.ScreenShot.create(self.server.key, None, blob_info=blob_info)
         # Create the blurred version
         self.run_deferred()
         self.assertIsNotNone(screen_shot)
