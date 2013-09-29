@@ -1,0 +1,14 @@
+[run]
+include = api.py, base_handler.py, channel.py, config.py, cron.py, filters.py, image.py, main.py, models.py, oauth.py, search.py, user_auth.py, test_*
+omit = agar, docs, nbt, poster, pyoauth2, pytz, requests, restler, static, templates, webtest, wtforms, yaml, minimock.py, timezones.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
