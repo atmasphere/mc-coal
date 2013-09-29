@@ -1013,7 +1013,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/players/gumptionthomas/death HTTP/1.1
+    GET /api/v1/data/players/gumptionthomas/deaths HTTP/1.1
 
   **Example response**:
 
