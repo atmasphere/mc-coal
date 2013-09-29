@@ -816,9 +816,9 @@ class Command(UsernameModel):
         return {'username': self.username, 'command': self.command}
 
     @classmethod
-    def push(cls, username, command, **kwargs):
+    def push(cls, server_key, username, command, **kwargs):
         instance = cls(
-            parent=Server.global_key(),
+            parent=server_key,
             username=username,
             command=command,
             **kwargs
@@ -828,9 +828,9 @@ class Command(UsernameModel):
 
     @classmethod
     @ndb.transactional
-    def pop_all(cls):
+    def pop_all(cls, server_key):
         commands = []
-        query = cls.server_query().order(cls.created)
+        query = cls.server_query(server_key).order(cls.created)
         for command in query:
             commands.append(command.to_dict)
             command.key.delete()

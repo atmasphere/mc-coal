@@ -354,7 +354,7 @@ class PingTest(AgentApiTest):
     def test_post_commands(self):
         commands = []
         for i in range(5):
-            command = models.Command.push('gumptionthomas', '/say hello world')
+            command = models.Command.push(self.server.key, 'gumptionthomas', '/say hello world')
             commands.append(command.to_dict)
         params = {'line': TIME_STAMP_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(url=LogLineTest.URL, params=params)

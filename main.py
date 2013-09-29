@@ -141,6 +141,7 @@ class ChatsHandler(PagingHandler):
 
     @authentication_required(authenticate=authenticate)
     def post(self):
+        server_key = Server.global_key()
         try:
             user = self.request.user
             if not (user and user.active):
@@ -148,7 +149,7 @@ class ChatsHandler(PagingHandler):
             form = ChatForm(self.request.POST)
             if form.validate():
                 chat = u"/say {0}".format(form.chat.data)
-                Command.push(user.play_name, chat)
+                Command.push(server_key, user.play_name, chat)
         except Exception, e:
             logging.error(u"Error POSTing chat: {0}".format(e))
             self.abort(500)

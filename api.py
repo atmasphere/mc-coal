@@ -137,7 +137,7 @@ class PingHandler(JsonHandler):
         last_log_line = LogLine.get_last_line_with_timestamp()
         response = {
             'last_line': last_log_line.line if last_log_line is not None else None,
-            'commands': Command.pop_all()
+            'commands': Command.pop_all(server.key)
         }
         self.json_response(response, status_code=200)
 
@@ -422,9 +422,10 @@ class ChatHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ChatPostForm)
     def post(self):
+        server_key = Server.global_key()
         user = self.request.user
         chat = u"/say {0}".format(self.request.form.chat.data)
-        Command.push(user.play_name, chat)
+        Command.push(server_key, user.play_name, chat)
         self.response.set_status(201)
 
 
