@@ -1,5 +1,5 @@
-MC COAL API Documentation
-===================================
+MC-COAL API Documentation
+=========================
 
 Contents:
 
@@ -9,11 +9,5 @@ Contents:
    data_api
    authorization
 
-
-Indices and tables
-==================
-
-* `API Endpoints <http-routingtable.html>`_
-* :ref:`genindex`
-* :ref:`search`
+:ref:`genindex`
 
