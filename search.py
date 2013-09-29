@@ -24,7 +24,10 @@ def add_to_index(index, key, fields):
 
 
 def add_log_line(log_line):
-    fields = [search.TextField(name='line', value=log_line.line)]
+    fields = [
+        search.TextField(name='line', value=log_line.line),
+        search.TextField(name='server_key', value=log_line.server_key.urlsafe())
+    ]
     if log_line.timestamp is not None:
         fields.append(search.DateField(name='timestamp', value=log_line.timestamp.date() if log_line.timestamp else None))
         fields.append(search.TextField(name='timestamp_string', value=log_line.timestamp.strftime('%Y-%m-%d %H:%M:%S')))
@@ -49,7 +52,10 @@ def add_log_line(log_line):
 
 
 def add_player(player):
-    fields = [search.TextField(name='username', value=player.username)]
+    fields = [
+        search.TextField(name='username', value=player.username),
+        search.TextField(name='server_key', value=player.server_key.urlsafe())
+    ]
     if player.last_login_timestamp is not None:
         fields.append(search.DateField(name='last_login_timestamp', value=player.last_login_timestamp.date()))
         fields.append(search.TextField(name='last_login_timestamp_string', value=player.last_login_timestamp.strftime('%Y-%m-%d %H:%M:%S')))
@@ -78,8 +84,10 @@ def remove_player(player_key):
     remove_from_index(player_index, player_key)
 
 
-def search_index(index, query_string, sort_options=None, limit=1000, offset=None, cursor=None):
+def search_index(index, query_string, server_key=None, sort_options=None, limit=1000, offset=None, cursor=None):
     query_string = query_string.strip()
+    if server_key is not None:
+        query_string = "{0} AND server_key={1}".format(query_string, server_key.urlsafe())
     if offset is None:
         cursor = search.Cursor(web_safe_string=cursor) if cursor is not None else search.Cursor()
     options = search.QueryOptions(
@@ -106,15 +114,15 @@ def search_index(index, query_string, sort_options=None, limit=1000, offset=None
     return instances, results.number_found, next_cursor
 
 
-def search_log_lines(query_string, limit=1000, offset=None, cursor=None):
+def search_log_lines(query_string, server_key=None, limit=1000, offset=None, cursor=None):
     timestamp_desc = search.SortExpression(
         expression='timestamp_sse',
         direction=search.SortExpression.DESCENDING,
         default_value=0
     )
     sort_options = search.SortOptions(expressions=[timestamp_desc], limit=limit)
-    return search_index(log_line_index, query_string, sort_options=sort_options, limit=limit, offset=offset, cursor=cursor)
+    return search_index(log_line_index, query_string, server_key=server_key, sort_options=sort_options, limit=limit, offset=offset, cursor=cursor)
 
 
-def search_players(query_string, limit=1000, offset=None):
-    return search_index(player_index, query_string, limit=limit, offset=offset)
+def search_players(query_string, server_key=None, limit=1000, offset=None):
+    return search_index(player_index, query_string, server_key=server_key, limit=limit, offset=offset)

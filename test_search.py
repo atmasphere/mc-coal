@@ -14,6 +14,7 @@ class SearchTest(BaseTest):
 
     def setUp(self):
         super(SearchTest, self).setUp()
+        self.server = models.Server.create()
         self.log_lines = []
         for line in ALL_LOG_LINES:
             self.log_lines.append(models.LogLine.create(line, 'America/Chicago'))
@@ -69,6 +70,16 @@ class SearchTest(BaseTest):
         self.assertEqual(1, number_found)
         self.assertIsNone(cursor)
         results, number_found, cursor = search.search_players('vesicular')
+        self.assertEqual(1, len(results))
+        self.assertEqual(1, number_found)
+        self.assertIsNone(cursor)
+
+    def test_search_server_players(self):
+        results, number_found, cursor = search.search_players('gumptionthomas', server_key=self.server.key)
+        self.assertEqual(1, len(results))
+        self.assertEqual(1, number_found)
+        self.assertIsNone(cursor)
+        results, number_found, cursor = search.search_players('vesicular', server_key=self.server.key)
         self.assertEqual(1, len(results))
         self.assertEqual(1, number_found)
         self.assertIsNone(cursor)

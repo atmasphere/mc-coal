@@ -157,8 +157,9 @@ class ChatsHandler(PagingHandler):
 class PlayersHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
+        server_key = Server.global_key()
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            Player.query_all_reverse(), Player.query_all(), coal_config.RESULTS_PER_PAGE
+            Player.query_all_reverse(server_key), Player.query_all(server_key), coal_config.RESULTS_PER_PAGE
         )
         context = {'players': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('players.html', context=context)

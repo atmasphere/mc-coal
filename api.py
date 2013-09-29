@@ -279,7 +279,7 @@ class PlayersHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=MultiPageForm)
     def get(self):
-        self.json_response(self.fetch_page(Player.query_by_username(), results_name='players'), PLAYER_STRATEGY)
+        self.json_response(self.fetch_page(Player.query_by_username(Server.global_key()), results_name='players'), PLAYER_STRATEGY)
 
 
 class PlayerKeyUsernameHandler(JsonHandler):
@@ -288,7 +288,7 @@ class PlayerKeyUsernameHandler(JsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username)
+            player = Player.lookup(key_username, Server.global_key())
         if abort_404 and not player:
             self.abort(404)
         return player
@@ -326,7 +326,7 @@ class PlaySessionsHandler(MultiPageJsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username)
+            player = Player.lookup(key_username, Server.global_key())
         if abort_404 and not player:
             self.abort(404)
         return player
@@ -389,7 +389,7 @@ class ChatHandler(MultiPageJsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username)
+            player = Player.lookup(key_username, Server.global_key())
         if abort_404 and not player:
             self.abort(404)
         return player
@@ -471,7 +471,7 @@ class DeathHandler(MultiPageJsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username)
+            player = Player.lookup(key_username, Server.global_key())
         if abort_404 and not player:
             self.abort(404)
         return player
@@ -545,7 +545,7 @@ class LogLinesHandler(MultiPageJsonHandler):
             player_key = ndb.Key(urlsafe=key_username)
             player = player_key.get()
         except Exception:
-            player = Player.lookup(key_username)
+            player = Player.lookup(key_username, Server.global_key())
         if abort_404 and not player:
             self.abort(404)
         return player

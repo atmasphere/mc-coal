@@ -519,6 +519,10 @@ class Server(ndb.Model):
 
 
 class ServerModel(ndb.Model):
+    @property
+    def server_key(self):
+        return self.key.parent()
+
     @classmethod
     def server_query(cls, server_key=None):
         server_key = server_key or Server.global_key()
@@ -562,27 +566,26 @@ class Player(ServerModel):
         search.remove_player(key)
 
     @classmethod
-    def get_or_create(cls, username):
-        return cls.get_or_insert(username, parent=Server.global_key(), username=username)
+    def get_or_create(cls, username, server_key):
+        return cls.get_or_insert(username, parent=server_key, username=username)
 
     @classmethod
-    def query_all(cls):
-        return cls.server_query().order(cls.last_login_timestamp)
+    def query_all(cls, server_key):
+        return cls.server_query(server_key).order(cls.last_login_timestamp)
 
     @classmethod
-    def query_all_reverse(cls):
-        return cls.server_query().order(-cls.last_login_timestamp)
+    def query_all_reverse(cls, server_key):
+        return cls.server_query(server_key).order(-cls.last_login_timestamp)
 
     @classmethod
-    def query_by_username(cls):
-        return cls.server_query().order(cls.username)
+    def query_by_username(cls, server_key):
+        return cls.server_query(server_key).order(cls.username)
 
     @classmethod
-    def lookup(cls, username):
+    def lookup(cls, username, server_key):
         key = None
         if username is not None:
-            parent = Server.global_key()
-            key = ndb.Key(cls, username, parent=parent)
+            key = ndb.Key(cls, username, parent=server_key)
         return key.get() if key is not None else None
 
 
@@ -602,7 +605,7 @@ class UsernameModel(ServerModel):
 
     @property
     def player(self):
-        return Player.lookup(self.username)
+        return Player.lookup(self.username, self.server_key)
 
     def is_user(self, user):
         return self.username in user.usernames if self.username and user else False
@@ -629,7 +632,7 @@ class LogLine(UsernameModel):
 
     def _pre_put_hook(self):
         if self.username and '@' not in self.username:
-            Player.get_or_create(self.username)
+            Player.get_or_create(self.username, self.server_key)
         if not self.tags:
             self.tags = [UNKNOWN_TAG]
         if TIMESTAMP_TAG not in self.tags and self.timestamp is not None:
@@ -870,7 +873,7 @@ class PlaySession(UsernameModel):
             **kwargs
         )
         instance.put()
-        player = Player.get_or_create(username)
+        player = Player.get_or_create(username, instance.server_key)
         player.last_login_timestamp = timestamp
         player.put()
         return instance

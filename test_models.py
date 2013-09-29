@@ -18,6 +18,8 @@ import string
 import random
 
 IMAGE_PATH = 'static/img/coal_sprite.png'
+TIME_ZONE = 'America/Chicago'
+LOG_LINE = 'Test line'
 
 def create_blob_info(path, image_data=None):
     if not image_data:
@@ -145,6 +147,9 @@ class ServerTest(BaseTest):
 
 
 class LogLineTest(BaseTest):
+    def setUp(self):
+        super(LogLineTest, self).setUp()
+        self.server = models.Server.create()
 
     def cleanUp(self):
         super(LogLineTest, self).cleanUp()
@@ -153,11 +158,11 @@ class LogLineTest(BaseTest):
     def test_post_put_hook_sends_log_line_to_channel(self):
         tracker = minimock.TraceTracker()
         minimock.mock('channel.send_log_line', tracker=tracker)
-        models.LogLine(key=ndb.Key('LogLine', 'line'), line='my line', zone='my zone').put()
+        log_line = models.LogLine.create(LOG_LINE, TIME_ZONE)
         trace = tracker.dump()
         self.assertTrue("""Called channel.send_log_line(
-    LogLine(key=Key('LogLine', 'line'), created=""" in trace)
-        self.assertTrue("line=u'my line'" in trace)
+    LogLine(key={0}, created=""".format(log_line.key) in trace)
+        self.assertTrue("line=u'{0}'".format(LOG_LINE) in trace)
 
 
 class LookupChannelersTest(BaseTest):
