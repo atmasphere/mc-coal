@@ -1,4 +1,4 @@
-Welcome to MC COAL's documentation!
+MC COAL API Documentation
 ===================================
 
 Contents:
@@ -13,6 +13,7 @@ Contents:
 Indices and tables
 ==================
 
+* `API Endpoints <http-routingtable.html>`_
 * :ref:`genindex`
 * :ref:`search`
 
