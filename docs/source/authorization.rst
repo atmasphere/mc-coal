@@ -356,7 +356,7 @@ Refresh Token
 
 When an access token expires, or otherwise becomes invalid, a one-time-use refresh token can be used to generate a new set of tokens (access and refresh).
 
-.. http:post:: /oauth/token
+.. http:post:: /oauth/token_
 
   The client acquires tokens by making a request to the token endpoint, posting the following parameters in the request body using the ``application/x-www-form-urlencoded`` format with a character encoding of ``UTF-8``.
 
