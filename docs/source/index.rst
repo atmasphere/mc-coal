@@ -13,7 +13,7 @@ Contents:
 Indices and tables
 ==================
 
-* `API Endpoints <http-routingtable.html>`_
+* *`API Endpoints <http-routingtable.html>`_*
 * :ref:`genindex`
 * :ref:`search`
 
