@@ -334,13 +334,14 @@ class PlaySessionsHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=PlaySessionsForm)
     def get(self, key_username=None):
+        server_key = Server.global_key()
         username = None
         if key_username:
             player = self.get_player_by_key_or_username(key_username)
             username = player.username
         since = self.request.form.since.data or None
         before = self.request.form.before.data or None
-        query = PlaySession.query_latest(username=username, since=since, before=before)
+        query = PlaySession.query_latest(server_key, username=username, since=since, before=before)
         self.json_response(self.fetch_page(query, results_name='sessions'), PLAY_SESSION_STRATEGY)
 
 
@@ -629,13 +630,14 @@ class ScreenShotsHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ScreenShotForm)
     def get(self, key=None):
+        server_key = Server.global_key()
         user_key = None
         if key:
             user = self.get_user_by_key(key)
             user_key = user.key
         since = self.request.form.since.data or None
         before = self.request.form.before.data or None
-        query = ScreenShot.query_latest(user_key=user_key, since=since, before=before)
+        query = ScreenShot.query_latest(server_key, user_key=user_key, since=since, before=before)
         self.json_response(self.fetch_page(query, results_name='screenshots'), SCREEN_SHOT_STRATEGY)
 
 

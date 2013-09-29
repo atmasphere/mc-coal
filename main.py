@@ -25,9 +25,10 @@ from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authen
 class HomeHandler(UserHandler):
     @authentication_required(authenticate=authenticate_public)
     def get(self):
+        server_key = Server.global_key()
         user = self.request.user
         if user and user.active:
-            open_sessions_query = PlaySession.query_latest_open()
+            open_sessions_query = PlaySession.query_latest_open(server_key)
             # Get open sessions
             playing_usernames = []
             open_sessions = []
@@ -168,8 +169,9 @@ class PlayersHandler(PagingHandler):
 class PlaySessionsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
+        server_key = Server.global_key()
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            PlaySession.query_latest(), PlaySession.query_oldest(), coal_config.RESULTS_PER_PAGE
+            PlaySession.query_latest(server_key), PlaySession.query_oldest(server_key), coal_config.RESULTS_PER_PAGE
         )
         context = {'play_sessions': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('play_sessions.html', context=context)
@@ -195,8 +197,9 @@ class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserB
 class ScreenShotsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
+        server_key = Server.global_key()
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            ScreenShot.query_latest(), ScreenShot.query_oldest(), 5
+            ScreenShot.query_latest(server_key), ScreenShot.query_oldest(server_key), 5
         )
         context = {'screen_shots': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('screen_shots.html', context=context)

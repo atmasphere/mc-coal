@@ -81,7 +81,7 @@ class ScreenShotTest(BaseTest):
     def test_random(self):
         found_keys = set()
         for i in range(20):
-            found_keys.add(models.ScreenShot.random().key)
+            found_keys.add(models.ScreenShot.random(self.server.key).key)
         self.assertLess(0, len(found_keys))
 
     def test_create_data(self):

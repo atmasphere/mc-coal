@@ -545,7 +545,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(models.LOGOUT_TAGS, log_line.tags)
         self.assertEqual(0, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas')
+        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
         self.assertIsNone(play_session)
         player = models.Player.lookup(log_line.username, self.server.key)
         self.assertIsNone(player.last_login_timestamp)
@@ -566,7 +566,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(models.LOGOUT_TAGS, log_line.tags)
         self.assertEqual(0, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas')
+        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
         self.assertIsNone(play_session)
         player = models.Player.lookup(log_line.username, self.server.key)
         self.assertIsNone(player.last_login_timestamp)
@@ -587,7 +587,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(models.LOGIN_TAGS, log_line.tags)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas')
+        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
         self.assertIsNotNone(play_session)
         self.assertEqual(1, models.Player.query().count())
         player = models.Player.lookup(log_line.username, self.server.key)
@@ -611,7 +611,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('gumptionthomas', log_line.username)
         self.assertEqual(models.LOGIN_TAGS, log_line.tags)
         self.assertEqual(2, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas')
+        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
         self.assertIsNotNone(play_session)
         self.assertEqual(1, models.Player.query().count())
         player = models.Player.lookup(log_line.username, self.server.key)
@@ -652,13 +652,13 @@ class LogLineTest(AgentApiTest):
         response = self.post(params=params)
         self.assertCreated(response)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas')
+        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
         self.assertIsNotNone(play_session)
         params = {'line': DISCONNECT_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(params=params)
         self.assertCreated(response)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas')
+        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
         self.assertIsNone(play_session)
 
     def test_login_server_stop(self):
@@ -666,13 +666,13 @@ class LogLineTest(AgentApiTest):
         response = self.post(params=params)
         self.assertCreated(response)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas')
+        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
         self.assertIsNotNone(play_session)
         params = {'line': SERVER_STOP_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(params=params)
         self.assertCreated(response)
         self.assertEqual(1, models.PlaySession.query().count())
-        play_session = models.PlaySession.current('gumptionthomas')
+        play_session = models.PlaySession.current('gumptionthomas', self.server.key)
         self.assertIsNone(play_session)
 
 
@@ -899,7 +899,7 @@ class PlaySessionsTest(MultiPageApiTest):
         self.play_sessions = []
         for i in range(10):
             player = self.players[i % 2]
-            play_session = models.PlaySession.create(player.username, self.now - datetime.timedelta(seconds=10*i), TIME_ZONE, None)
+            play_session = models.PlaySession.create(player.username, self.server.key, self.now - datetime.timedelta(seconds=10*i), TIME_ZONE, None)
             self.play_sessions.append(play_session)
 
     def test_get(self):
@@ -982,7 +982,7 @@ class PlaySessionKeyTest(KeyApiTest):
         super(PlaySessionKeyTest, self).setUp()
         self.player = models.Player.get_or_create("Test_Player", self.server.key)
         self.player.last_login_timestamp = datetime.datetime.now()
-        self.play_session = models.PlaySession.create(self.player.username, datetime.datetime.now(), TIME_ZONE, None)
+        self.play_session = models.PlaySession.create(self.player.username, self.server.key, datetime.datetime.now(), TIME_ZONE, None)
 
     def test_get(self):
         response = self.get()

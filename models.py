@@ -542,11 +542,11 @@ class Player(ServerModel):
 
     @property
     def is_playing(self):
-        return PlaySession.current(self.username) is not None
+        return PlaySession.current(self.username, self.server_key) is not None
 
     @property
     def last_session_duration(self):
-        last_session = PlaySession.last(self.username)
+        last_session = PlaySession.last(self.username, self.server_key)
         return last_session.duration if last_session is not None else None
 
     @property
@@ -693,19 +693,19 @@ class LogLine(UsernameModel):
             if match:
                 break
         server_version = kwargs.pop('server_version', None)
+        server = Server.global_key().get()
         if server_version is not None:
-            server = Server.global_key().get()
             if server.version != server_version:
                 server.version = server_version
                 server.put()
-        log_line = cls(parent=Server.global_key(), line=line, zone=zone, **kwargs)
+        log_line = cls(parent=server.key, line=line, zone=zone, **kwargs)
         log_line.put()
         if LOGIN_TAG in log_line.tags:
-            PlaySession.create(log_line.username, log_line.timestamp, zone, log_line.key)
+            PlaySession.create(log_line.username, log_line.server_key, log_line.timestamp, zone, log_line.key)
         if LOGOUT_TAG in log_line.tags:
-            PlaySession.close_current(log_line.username, log_line.timestamp, log_line.key)
+            PlaySession.close_current(log_line.username, log_line.server_key, log_line.timestamp, log_line.key)
         if STARTING_TAG in log_line.tags or STOPPING_TAG in log_line.tags:
-            open_sessions_query = PlaySession.query_open()
+            open_sessions_query = PlaySession.query_open(log_line.server_key)
             for session in open_sessions_query:
                 session.close(log_line.timestamp, log_line.key)
         if CLAIM_TAG in log_line.tags:
@@ -860,12 +860,12 @@ class PlaySession(UsernameModel):
 
     @classmethod
     @ndb.transactional
-    def create(cls, username, timestamp, zone, login_log_line_key, **kwargs):
-        current = cls.current(username)
+    def create(cls, username, server_key, timestamp, zone, login_log_line_key, **kwargs):
+        current = cls.current(username, server_key)
         if current:
             current.close(timestamp, login_log_line_key)
         instance = cls(
-            parent=Server.global_key(),
+            parent=server_key,
             username=username,
             login_timestamp=timestamp,
             zone=zone,
@@ -879,35 +879,35 @@ class PlaySession(UsernameModel):
         return instance
 
     @classmethod
-    def close_current(cls, username, timestamp, logout_log_line_key):
-        current = cls.current(username)
+    def close_current(cls, username, server_key, timestamp, logout_log_line_key):
+        current = cls.current(username, server_key)
         if current:
             current.close(timestamp, logout_log_line_key)
         return current
 
     @classmethod
-    def query_open(cls):
-        return cls.server_query().filter(cls.logout_timestamp == None)
+    def query_open(cls, server_key):
+        return cls.server_query(server_key).filter(cls.logout_timestamp == None)
 
     @classmethod
-    def query_latest_open(cls):
-        return cls.query_open().order(-cls.login_timestamp)
+    def query_latest_open(cls, server_key):
+        return cls.query_open(server_key).order(-cls.login_timestamp)
 
     @classmethod
-    def query_current(cls, username):
-        return cls.query_open().filter(cls.username == username)
+    def query_current(cls, username, server_key):
+        return cls.query_open(server_key).filter(cls.username == username)
 
     @classmethod
-    def current(cls, username):
-        return cls.query_current(username).get()
+    def current(cls, username, server_key):
+        return cls.query_current(username, server_key).get()
 
     @classmethod
-    def last(cls, username):
-        return cls.query_latest(username=username).get()
+    def last(cls, username, server_key):
+        return cls.query_latest(server_key, username=username).get()
 
     @classmethod
-    def query_latest(cls, username=None, since=None, before=None):
-        query = cls.server_query().order(-cls.login_timestamp)
+    def query_latest(cls, server_key, username=None, since=None, before=None):
+        query = cls.server_query(server_key).order(-cls.login_timestamp)
         if username:
             query = query.filter(cls.username == username)
         if since:
@@ -917,8 +917,8 @@ class PlaySession(UsernameModel):
         return query
 
     @classmethod
-    def query_oldest(cls, username=None):
-        query = cls.server_query().order(cls.login_timestamp)
+    def query_oldest(cls, server_key, username=None):
+        query = cls.server_query(server_key).order(cls.login_timestamp)
         if username:
             query = query.filter(cls.username == username)
         return query
@@ -997,8 +997,8 @@ class ScreenShot(NdbImage, ServerModel):
         return instance
 
     @classmethod
-    def random(cls):
-        count = ScreenShot.server_query().count(limit=101)
+    def random(cls, server_key):
+        count = ScreenShot.server_query(server_key).count(limit=101)
         if not count:
             return None
         # Small enough for offset?
@@ -1012,8 +1012,8 @@ class ScreenShot(NdbImage, ServerModel):
         return screen_shot
 
     @classmethod
-    def query_latest(cls, user_key=None, since=None, before=None):
-        query = cls.server_query().order(-cls.created)
+    def query_latest(cls, server_key, user_key=None, since=None, before=None):
+        query = cls.server_query(server_key).order(-cls.created)
         if user_key:
             query = query.filter(cls.user_key == user_key)
         if since:
@@ -1023,8 +1023,8 @@ class ScreenShot(NdbImage, ServerModel):
         return query
 
     @classmethod
-    def query_oldest(cls):
-        return cls.server_query().order(cls.created)
+    def query_oldest(cls, server_key):
+        return cls.server_query(server_key).order(cls.created)
 
 
 class Lookup(ndb.Model):
