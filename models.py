@@ -219,7 +219,11 @@ class User(auth_models.User):
 
     @property
     def play_name(self):
-        return self.username or self.nickname or self.email
+        if self.username:
+            return self.username
+        if self.nickname:
+            return '*{0}'.format(self.nickname)
+        return self.email
 
     @property
     def unauthenticated_claims(self):
@@ -561,6 +565,12 @@ class Player(ServerModel):
         search.add_player(self)
 
     @classmethod
+    def is_valid_username(cls, username):
+        if username and '@' not in username and '*' not in username:
+            return True
+        return False
+
+    @classmethod
     def _post_delete_hook(cls, key, future):
         search.remove_player(key)
 
@@ -630,14 +640,14 @@ class LogLine(UsernameModel):
     updated = ndb.DateTimeProperty(auto_now=True)
 
     def _pre_put_hook(self):
-        if self.username and '@' not in self.username:
-            Player.get_or_create(self.server_key, self.username)
         if not self.tags:
             self.tags = [UNKNOWN_TAG]
         if TIMESTAMP_TAG not in self.tags and self.timestamp is not None:
             self.tags.insert(0, TIMESTAMP_TAG)
 
     def _post_put_hook(self, future):
+        if Player.is_valid_username(self.username):
+            Player.get_or_create(self.server_key, self.username)
         import channel
         channel.send_log_line(self)
         search.add_log_line(self)
@@ -713,12 +723,12 @@ class LogLine(UsernameModel):
             else:
                 message = "Username claim failed."
             chat = u"/tell {0} {1}".format(log_line.username, message)
-            Command.push('COAL', chat)
+            Command.push(log_line.server_key, 'COAL', chat)
         return log_line
 
     @classmethod
     def lookup_line(cls, server_key, line):
-        return cls.server_query(server_key=server_key).filter(cls.line == line).get()
+        return cls.server_query(server_key).filter(cls.line == line).get()
 
     @classmethod
     def query_latest(cls):

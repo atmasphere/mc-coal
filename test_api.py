@@ -1086,6 +1086,22 @@ class ChatTest(MultiPageApiTest):
         self.assertEqual(u'/say {0}'.format(chat), command.command)
 
     def test_post_no_player(self):
+        play_name = self.user.play_name
+        nickname = self.user.nickname
+        chat = u'Hello world...'
+        params = {'chat': chat}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.Command.query().count())
+        command = models.Command.query().get()
+        self.assertEqual('*{0}'.format(nickname), play_name)
+        self.assertEqual(play_name, command.username)
+        self.assertEqual(u'/say {0}'.format(chat), command.command)
+
+    def test_post_no_player_no_nickname(self):
+        self.user.nickname = None
+        self.user.put()
+        play_name = self.user.play_name
         email = self.user.email
         chat = u'Hello world...'
         params = {'chat': chat}
@@ -1093,7 +1109,8 @@ class ChatTest(MultiPageApiTest):
         self.assertCreated(response)
         self.assertEqual(1, models.Command.query().count())
         command = models.Command.query().get()
-        self.assertEqual(email, command.username)
+        self.assertEqual(email, play_name)
+        self.assertEqual(play_name, command.username)
         self.assertEqual(u'/say {0}'.format(chat), command.command)
 
     def test_post_no_access_token(self):
