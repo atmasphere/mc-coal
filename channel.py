@@ -18,8 +18,8 @@ class ServerChannels(ndb.Model):
 
     @classmethod
     def get_client_id(cls, server_key, user):
-        string_id = server_key.string_id() or '#{0}'.format(server_key.integer_id())
-        return '{0}&{1}&{2}&{3}'.format(
+        string_id = server_key.string_id() or '{0}'.format(server_key.integer_id())
+        return '{0}.{1}.{2}.{3}'.format(
             string_id,
             user.key.id(),
             int(time.time()),
@@ -27,9 +27,8 @@ class ServerChannels(ndb.Model):
         )
     @classmethod
     def get_server_key(cls, client_id):
-        key_id = client_id[:client_id.find('&')]
-        if key_id[0] == '#':
-            key_id = int(key_id[1:])
+        key_id = client_id[:client_id.find('.')]
+        key_id = int(key_id)
         return ndb.Key('Server', key_id)
 
     @classmethod
@@ -61,7 +60,10 @@ class ServerChannels(ndb.Model):
         if client_ids:
             message_json = json.dumps(message)
             for client_id in client_ids:
-                channel.send_message(client_id, message_json)
+                try:
+                    channel.send_message(client_id, message_json)
+                except:
+                    pass
 
     @classmethod
     def add_client_id(cls, client_id):
