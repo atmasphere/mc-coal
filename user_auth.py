@@ -12,7 +12,7 @@ from webapp2_extras.routes import RedirectRoute
 
 from base_handler import JinjaHandler
 from config import coal_config
-from models import get_whitelist_user, User, Server, ScreenShot
+from models import get_whitelist_user, User, ScreenShot
 
 
 def get_gae_callback_uri(handler, next_url=None):
@@ -121,8 +121,11 @@ class UserHandler(JinjaHandler, UserBase):
         finally:
             self.session_store.save_sessions(self.response)
 
+    @property
+    def server(self):
+        return None
+
     def get_template_context(self, context=None):
-        server = Server.global_key().get()
         template_context = dict()
         if context:
             template_context.update(context)
@@ -130,10 +133,12 @@ class UserHandler(JinjaHandler, UserBase):
         template_context['request'] = self.request
         template_context['user'] = self.user
         template_context['config'] = coal_config
+        server = self.server
         template_context['server'] = server
-        bg_img = ScreenShot.random(server.key)
-        if bg_img is not None:
-            template_context['bg_img'] = bg_img.blurred_image_serving_url
+        if server is not None:
+            bg_img = ScreenShot.random(server.key)
+            if bg_img is not None:
+                template_context['bg_img'] = bg_img.blurred_image_serving_url
         return template_context
 
 

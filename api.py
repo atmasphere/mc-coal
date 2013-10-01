@@ -134,7 +134,7 @@ class PingHandler(JsonHandler):
             is_thundering=is_thundering,
             timestamp=timestamp
         )
-        last_log_line = LogLine.get_last_line_with_timestamp()
+        last_log_line = LogLine.get_last_line_with_timestamp(server.key)
         response = {
             'last_line': last_log_line.line if last_log_line is not None else None,
             'commands': Command.pop_all(server.key)
@@ -157,7 +157,7 @@ class LogLineHandler(JsonHandler):
         zone = self.request.form.zone.data
         existing_line = LogLine.lookup_line(client.server_key, line)
         if existing_line is None:
-            log_line = LogLine.create(line, zone)
+            log_line = LogLine.create(client.server, line, zone)
             if log_line is not None:
                 status_code = 201
         self.json_response({}, status_code=status_code)
@@ -396,6 +396,7 @@ class ChatHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ChatForm)
     def get(self, key_username=None):
+        server_key = Server.global_key()
         username = None
         if key_username:
             player = self.get_player_by_key_or_username(key_username)
@@ -406,15 +407,15 @@ class ChatHandler(MultiPageJsonHandler):
         if q:
             query_string = u"chat:{0}".format(q)
             cursor = self.request.form.cursor.data or None
-            results, next_cursor = LogLine.search_api(query_string, size=self.size, username=username, tag=CHAT_TAG, since=since, before=before, cursor=cursor)
+            results, next_cursor = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=CHAT_TAG, since=since, before=before, cursor=cursor)
             response = {'chats': results}
             if next_cursor is not None:
-                results, _ = LogLine.search_api(query_string, size=self.size, username=username, tag=CHAT_TAG, since=since, before=before, cursor=next_cursor)
+                results, _ = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=CHAT_TAG, since=since, before=before, cursor=next_cursor)
                 if results:
                     response['cursor'] = next_cursor
             self.json_response(response, CHAT_STRATEGY)
         else:
-            query = LogLine.query_api(username=username, tag=CHAT_TAG, since=since, before=before)
+            query = LogLine.query_api(server_key, username=username, tag=CHAT_TAG, since=since, before=before)
             self.json_response(self.fetch_page(query, results_name='chats'), CHAT_STRATEGY)
 
     @authentication_required(authenticate=authenticate_user_required)
@@ -479,6 +480,7 @@ class DeathHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=DeathForm)
     def get(self, key_username=None):
+        server_key = Server.global_key()
         username = None
         if key_username:
             player = self.get_player_by_key_or_username(key_username)
@@ -489,15 +491,15 @@ class DeathHandler(MultiPageJsonHandler):
         if q:
             query_string = u"death_message:{0}".format(q)
             cursor = self.request.form.cursor.data or None
-            results, next_cursor = LogLine.search_api(query_string, size=self.size, username=username, tag=DEATH_TAG, since=since, before=before, cursor=cursor)
+            results, next_cursor = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=DEATH_TAG, since=since, before=before, cursor=cursor)
             response = {'deaths': results}
             if next_cursor is not None:
-                results, _ = LogLine.search_api(query_string, size=self.size, username=username, tag=DEATH_TAG, since=since, before=before, cursor=next_cursor)
+                results, _ = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=DEATH_TAG, since=since, before=before, cursor=next_cursor)
                 if results:
                     response['cursor'] = next_cursor
             self.json_response(response, DEATH_STRATEGY)
         else:
-            query = LogLine.query_api(username=username, tag=DEATH_TAG, since=since, before=before)
+            query = LogLine.query_api(server_key, username=username, tag=DEATH_TAG, since=since, before=before)
             self.json_response(self.fetch_page(query, results_name='deaths'), DEATH_STRATEGY)
 
 
@@ -553,6 +555,7 @@ class LogLinesHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=LogLineForm)
     def get(self, key_username=None):
+        server_key = Server.global_key()
         username = None
         if key_username:
             player = self.get_player_by_key_or_username(key_username)
@@ -564,15 +567,15 @@ class LogLinesHandler(MultiPageJsonHandler):
         if q:
             query_string = u"line:{0}".format(q)
             cursor = self.request.form.cursor.data or None
-            results, next_cursor = LogLine.search_api(query_string, size=self.size, username=username, tag=tag, since=since, before=before, cursor=cursor)
+            results, next_cursor = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=tag, since=since, before=before, cursor=cursor)
             response = {'loglines': results}
             if next_cursor is not None:
-                results, _ = LogLine.search_api(query_string, size=self.size, username=username, tag=tag, since=since, before=before, cursor=next_cursor)
+                results, _ = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=tag, since=since, before=before, cursor=next_cursor)
                 if results:
                     response['cursor'] = next_cursor
             self.json_response(response, LOG_LINE_STRATEGY)
         else:
-            query = LogLine.query_api(username=username, tag=tag, since=since, before=before)
+            query = LogLine.query_api(server_key, username=username, tag=tag, since=since, before=before)
             self.json_response(self.fetch_page(query, results_name='loglines'), LOG_LINE_STRATEGY)
 
 

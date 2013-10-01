@@ -19,7 +19,7 @@ import random
 
 IMAGE_PATH = 'static/img/coal_sprite.png'
 TIME_ZONE = 'America/Chicago'
-LOG_LINE = 'Test line'
+LOG_LINE = '2013-03-23 19:01:19 [INFO] <quazifene> is there anybody in there?'
 
 def create_blob_info(path, image_data=None):
     if not image_data:
@@ -151,56 +151,85 @@ class LogLineTest(BaseTest):
         super(LogLineTest, self).setUp()
         self.server = models.Server.create()
 
-    def cleanUp(self):
-        super(LogLineTest, self).cleanUp()
+    def tearDown(self):
+        super(LogLineTest, self).tearDown()
         minimock.restore()
 
     def test_post_put_hook_sends_log_line_to_channel(self):
         tracker = minimock.TraceTracker()
-        minimock.mock('channel.send_log_line', tracker=tracker)
-        log_line = models.LogLine.create(LOG_LINE, TIME_ZONE)
+        minimock.mock('channel.ServerChannels.get_client_ids', returns=['client_id'], tracker=None)
+        minimock.mock('channel.ServerChannels.send_message', tracker=tracker)
+        log_line = models.LogLine.create(self.server, LOG_LINE, TIME_ZONE)
         trace = tracker.dump()
-        self.assertTrue("""Called channel.send_log_line(
-    LogLine(key={0}, created=""".format(log_line.key) in trace)
+        self.assertTrue("""Called channel.ServerChannels.send_message(
+    LogLine(key={0}, chat=""".format(log_line.key) in trace)
         self.assertTrue("line=u'{0}'".format(LOG_LINE) in trace)
 
 
-class LookupChannelersTest(BaseTest):
+class ServerChannelsTest(BaseTest):
+    def setUp(self):
+        super(ServerChannelsTest, self).setUp()
+        self.server = models.Server.create()
 
     def test_returns_emtpy_list_if_no_entity(self):
-        self.assertEqual([], models.Lookup.channelers())
+        self.assertEqual([], channel.ServerChannels.get_client_ids(self.server.key))
 
 
-class LookupAddChannelerTest(BaseTest):
+class AddServerChannelTest(BaseTest):
+    def setUp(self):
+        super(AddServerChannelTest, self).setUp()
+        self.server = models.Server.create()
+        models.User.create_user('1234', email='bill@example.com')
+        self.user = models.User.lookup(email='bill@example.com')
 
     def test_adds_client_id_to_lookup_store_despite_missing_lookup_entity(self):
-        models.Lookup.add_channeler('client-id')
-        self.assertEqual(['client-id'], models.Lookup.channelers())
+        client_id = channel.ServerChannels.get_client_id(self.server.key, self.user)
+        channel.ServerChannels.add_client_id(client_id)
+        self.assertEqual([client_id], channel.ServerChannels.get_client_ids(self.server.key))
 
     def test_adds_client_id_to_existing_lookup_store(self):
-        models.Lookup.add_channeler('client-id-1')
-        models.Lookup.add_channeler('client-id-2')
-        self.assertEqual(['client-id-1', 'client-id-2'], models.Lookup.channelers())
+        client_id = channel.ServerChannels.get_client_id(self.server.key, self.user)
+        channel.ServerChannels.add_client_id(client_id)
+        models.User.create_user('5678', email='ted@example.com')
+        user2 = models.User.lookup(email='ted@example.com')
+        client_id2 = channel.ServerChannels.get_client_id(self.server.key, user2)
+        channel.ServerChannels.add_client_id(client_id2)
+        self.assertEqual([client_id, client_id2], channel.ServerChannels.get_client_ids(self.server.key))
 
     def test_does_not_add_client_id_to_lookup_store_if_already_exists_there(self):
-        models.Lookup.add_channeler('client-id')
-        models.Lookup.add_channeler('client-id')
-        self.assertEqual(['client-id'], models.Lookup.channelers())
+        client_id = channel.ServerChannels.get_client_id(self.server.key, self.user)
+        channel.ServerChannels.add_client_id(client_id)
+        channel.ServerChannels.add_client_id(client_id)
+        self.assertEqual([client_id], channel.ServerChannels.get_client_ids(self.server.key))
 
 
-class LookupRemoveChannelerTest(BaseTest):
+class RemoveServerChannelTest(BaseTest):
+    def setUp(self):
+        super(RemoveServerChannelTest, self).setUp()
+        self.server = models.Server.create()
+        models.User.create_user('1234', email='bill@example.com')
+        self.user = models.User.lookup(email='bill@example.com')
 
     def test_removes_client_id_from_lookup_store(self):
-        models.Lookup.add_channeler('client-id-1')
-        models.Lookup.add_channeler('client-id-2')
-        models.Lookup.remove_channeler('client-id-1')
-        self.assertEqual(['client-id-2'], models.Lookup.channelers())
+        client_id = channel.ServerChannels.get_client_id(self.server.key, self.user)
+        channel.ServerChannels.add_client_id(client_id)
+        models.User.create_user('5678', email='ted@example.com')
+        user2 = models.User.lookup(email='ted@example.com')
+        client_id2 = channel.ServerChannels.get_client_id(self.server.key, user2)
+        channel.ServerChannels.add_client_id(client_id2)
+        channel.ServerChannels.remove_client_id(client_id)
+        self.assertEqual([client_id2], channel.ServerChannels.get_client_ids(self.server.key))
 
     def test_no_ops_if_missing_lookup_entity(self):
-        models.Lookup.remove_channeler('client-id')
-        self.assertEqual([], models.Lookup.channelers())
+        client_id = channel.ServerChannels.get_client_id(self.server.key, self.user)
+        channel.ServerChannels.remove_client_id(client_id)
+        self.assertEqual([], channel.ServerChannels.get_client_ids(self.server.key))
 
     def test_no_ops_if_client_id_is_not_in_lookup_store(self):
-        models.Lookup.add_channeler('client-id-1')
-        models.Lookup.remove_channeler('client-id-2')
-        self.assertEqual(['client-id-1'], models.Lookup.channelers())
+        client_id = channel.ServerChannels.get_client_id(self.server.key, self.user)
+        channel.ServerChannels.add_client_id(client_id)
+        models.User.create_user('5678', email='ted@example.com')
+        user2 = models.User.lookup(email='ted@example.com')
+        client_id2 = channel.ServerChannels.get_client_id(self.server.key, user2)
+        channel.ServerChannels.remove_client_id(client_id2)
+        self.assertEqual([client_id], channel.ServerChannels.get_client_ids(self.server.key))

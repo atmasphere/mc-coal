@@ -628,11 +628,11 @@ class LogLineTest(AgentApiTest):
             body = json.loads(response.body)
             self.assertLength(0, body)
         self.assertEqual(len(ALL_LOG_LINES), models.LogLine.query().count())
-        self.assertEqual(len(TIMESTAMP_LOG_LINES), models.LogLine.query_latest_with_timestamp().count())
-        self.assertEqual(1, models.LogLine.query_by_tags(models.OVERLOADED_TAG).count())
-        self.assertEqual(3, models.LogLine.query_latest_chats().count())
-        self.assertEqual(2, models.LogLine.query_latest_logins().count())
-        self.assertEqual(2, models.LogLine.query_latest_logouts().count())
+        self.assertEqual(len(TIMESTAMP_LOG_LINES), models.LogLine.query_latest_with_timestamp(self.server.key).count())
+        self.assertEqual(1, models.LogLine.query_by_tags(self.server.key, models.OVERLOADED_TAG).count())
+        self.assertEqual(3, models.LogLine.query_latest_chats(self.server.key).count())
+        self.assertEqual(2, models.LogLine.query_latest_logins(self.server.key).count())
+        self.assertEqual(2, models.LogLine.query_latest_logouts(self.server.key).count())
 
     def test_post_log_line_twice(self):
         params = {'line': LOG_LINE, 'zone': TIME_ZONE}
@@ -1005,9 +1005,9 @@ class ChatTest(MultiPageApiTest):
         self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
         self.log_lines = []
         for i in range(len(CHAT_LOG_LINES_CRON)):
-            log_line = models.LogLine.create(CHAT_LOG_LINES_CRON[i], TIME_ZONE)
+            log_line = models.LogLine.create(self.server, CHAT_LOG_LINES_CRON[i], TIME_ZONE)
             self.log_lines.append(log_line)
-        log_line = models.LogLine.create(TIME_STAMP_LOG_LINE, TIME_ZONE)
+        log_line = models.LogLine.create(self.server, TIME_STAMP_LOG_LINE, TIME_ZONE)
 
     def test_get(self):
         response = self.get(url='{0}?size={1}'.format(self.URL, 50))
@@ -1132,7 +1132,7 @@ class ChatQueryTest(ChatTest):
         for i in range(25):
             dt = self.now - datetime.timedelta(minutes=i)
             chat_log_line = '{0} [INFO] <gumptionthomas> foobar {1}'.format(dt.strftime("%Y-%m-%d %H:%M:%S"), i)
-            log_line = models.LogLine.create(chat_log_line, TIME_ZONE)
+            log_line = models.LogLine.create(self.server, chat_log_line, TIME_ZONE)
             self.log_lines.append(log_line)
 
     def test_get(self):
@@ -1235,7 +1235,7 @@ class ChatKeyTest(KeyApiTest):
     def setUp(self):
         super(ChatKeyTest, self).setUp()
         self.player = models.Player.get_or_create(self.server.key, "vesicular")
-        self.log_line = models.LogLine.create(CHAT_LOG_LINE, TIME_ZONE)
+        self.log_line = models.LogLine.create(self.server, CHAT_LOG_LINE, TIME_ZONE)
 
     @property
     def url(self):
@@ -1262,11 +1262,11 @@ class DeathTest(MultiPageApiTest):
         self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
         self.log_lines = []
         for i in range(len(DEATH_LOG_LINES_CRON)):
-            log_line = models.LogLine.create(DEATH_LOG_LINES_CRON[i], TIME_ZONE)
+            log_line = models.LogLine.create(self.server, DEATH_LOG_LINES_CRON[i], TIME_ZONE)
             self.log_lines.append(log_line)
-        log_line = models.LogLine.create(TIME_STAMP_LOG_LINE, TIME_ZONE)
+        log_line = models.LogLine.create(self.server, TIME_STAMP_LOG_LINE, TIME_ZONE)
         death_log_line = '{0} [INFO] vesicular tried to swim in lava'.format(self.now.strftime("%Y-%m-%d %H:%M:%S"))
-        log_line = models.LogLine.create(death_log_line, TIME_ZONE)
+        log_line = models.LogLine.create(self.server, death_log_line, TIME_ZONE)
         self.log_lines.insert(0, log_line)
 
     def test_get(self):
@@ -1340,7 +1340,7 @@ class DeathQueryTest(DeathTest):
         for i in range(25):
             dt = self.now - datetime.timedelta(minutes=i)
             death_log_line = '{0} [INFO] gumptionthomas was squashed by a falling anvil'.format(dt.strftime("%Y-%m-%d %H:%M:%S"))
-            log_line = models.LogLine.create(death_log_line, TIME_ZONE)
+            log_line = models.LogLine.create(self.server, death_log_line, TIME_ZONE)
             self.log_lines.append(log_line)
 
     def test_get(self):
@@ -1444,7 +1444,7 @@ class DeathKeyTest(KeyApiTest):
     def setUp(self):
         super(DeathKeyTest, self).setUp()
         self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
-        self.log_line = models.LogLine.create(SHOT_DEATH_LOG_LINE, TIME_ZONE)
+        self.log_line = models.LogLine.create(self.server, SHOT_DEATH_LOG_LINE, TIME_ZONE)
 
     def test_get(self):
         response = self.get()
@@ -1467,7 +1467,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
         self.log_lines = []
         for i in range(len(TIMESTAMP_LOG_LINES_CRON)):
-            log_line = models.LogLine.create(TIMESTAMP_LOG_LINES_CRON[i], TIME_ZONE)
+            log_line = models.LogLine.create(self.server, TIMESTAMP_LOG_LINES_CRON[i], TIME_ZONE)
             self.log_lines.append(log_line)
 
     def test_get(self):
@@ -1552,7 +1552,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         for i in range(25):
             dt = self.now - datetime.timedelta(minutes=i)
             chat_log_line = '{0} [INFO] <gumptionthomas> foobar {1}'.format(dt.strftime("%Y-%m-%d %H:%M:%S"), i)
-            log_line = models.LogLine.create(chat_log_line, TIME_ZONE)
+            log_line = models.LogLine.create(self.server, chat_log_line, TIME_ZONE)
             self.log_lines.append(log_line)
 
     def test_get(self):
@@ -1671,7 +1671,7 @@ class LogLineKeyDataTest(KeyApiTest):
     def setUp(self):
         super(LogLineKeyDataTest, self).setUp()
         self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
-        self.log_line = models.LogLine.create(CONNECT_LOG_LINE, TIME_ZONE)
+        self.log_line = models.LogLine.create(self.server, CONNECT_LOG_LINE, TIME_ZONE)
 
     def test_get(self):
         response = self.get()

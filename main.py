@@ -15,17 +15,27 @@ from agar.auth import authentication_required
 from agar.env import on_production_server
 
 from base_handler import uri_for_pagination
-import channel
+from channel import ServerChannels
 from config import coal_config
 from models import get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
 import search
 from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin, authenticate_public
 
 
-class HomeHandler(UserHandler):
+class MainHandler(UserHandler):
+    @property
+    def server_key(self):
+        return Server.global_key()
+
+    @property
+    def server(self):
+        return self.server_key.get()
+
+
+class HomeHandler(MainHandler):
     @authentication_required(authenticate=authenticate_public)
     def get(self):
-        server_key = Server.global_key()
+        server_key = self.server_key
         user = self.request.user
         if user and user.active:
             open_sessions_query = PlaySession.query_latest_open(server_key)
@@ -37,7 +47,7 @@ class HomeHandler(UserHandler):
                     playing_usernames.append(open_session.username)
                     open_sessions.append(open_session)
             # Get new chats
-            new_chats_query = LogLine.query_latest_events()
+            new_chats_query = LogLine.query_latest_events(server_key)
             last_chat_view = self.request.user.last_chat_view
             if last_chat_view is not None:
                 new_chats_query = new_chats_query.filter(LogLine.timestamp > last_chat_view)
@@ -58,7 +68,7 @@ class HomeHandler(UserHandler):
         self.render_template('home.html', context=context)
 
 
-class PagingHandler(UserHandler):
+class PagingHandler(MainHandler):
     def get_results_with_cursors(self, query, reverse_query, size):
         cursor = self.request.get('cursor', None)
         if cursor:
@@ -92,6 +102,7 @@ class ChatForm(form.Form):
 class ChatsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
+        server_key = self.server_key
         self.request.user.record_chat_view()
         query_string = self.request.get('q', None)
         # Search
@@ -101,7 +112,7 @@ class ChatsHandler(PagingHandler):
             if cursor and cursor.startswith('PAGE_'):
                 page = int(cursor.strip()[5:])
             offset = page*coal_config.RESULTS_PER_PAGE
-            results, number_found, _ = search.search_log_lines('chat:{0}'.format(query_string), limit=coal_config.RESULTS_PER_PAGE, offset=offset)
+            results, number_found, _ = search.search_log_lines('chat:{0}'.format(query_string), server_key=server_key, limit=coal_config.RESULTS_PER_PAGE, offset=offset)
             previous_cursor = next_cursor = None
             if page > 0:
                 previous_cursor = u'PAGE_{0}&q={1}'.format(page - 1 if page > 0 else 0, query_string)
@@ -110,7 +121,7 @@ class ChatsHandler(PagingHandler):
         # Latest
         else:
             results, previous_cursor, next_cursor = self.get_results_with_cursors(
-                LogLine.query_latest_events(), LogLine.query_oldest_events(), coal_config.RESULTS_PER_PAGE
+                LogLine.query_latest_events(server_key), LogLine.query_oldest_events(server_key), coal_config.RESULTS_PER_PAGE
             )
 
         context = {'chats': results, 'query_string': query_string or ''}
@@ -118,7 +129,7 @@ class ChatsHandler(PagingHandler):
         if self.request.is_xhr:
             self.render_xhr_response(context, next_cursor)
         else:
-            self.render_html_response(context, next_cursor, previous_cursor)
+            self.render_html_response(server_key, context, next_cursor, previous_cursor)
 
     def render_xhr_response(self, context, next_cursor):
         if next_cursor:
@@ -128,9 +139,9 @@ class ChatsHandler(PagingHandler):
         self.response.headers['Content-Type'] = 'text/javascript'
         self.render_template('chats.js', context=context)
 
-    def render_html_response(self, context, next_cursor, previous_cursor):
+    def render_html_response(self, server_key, context, next_cursor, previous_cursor):
         user = self.request.user
-        channel_token = channel.token_for_user(user)
+        channel_token = ServerChannels.create_channel(server_key, user)
         context.update({
             'next_cursor': next_cursor,
             'previous_cursor': previous_cursor,
@@ -141,7 +152,7 @@ class ChatsHandler(PagingHandler):
 
     @authentication_required(authenticate=authenticate)
     def post(self):
-        server_key = Server.global_key()
+        server_key = self.server_key
         try:
             user = self.request.user
             if not (user and user.active):
@@ -159,7 +170,7 @@ class ChatsHandler(PagingHandler):
 class PlayersHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        server_key = Server.global_key()
+        server_key = self.server_key
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
             Player.query_all_reverse(server_key), Player.query_all(server_key), coal_config.RESULTS_PER_PAGE
         )
@@ -170,7 +181,7 @@ class PlayersHandler(PagingHandler):
 class PlaySessionsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        server_key = Server.global_key()
+        server_key = self.server_key
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
             PlaySession.query_latest(server_key), PlaySession.query_oldest(server_key), coal_config.RESULTS_PER_PAGE
         )
@@ -178,7 +189,7 @@ class PlaySessionsHandler(PagingHandler):
         self.render_template('play_sessions.html', context=context)
 
 
-class ScreenShotUploadHandler(UserHandler):
+class ScreenShotUploadHandler(MainHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         url = webapp2.uri_for('screen_shot_uploaded')
@@ -190,15 +201,16 @@ class ScreenShotUploadHandler(UserHandler):
 class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase):
     @authentication_required(authenticate=authenticate)
     def post(self):
+        server_key = self.server_key
         blob_info = self.get_uploads('file')[0]
-        ScreenShot.create(Server.global_key(), self.request.user, blob_info=blob_info)
+        ScreenShot.create(server_key, self.request.user, blob_info=blob_info)
         self.redirect(webapp2.uri_for('screen_shots'))
 
 
 class ScreenShotsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        server_key = Server.global_key()
+        server_key = self.server_key
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
             ScreenShot.query_latest(server_key), ScreenShot.query_oldest(server_key), 5
         )
@@ -206,7 +218,7 @@ class ScreenShotsHandler(PagingHandler):
         self.render_template('screen_shots.html', context=context)
 
 
-class ScreenShotRemoveHandler(UserHandler):
+class ScreenShotRemoveHandler(MainHandler):
     @authentication_required(authenticate=authenticate)
     def post(self, key):
         try:
@@ -296,7 +308,7 @@ class UsersHandler(PagingHandler):
         self.render_template('users.html', context=context)
 
 
-class UserEditHandler(UserHandler):
+class UserEditHandler(MainHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
         try:
@@ -335,7 +347,7 @@ class UserEditHandler(UserHandler):
         self.render_template('user.html', context=context)
 
 
-class UserRemoveHandler(UserHandler):
+class UserRemoveHandler(MainHandler):
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
         try:
@@ -371,7 +383,7 @@ class UsernameClaimForm(form.Form):
     username = fields.StringField(u'Username', validators=[validators.DataRequired(), UniqueUsername()])
 
 
-class UserProfileHandler(UserHandler):
+class UserProfileHandler(MainHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
         next_url = self.request.params.get('next_url', webapp2.uri_for('home'))
@@ -396,7 +408,7 @@ class UserProfileHandler(UserHandler):
         self.render_template('user_profile.html', context=context)
 
 
-class UsernameClaimHandler(UserHandler):
+class UsernameClaimHandler(MainHandler):
     @authentication_required(authenticate=authenticate)
     def post(self):
         next_url = self.request.params.get('next_url', webapp2.uri_for('user_profile'))

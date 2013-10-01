@@ -1,64 +1,100 @@
 import logging
 import random
 import time
+
+from google.appengine.api import channel
+from google.appengine.ext import ndb
+
 from webapp2 import WSGIApplication, RequestHandler, Route
 from webapp2_extras.json import json
-from google.appengine.api import channel
+
 from filters import datetime_filter
-import models
 
 
-INTERESTING_TAGS = ['login', 'logout', 'chat', 'death']
+KEY_NAME = 'channels'
 
+class ServerChannels(ndb.Model):
+    client_ids = ndb.StringProperty(repeated=True)
 
-def token_for_user(user):
-    return channel.create_channel(
-        '{0}.{1}.{2}'.format(
-            user.email,
+    @classmethod
+    def get_client_id(cls, server_key, user):
+        string_id = server_key.string_id() or '#{0}'.format(server_key.integer_id())
+        return '{0}&{1}&{2}&{3}'.format(
+            string_id,
+            user.key.id(),
             int(time.time()),
-            random.randrange(999999)
+            random.randrange(999)
         )
-    )
+    @classmethod
+    def get_server_key(cls, client_id):
+        key_id = client_id[:client_id.find('&')]
+        if key_id[0] == '#':
+            key_id = int(key_id[1:])
+        return ndb.Key('Server', key_id)
 
+    @classmethod
+    def get_key(cls, server_key):
+        return ndb.Key(cls, KEY_NAME, parent=server_key)
 
-def send_log_line(log_line):
-    tags_set = set(log_line.tags)
-    interesting_tags_set = set(INTERESTING_TAGS)
+    @classmethod
+    def get_client_ids(cls, server_key):
+        server_channels = cls.get_key(server_key).get()
+        if server_channels is not None:
+            return server_channels.client_ids
+        return []
 
-    if tags_set.isdisjoint(interesting_tags_set):
-        return
+    @classmethod
+    def create_channel(cls, server_key, user):
+        return channel.create_channel(cls.get_client_id(server_key, user))
 
-    channelers = models.Lookup.channelers()
-    if channelers is not None and len(channelers) > 0:
-        tag = list(tags_set.intersection(interesting_tags_set))[0]
-        message_data = {
-            'event': tag,
+    @classmethod
+    def send_message(cls, log_line, event):
+        message = {
+            'event': event,
             'date': datetime_filter(log_line.timestamp, '%b %d, %Y'),
             'time': datetime_filter(log_line.timestamp, '%I:%M%p'),
             'username': log_line.username,
             'chat': log_line.chat,
             'death_message': log_line.death_message
         }
-        message_json = json.dumps(message_data)
+        client_ids = cls.get_client_ids(log_line.server_key)
+        if client_ids:
+            message_json = json.dumps(message)
+            for client_id in client_ids:
+                channel.send_message(client_id, message_json)
 
-        for channeler_id in channelers:
-            channel.send_message(channeler_id, message_json)
+    @classmethod
+    def add_client_id(cls, client_id):
+        server_key = cls.get_server_key(client_id)
+        server_channels = cls.get_or_insert(KEY_NAME, parent=server_key)
+        if server_channels is not None and client_id not in server_channels.client_ids:
+            server_channels.client_ids.append(client_id)
+            server_channels.put()
+
+    @classmethod
+    def remove_client_id(cls, client_id):
+        server_key = cls.get_server_key(client_id)
+        server_channels = cls.get_key(server_key).get()
+        if server_channels is not None:
+            try:
+                server_channels.client_ids.remove(client_id)
+                server_channels.put()
+            except ValueError:
+                pass
 
 
 class ConnectedHandler(RequestHandler):
-
     def post(self):
-        channeler_id = self.request.get('from')
-        logging.info(u'channel client %s connected!' % channeler_id)
-        models.Lookup.add_channeler(channeler_id)
+        client_id = self.request.get('from')
+        logging.info(u'channel client %s connected!' % client_id)
+        ServerChannels.add_client_id(client_id)
 
 
 class DisconnectedHandler(RequestHandler):
-
     def post(self):
-        channeler_id = self.request.get('from')
-        logging.info(u'channel client %s disconnected!' % channeler_id)
-        models.Lookup.remove_channeler(channeler_id)
+        client_id = self.request.get('from')
+        logging.info(u'channel client %s disconnected!' % client_id)
+        ServerChannels.remove_client_id(client_id)
 
 
 application = WSGIApplication(

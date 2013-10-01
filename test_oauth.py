@@ -235,7 +235,7 @@ class AuthorizationCodeHandlerTest(OauthTest):
         response = self.post(url, params)
         self.assertRedirects(response)
         self.assertRegexpMatches(response.headers['Location'], ur"https://localhost/\?code=.+")
-        self.assertEqual(2, Client.query().count())
+        self.assertEqual(1, Client.query().count())
 
     def test_post_deny_invalid_client(self):
         url = self.url
@@ -288,7 +288,7 @@ class AuthorizationCodeHandlerTest(OauthTest):
         params = {'csrf_token': csrf_token, 'deny': 'Deny'}
         response = self.post(url, params)
         self.assertRedirects(response, to=TEST_REDIRECT_URI+"?error=access_denied")
-        self.assertEqual(2, Client.query().count())
+        self.assertEqual(1, Client.query().count())
 
     def test_post_incorrect_redirect_uri(self):
         self.get_authorization_code()

@@ -19,6 +19,8 @@ except ImportError:
 
 from restler.decorators import ae_ndb_serializer
 
+from channel import ServerChannels
+
 from config import coal_config
 from image import NdbImage
 import search
@@ -51,6 +53,7 @@ DEATH_TAGS = [TIMESTAMP_TAG, DEATH_TAG]
 CLAIM_TAGS = [TIMESTAMP_TAG, CLAIM_TAG]
 COAL_TAGS = [TIMESTAMP_TAG, COAL_TAG]
 TIMESTAMP_TAGS = [TIMESTAMP_TAG, UNKNOWN_TAG]
+CHANNEL_TAGS_SET = set(['login', 'logout', 'chat', 'death'])
 REGEX_TAGS = [
     (
         [
@@ -429,6 +432,12 @@ class Server(ndb.Model):
             logging.info("Haven't heard from the agent since {0}. Setting server status is UNKNOWN.".format(self.last_ping))
             self.update_is_running(None)
 
+    def update_version(self, server_version):
+        if server_version is not None:
+            if self.version != server_version:
+                self.version = server_version
+                self.put()
+
     def update_is_running(self, is_running, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None, timestamp=None):
         was_running = self.is_running
         record_ping = False
@@ -528,7 +537,6 @@ class ServerModel(ndb.Model):
 
     @classmethod
     def server_query(cls, server_key=None):
-        server_key = server_key or Server.global_key()
         return cls.query(ancestor=server_key)
 
 
@@ -648,9 +656,14 @@ class LogLine(UsernameModel):
     def _post_put_hook(self, future):
         if Player.is_valid_username(self.username):
             Player.get_or_create(self.server_key, self.username)
-        import channel
-        channel.send_log_line(self)
         search.add_log_line(self)
+        self.send_message()
+
+    def send_message(self):
+        tags_set = set(self.tags)
+        tags = list(tags_set.intersection(CHANNEL_TAGS_SET))
+        if tags:
+            ServerChannels.send_message(self, tags[0])
 
     @property
     def timezone(self):
@@ -665,7 +678,7 @@ class LogLine(UsernameModel):
         search.remove_log_line(key)
 
     @classmethod
-    def create(cls, line, zone, **kwargs):
+    def create(cls, server, line, zone, **kwargs):
         try:
             tz = pytz.timezone(zone)
         except:
@@ -701,12 +714,7 @@ class LogLine(UsernameModel):
                     break
             if match:
                 break
-        server_version = kwargs.pop('server_version', None)
-        server = Server.global_key().get()
-        if server_version is not None:
-            if server.version != server_version:
-                server.version = server_version
-                server.put()
+        server.update_version(kwargs.pop('server_version', None))
         log_line = cls(parent=server.key, line=line, zone=zone, **kwargs)
         log_line.put()
         if LOGIN_TAG in log_line.tags:
@@ -731,64 +739,64 @@ class LogLine(UsernameModel):
         return cls.server_query(server_key).filter(cls.line == line).get()
 
     @classmethod
-    def query_latest(cls):
-        return cls.server_query().order(-cls.created)
+    def query_latest(cls, server_key):
+        return cls.server_query(server_key).order(-cls.created)
 
     @classmethod
-    def get_last_line(cls):
-        return cls.query_latest().get()
+    def get_last_line(cls, server_key):
+        return cls.query_latest(server_key).get()
 
     @classmethod
-    def query_latest_with_timestamp(cls):
-        return cls.server_query().filter(cls.has_timestamp == True).order(-cls.timestamp)
+    def query_latest_with_timestamp(cls, server_key):
+        return cls.server_query(server_key).filter(cls.has_timestamp == True).order(-cls.timestamp)
 
     @classmethod
-    def get_last_line_with_timestamp(cls):
-        return cls.query_latest_with_timestamp().get()
+    def get_last_line_with_timestamp(cls, server_key):
+        return cls.query_latest_with_timestamp(server_key).get()
 
     @classmethod
-    def query_latest_username(cls, username):
-        return cls.query_latest_with_timestamp().filter(cls.username == username)
+    def query_latest_username(cls, server_key, username):
+        return cls.query_latest_with_timestamp(server_key).filter(cls.username == username)
 
     @classmethod
-    def query_by_tags(cls, tags):
-        return cls.server_query().filter(cls.tags == tags)
+    def query_by_tags(cls, server_key, tags):
+        return cls.server_query(server_key).filter(cls.tags == tags)
 
     @classmethod
-    def query_latest_chats(cls):
-        return cls.query_by_tags(CHAT_TAG).order(-cls.timestamp)
+    def query_latest_chats(cls, server_key):
+        return cls.query_by_tags(server_key, CHAT_TAG).order(-cls.timestamp)
 
     @classmethod
-    def query_oldest_chats(cls):
-        return cls.query_by_tags(CHAT_TAG).order(cls.timestamp)
+    def query_oldest_chats(cls, server_key):
+        return cls.query_by_tags(server_key, CHAT_TAG).order(cls.timestamp)
 
     @classmethod
-    def query_latest_logins(cls):
-        return cls.query_by_tags(LOGIN_TAG).order(-cls.timestamp)
+    def query_latest_logins(cls, server_key):
+        return cls.query_by_tags(server_key, LOGIN_TAG).order(-cls.timestamp)
 
     @classmethod
-    def query_oldest_logins(cls):
-        return cls.query_by_tags(LOGIN_TAG).order(cls.timestamp)
+    def query_oldest_logins(cls, server_key):
+        return cls.query_by_tags(server_key, LOGIN_TAG).order(cls.timestamp)
 
     @classmethod
-    def query_latest_logouts(cls):
-        return cls.query_by_tags(LOGOUT_TAG).order(-cls.timestamp)
+    def query_latest_logouts(cls, server_key):
+        return cls.query_by_tags(server_key, LOGOUT_TAG).order(-cls.timestamp)
 
     @classmethod
-    def query_oldest_logouts(cls):
-        return cls.query_by_tags(LOGOUT_TAG).order(cls.timestamp)
+    def query_oldest_logouts(cls, server_key):
+        return cls.query_by_tags(server_key, LOGOUT_TAG).order(cls.timestamp)
 
     @classmethod
-    def query_latest_events(cls):
-        return cls.server_query().filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(-cls.timestamp, cls.key)
+    def query_latest_events(cls, server_key):
+        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(-cls.timestamp, cls.key)
 
     @classmethod
-    def query_oldest_events(cls):
-        return cls.server_query().filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(cls.timestamp, cls.key)
+    def query_oldest_events(cls, server_key):
+        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(cls.timestamp, cls.key)
 
     @classmethod
-    def query_api(cls, username=None, tag=None, since=None, before=None):
-        query = cls.query_latest_with_timestamp()
+    def query_api(cls, server_key, username=None, tag=None, since=None, before=None):
+        query = cls.query_latest_with_timestamp(server_key)
         if username:
             query = query.filter(cls.username == username)
         if tag:
@@ -800,7 +808,7 @@ class LogLine(UsernameModel):
         return query
 
     @classmethod
-    def search_api(cls, q, size=None, username=None, tag=None, since=None, before=None, cursor=None):
+    def search_api(cls, server_key, q, size=None, username=None, tag=None, since=None, before=None, cursor=None):
         query_string = u"{0}".format(q)
         if username is not None:
             query_string = u"{0} username:{1}".format(query_string, username)
@@ -810,7 +818,7 @@ class LogLine(UsernameModel):
             query_string = u"{0} timestamp_sse >= {1}".format(query_string, seconds_since_epoch(since))
         if before is not None:
             query_string = u"{0} timestamp_sse < {1}".format(query_string, seconds_since_epoch(before))
-        results, _, next_cursor = search.search_log_lines(query_string, limit=size or coal_config.RESULTS_PER_PAGE, cursor=cursor)
+        results, _, next_cursor = search.search_log_lines(query_string, server_key=server_key, limit=size or coal_config.RESULTS_PER_PAGE, cursor=cursor)
         return results, next_cursor if next_cursor else None
 
 
@@ -1034,40 +1042,3 @@ class ScreenShot(NdbImage, ServerModel):
     @classmethod
     def query_oldest(cls, server_key):
         return cls.server_query(server_key).order(cls.created)
-
-
-class Lookup(ndb.Model):
-    value = ndb.StringProperty(repeated=True)
-
-    @classmethod
-    def _channelers_key(cls):
-        return ndb.Key('Lookup', 'channelers')
-
-    @classmethod
-    def channelers(cls):
-        lookup = cls._channelers_key().get()
-        if lookup is not None:
-            return lookup.value
-        else:
-            return []
-
-    @classmethod
-    def add_channeler(cls, client_id):
-        lookup = cls._channelers_key().get()
-
-        if lookup is None:
-            lookup = cls(key=cls._channelers_key())
-        if client_id not in lookup.value:
-            lookup.value.append(client_id)
-            lookup.put()
-
-    @classmethod
-    def remove_channeler(cls, client_id):
-        lookup = cls._channelers_key().get()
-
-        if lookup is not None:
-            try:
-                lookup.value.remove(client_id)
-                lookup.put()
-            except ValueError:
-                pass
