@@ -30,7 +30,6 @@ class ServerChannelsTest(BaseTest):
         models.User.create_user('1234', email='bill@example.com')
         user = models.User.lookup(email='bill@example.com')
         client_id = models.ServerChannels.get_client_id(server.key, user)
-        print client_id
         self.assertTrue(client_id.startswith('{0}.{1}'.format(server.key.id(), user.key.id())))
         self.assertEqual(server.key, models.ServerChannels.get_server_key(client_id))
 
