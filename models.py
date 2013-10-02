@@ -406,10 +406,6 @@ class Server(ndb.Model):
     updated = ndb.DateTimeProperty(auto_now=True)
 
     @property
-    def players_query(self):
-        return Player.query_all_players()
-
-    @property
     def server_day(self):
         return self.last_server_day
 
@@ -514,6 +510,14 @@ class Server(ndb.Model):
             instance.agent_key = agent_client.key
             instance.put()
         return instance
+
+    @classmethod
+    def query_all(cls):
+        return cls.query().order(cls.created)
+
+    @classmethod
+    def query_all_reverse(cls):
+        return cls.query().order(-cls.created)
 
     @classmethod
     def global_key(cls):

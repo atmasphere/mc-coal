@@ -149,7 +149,7 @@ TEST_USER_EMAIL = 'admin@example.com'
 
 NUM_PLAYER_FIELDS = 6
 NUM_USER_FIELDS = 9
-NUM_SERVER_FIELDS = 9
+NUM_SERVER_FIELDS =11
 NUM_PLAY_SESSION_FIELDS = 11
 NUM_LOG_LINE_FIELDS = 14
 NUM_CHAT_FIELDS = 9
@@ -742,18 +742,46 @@ class KeyApiTest(ApiTest):
             self.assertNotFound(response)
 
 
-class ServerTest(ApiTest):
+class ServersTest(MultiPageApiTest):
     URL = '/api/v1/data/servers'
     ALLOWED = ['GET']
 
     def setUp(self):
-        super(ServerTest, self).setUp()
+        super(ServersTest, self).setUp()
+        self.servers = [self.server]
+        for i in range(4):
+            self.servers.append(models.Server.create(name='world {0}'.format(i)))
+
+    def test_get(self):
+        response = self.get()
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        reponse_servers = body['servers']
+        self.assertLength(len(self.servers), reponse_servers)
+        for i, server in enumerate(reponse_servers):
+            self.assertEqual(NUM_SERVER_FIELDS, len(server))
+            self.assertFalse(server['is_running'])
+
+
+class ServerKeyTest(KeyApiTest):
+    URL = '/api/v1/data/servers'
+    ALLOWED = ['GET']
+
+    @property
+    def url(self):
+        return "{0}/{1}".format(self.URL, self.server.key.urlsafe())
+
+    def setUp(self):
+        super(ServerKeyTest, self).setUp()
 
     def test_get(self):
         response = self.get()
         self.assertOK(response)
         server = json.loads(response.body)
         self.assertEqual(NUM_SERVER_FIELDS, len(server))
+        self.assertEqual(self.server.key.urlsafe(), server['key'])
+        self.assertEqual(self.server.name, server['name'])
         self.assertFalse(server['is_running'])
 
 

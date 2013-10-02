@@ -208,8 +208,9 @@ class MultiPageJsonHandler(JsonHandler, MultiPage):
     pass
 
 
-SERVER_FIELDS = ['version', 'is_running', 'server_day', 'server_time', 'is_raining', 'is_thundering']
+SERVER_FIELDS = ['name', 'version', 'is_running', 'server_day', 'server_time', 'is_raining', 'is_thundering']
 SERVER_FIELD_FUNCTIONS = {
+    'key': lambda o: o.key.urlsafe(),
     'last_ping': lambda o: api_datetime(o.last_ping),
     'created': lambda o: api_datetime(o.created),
     'updated': lambda o: api_datetime(o.updated)
@@ -217,11 +218,27 @@ SERVER_FIELD_FUNCTIONS = {
 SERVER_STRATEGY = ModelStrategy(Server).include(*SERVER_FIELDS).include(**SERVER_FIELD_FUNCTIONS)
 
 
-class ServerHandler(JsonHandler):
+class ServersHandler(MultiPageJsonHandler):
     @authentication_required(authenticate=authenticate_user_required)
+    @validate_params(form_class=MultiPageForm)
     def get(self):
-        server = Server.global_key().get()
-        self.json_response(server, SERVER_STRATEGY)
+        self.json_response(self.fetch_page(Server.query_all(), results_name='servers'), SERVER_STRATEGY)
+
+
+class ServersKeyHandler(JsonHandler):
+    def get_server_by_key(self, key, abort=True):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+        except Exception:
+            server = None
+        if abort and not server:
+            self.abort(404)
+        return server
+
+    @authentication_required(authenticate=authenticate_user_required)
+    def get(self, key):
+        self.json_response(self.get_server_by_key(key), SERVER_STRATEGY)
 
 
 USER_FIELDS = ['active', 'admin', 'email', 'nickname', 'username']
@@ -664,7 +681,8 @@ routes = [
     webapp2.Route('/api/agent/ping', 'api.PingHandler', name='api_agent_ping'),
     webapp2.Route('/api/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line'),
 
-    webapp2.Route('/api/v1/data/servers', 'api.ServerHandler', name='api_data_servers'),
+    webapp2.Route('/api/v1/data/servers', 'api.ServersHandler', name='api_data_servers'),
+    webapp2.Route('/api/v1/data/servers/<key>', 'api.ServersKeyHandler', name='api_data_server_key'),
     webapp2.Route('/api/v1/data/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),
     webapp2.Route('/api/v1/data/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
     webapp2.Route('/api/v1/data/users', 'api.UsersHandler', name='api_data_users'),
