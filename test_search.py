@@ -19,6 +19,13 @@ class SearchTest(BaseTest):
         for line in ALL_LOG_LINES:
             self.log_lines.append(models.LogLine.create(self.server, line, 'America/Chicago'))
 
+    def test_add_log_lines(self):
+        search.add_log_lines(self.log_lines)
+        results, number_found, cursor = search.search_log_lines('gumptionthomas')
+        self.assertEqual(4, len(results))
+        self.assertEqual(4, number_found)
+        self.assertIsNone(cursor)
+
     def test_search_log_lines(self):
         results, number_found, cursor = search.search_log_lines('gumptionthomas')
         self.assertEqual(4, len(results))

@@ -656,7 +656,7 @@ class LogLine(UsernameModel):
     def _post_put_hook(self, future):
         if Player.is_valid_username(self.username):
             Player.get_or_create(self.server_key, self.username)
-        search.add_log_line(self)
+        search.add_log_lines([self])
         self.send_message()
 
     def send_message(self):
