@@ -28,7 +28,10 @@ class ServerChannels(ndb.Model):
     @classmethod
     def get_server_key(cls, client_id):
         key_id = client_id[:client_id.find('.')]
-        key_id = int(key_id)
+        try:
+            key_id = int(key_id)
+        except ValueError:
+            pass
         return ndb.Key('Server', key_id)
 
     @classmethod

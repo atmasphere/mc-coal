@@ -13,6 +13,28 @@ import channel
 import models
 
 
+class ServerChannelsTest(BaseTest):
+    def setUp(self):
+        super(ServerChannelsTest, self).setUp()
+
+    def test_get_numeric_client_id(self):
+        server = models.Server.create()
+        models.User.create_user('1234', email='bill@example.com')
+        user = models.User.lookup(email='bill@example.com')
+        client_id = models.ServerChannels.get_client_id(server.key, user)
+        self.assertTrue(client_id.startswith('{0}.{1}'.format(server.key.id(), user.key.id())))
+        self.assertEqual(server.key, models.ServerChannels.get_server_key(client_id))
+
+    def test_get_alpha_client_id(self):
+        server = models.Server.create(id='test_server')
+        models.User.create_user('1234', email='bill@example.com')
+        user = models.User.lookup(email='bill@example.com')
+        client_id = models.ServerChannels.get_client_id(server.key, user)
+        print client_id
+        self.assertTrue(client_id.startswith('{0}.{1}'.format(server.key.id(), user.key.id())))
+        self.assertEqual(server.key, models.ServerChannels.get_server_key(client_id))
+
+
 class SendLogLineTest(BaseTest):
     INTERESTING_LOG_LINE = '2013-03-23 19:01:19 [INFO] <quazifene> is there anybody in there?'
     UNINTERESTING_LOG_LINE = '2013-03-21 22:27:00 [INFO] Preparing spawn area: 35%'
