@@ -900,7 +900,7 @@ Chat API
       "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys"
     }
 
-.. http:get:: /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/(key_username)/chats
+.. http:get:: /api/v1/data/server/(server_key)/players/(key_username)/chats
 
   Get a :ref:`list <list>` of a player's minecraft chats on the server (`server_key`) ordered by descending timestamp.
 
@@ -964,7 +964,7 @@ Chat API
       ]
     }
 
-.. http:post:: /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/(key_username)/chats
+.. http:post:: /api/v1/data/server/(server_key)/players/(key_username)/chats
 
   Queue a new chat on the server (`server_key`) for the player (`key_username`) from the authenticated user. In game, the chat will appear as a "Server" chat with the username in angle brackets (much like a normal chat)::
 
@@ -975,9 +975,9 @@ Chat API
 
   :formparam chat: The chat text.
 
-  :status 403 Forbidden: The authenticated user has not claimed the player's username.
-
   :status 201 Created: Successfully queued the chat. It will be sent to the agent on the next ping.
+
+  :status 403 Forbidden: The authenticated user has not claimed the requested player's username.
 
   **Example request**:
 
