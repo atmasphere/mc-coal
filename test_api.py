@@ -147,7 +147,7 @@ DEATH_LOG_LINES = [
 ]
 TEST_USER_EMAIL = 'admin@example.com'
 
-NUM_PLAYER_FIELDS = 6
+NUM_PLAYER_FIELDS = 7
 NUM_USER_FIELDS = 9
 NUM_SERVER_FIELDS =11
 NUM_PLAY_SESSION_FIELDS = 11
@@ -704,9 +704,9 @@ class DeathLogLineTest(AgentApiTest):
 
 class MultiPageApiTest(ApiTest):
     def test_get_invalid_cursor(self):
-        if self.URL:
+        if self.url:
             logging.disable(logging.ERROR)
-            response = self.get(url='{0}?cursor={1}'.format(self.URL, 'invalid_cursor_xxx'))
+            response = self.get(url='{0}?cursor={1}'.format(self.url, 'invalid_cursor_xxx'))
             logging.disable(logging.NOTSET)
             self.assertBadRequest(response)
             body = json.loads(response.body)
@@ -714,9 +714,9 @@ class MultiPageApiTest(ApiTest):
             self.assertEqual({'cursor': 'Invalid cursor invalid_cursor_xxx. Details: Incorrect padding'}, errors)
 
     def test_get_invalid_size(self):
-        if self.URL:
+        if self.url:
             logging.disable(logging.ERROR)
-            response = self.get(url='{0}?size={1}'.format(self.URL, 0))
+            response = self.get(url='{0}?size={1}'.format(self.url, 0))
             logging.disable(logging.NOTSET)
             self.assertBadRequest(response)
             body = json.loads(response.body)
@@ -724,9 +724,9 @@ class MultiPageApiTest(ApiTest):
             self.assertEqual({'size': ['Number must be between 1 and 50.']}, errors)
 
     def test_get_empty_size(self):
-        if self.URL:
+        if self.url:
             logging.disable(logging.ERROR)
-            response = self.get(url='{0}?size={1}'.format(self.URL, ''))
+            response = self.get(url='{0}?size={1}'.format(self.url, ''))
             logging.disable(logging.NOTSET)
             self.assertBadRequest(response)
             body = json.loads(response.body)
@@ -736,10 +736,70 @@ class MultiPageApiTest(ApiTest):
 
 class KeyApiTest(ApiTest):
     def test_get_invalid_key(self):
-        if self.URL:
-            url = "{0}/{1}".format(self.URL, 'invalid_key')
+        if self.url:
+            url = "{0}/{1}".format(self.url, 'invalid_key')
             response = self.get(url=url)
             self.assertNotFound(response)
+
+
+class UsersTest(MultiPageApiTest):
+    URL = '/api/v1/data/users'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(UsersTest, self).setUp()
+        self.users = [models.User.query().get()]
+        for i in range(9):
+            user = self.log_in_user(email="user_{0}@test.com".format(i))
+            self.log_out_user()
+            self.users.append(user)
+
+    def test_get(self):
+        response = self.get()
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        reponse_users = body['users']
+        self.assertLength(len(self.users), reponse_users)
+        for i, user in enumerate(reponse_users):
+            self.assertEqual(NUM_USER_FIELDS, len(user))
+            self.assertEqual(self.users[i].usernames, user['usernames'])
+            self.assertIsNotNone(user['last_coal_login'])
+
+
+class UserKeyTest(KeyApiTest):
+    URL = '/api/v1/data/users'
+    ALLOWED = ['GET']
+
+    @property
+    def url(self):
+        return "{0}/{1}".format(self.URL, self.user.key.urlsafe())
+
+    def setUp(self):
+        super(UserKeyTest, self).setUp()
+        self.user = self.log_in_user("user@test.com")
+        self.user.last_login = datetime.datetime.now()
+        self.user.put()
+        self.log_out_user()
+
+    def test_get(self):
+        response = self.get()
+        self.assertOK(response)
+        user = json.loads(response.body)
+        self.assertEqual(NUM_USER_FIELDS, len(user))
+        self.assertEqual(self.user.key.urlsafe(), user['key'])
+        self.assertEqual(self.user.usernames, user['usernames'])
+        self.assertIsNotNone(user['last_coal_login'])
+
+    def test_get_self(self):
+        self.access_token, self.refresh_token = self.get_tokens(email="user@test.com")
+        url = "{0}/{1}".format(self.URL, 'self')
+        response = self.get(url=url)
+        self.assertOK(response)
+        response_user = json.loads(response.body)
+        self.assertEqual(NUM_USER_FIELDS, len(response_user))
+        self.assertEqual(self.user.key.urlsafe(), response_user['key'])
+        self.assertIsNotNone(response_user['last_coal_login'])
 
 
 class ServersTest(MultiPageApiTest):
@@ -785,68 +845,23 @@ class ServerKeyTest(KeyApiTest):
         self.assertFalse(server['is_running'])
 
 
-class UsersTest(MultiPageApiTest):
-    URL = '/api/v1/data/users'
-    ALLOWED = ['GET']
+class ServerModelTestBase(object):
+    URL = '/api/v1/data/servers/{0}/'
 
-    def setUp(self):
-        super(UsersTest, self).setUp()
-        self.users = [models.User.query().get()]
-        for i in range(9):
-            user = self.log_in_user(email="user_{0}@test.com".format(i))
-            self.log_out_user()
-            self.users.append(user)
-
-    def test_get(self):
-        response = self.get()
-        self.assertOK(response)
-        body = json.loads(response.body)
-        self.assertLength(1, body)
-        reponse_users = body['users']
-        self.assertLength(len(self.users), reponse_users)
-        for i, user in enumerate(reponse_users):
-            self.assertEqual(NUM_USER_FIELDS, len(user))
-            self.assertEqual(self.users[i].username, user['username'])
-            self.assertIsNotNone(user['last_coal_login'])
-
-
-class UserKeyTest(KeyApiTest):
-    URL = '/api/v1/data/users'
-    ALLOWED = ['GET']
-
-    @property
-    def url(self):
-        return "{0}/{1}".format(self.URL, self.user.key.urlsafe())
-
-    def setUp(self):
-        super(UserKeyTest, self).setUp()
-        self.user = self.log_in_user("user@test.com")
-        self.user.last_login = datetime.datetime.now()
-        self.user.put()
-        self.log_out_user()
-
-    def test_get(self):
-        response = self.get()
-        self.assertOK(response)
-        user = json.loads(response.body)
-        self.assertEqual(NUM_USER_FIELDS, len(user))
-        self.assertEqual(self.user.key.urlsafe(), user['key'])
-        self.assertEqual(self.user.username, user['username'])
-        self.assertIsNotNone(user['last_coal_login'])
-
-    def test_get_self(self):
-        self.access_token, self.refresh_token = self.get_tokens(email="user@test.com")
-        url = "{0}/{1}".format(self.URL, 'self')
+    def test_get_invalid_server_key(self):
+        url = self.url.replace(self.server.key.urlsafe(), 'invalid_key')
         response = self.get(url=url)
-        self.assertOK(response)
-        response_user = json.loads(response.body)
-        self.assertEqual(NUM_USER_FIELDS, len(response_user))
-        self.assertEqual(self.user.key.urlsafe(), response_user['key'])
-        self.assertIsNotNone(response_user['last_coal_login'])
+        self.assertNotFound(response)
+
+    def test_get_wrong_server(self):
+        server = models.Server.create()
+        url = self.url.replace(self.server.key.urlsafe(), server.key.urlsafe())
+        response = self.get(url=url)
+        self.assertNotFound(response)
 
 
-class PlayersTest(MultiPageApiTest):
-    URL = '/api/v1/data/players'
+class PlayersTest(MultiPageApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'players'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -855,6 +870,13 @@ class PlayersTest(MultiPageApiTest):
         for i in range(10):
             self.players.append(models.Player.get_or_create(self.server.key, "Player_{0}".format(i)))
             self.players[i].last_login_timestamp = datetime.datetime.now()
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe())
+
+    def test_get_wrong_server(self):
+        pass
 
     def test_get(self):
         response = self.get()
@@ -865,17 +887,19 @@ class PlayersTest(MultiPageApiTest):
         self.assertLength(len(self.players), players)
         for i, player in enumerate(players):
             self.assertEqual(NUM_PLAYER_FIELDS, len(player))
+            self.assertEqual(self.players[i].key.urlsafe(), player['key'])
+            self.assertEqual(self.players[i].server_key.urlsafe(), player['server_key'])
             self.assertEqual(self.players[i].username, player['username'])
             self.assertIsNotNone(player['last_login'])
 
 
-class PlayerKeyTest(KeyApiTest):
-    URL = '/api/v1/data/players'
+class PlayerKeyTest(KeyApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'players/{1}'
     ALLOWED = ['GET']
 
     @property
     def url(self):
-        return "{0}/{1}".format(self.URL, self.player.key.urlsafe())
+        return self.URL.format(self.server.key.urlsafe(), self.player.key.urlsafe())
 
     def setUp(self):
         super(PlayerKeyTest, self).setUp()
@@ -887,17 +911,19 @@ class PlayerKeyTest(KeyApiTest):
         self.assertOK(response)
         player = json.loads(response.body)
         self.assertEqual(NUM_PLAYER_FIELDS, len(player))
+        self.assertEqual(self.player.key.urlsafe(), player['key'])
+        self.assertEqual(self.player.server_key.urlsafe(), player['server_key'])
         self.assertEqual(self.player.username, player['username'])
         self.assertIsNotNone(player['last_login'])
 
 
 class PlayerUsernameTest(KeyApiTest):
-    URL = '/api/v1/data/players'
+    URL = ServerModelTestBase.URL + 'players/{1}'
     ALLOWED = ['GET']
 
     @property
     def url(self):
-        return "{0}/{1}".format(self.URL, self.player.username)
+        return self.URL.format(self.server.key.urlsafe(), self.player.username)
 
     def setUp(self):
         super(PlayerUsernameTest, self).setUp()
@@ -909,6 +935,8 @@ class PlayerUsernameTest(KeyApiTest):
         self.assertOK(response)
         player = json.loads(response.body)
         self.assertEqual(NUM_PLAYER_FIELDS, len(player))
+        self.assertEqual(self.player.key.urlsafe(), player['key'])
+        self.assertEqual(self.player.server_key.urlsafe(), player['server_key'])
         self.assertEqual(self.player.username, player['username'])
         self.assertIsNotNone(player['last_login'])
 
@@ -956,7 +984,7 @@ class PlaySessionsTest(MultiPageApiTest):
             self.assertEqual(username, play_session['username'])
 
     def test_get_since_before(self):
-        url = "{0}?since={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -967,7 +995,7 @@ class PlaySessionsTest(MultiPageApiTest):
             self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
             self.assertEqual(self.play_sessions[i].username, play_session['username'])
             self.assertIsNotNone(play_session['login_timestamp'])
-        url = "{0}?before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -978,7 +1006,7 @@ class PlaySessionsTest(MultiPageApiTest):
             self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
             self.assertEqual(self.play_sessions[i+1].username, play_session['username'])
             self.assertIsNotNone(play_session['login_timestamp'])
-        url = "{0}?since={1}&before={2}".format(self.URL, self.play_sessions[9].login_timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(self.url, self.play_sessions[9].login_timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -989,7 +1017,7 @@ class PlaySessionsTest(MultiPageApiTest):
             self.assertEqual(NUM_PLAY_SESSION_FIELDS, len(play_session))
             self.assertEqual(self.play_sessions[i+1].username, play_session['username'])
             self.assertIsNotNone(play_session['login_timestamp'])
-        url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1038,7 +1066,7 @@ class ChatTest(MultiPageApiTest):
         log_line = models.LogLine.create(self.server, TIME_STAMP_LOG_LINE, TIME_ZONE)
 
     def test_get(self):
-        response = self.get(url='{0}?size={1}'.format(self.URL, 50))
+        response = self.get(url='{0}?size={1}'.format(self.url, 50))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
@@ -1064,7 +1092,7 @@ class ChatTest(MultiPageApiTest):
             self.assertEqual(username, log_line['username'])
 
     def test_get_since_before(self):
-        url = "{0}?since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1073,7 +1101,7 @@ class ChatTest(MultiPageApiTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?before={1}".format(self.URL, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?before={1}".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1082,7 +1110,7 @@ class ChatTest(MultiPageApiTest):
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={2}".format(self.URL, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(self.url, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1091,7 +1119,7 @@ class ChatTest(MultiPageApiTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1164,7 +1192,7 @@ class ChatQueryTest(ChatTest):
             self.log_lines.append(log_line)
 
     def test_get(self):
-        response = self.get(url='{0}?q={1}'.format(self.URL, 'yo'))
+        response = self.get(url='{0}?q={1}'.format(self.url, 'yo'))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
@@ -1188,7 +1216,7 @@ class ChatQueryTest(ChatTest):
             self.assertEqual('gumptionthomas', log_line['username'])
 
     def test_get_multi(self):
-        response = self.get(url='{0}?q={1}'.format(self.URL, 'foobar'))
+        response = self.get(url='{0}?q={1}'.format(self.url, 'foobar'))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(2, body)
@@ -1199,7 +1227,7 @@ class ChatQueryTest(ChatTest):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
             self.assertEqual('gumptionthomas', log_line['username'])
             self.assertEqual('foobar {0}'.format(i), log_line['chat'])
-        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.URL, 'foobar', next_cursor))
+        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.url, 'foobar', next_cursor))
         body = json.loads(response.body)
         self.assertLength(2, body)
         next_cursor = body['cursor']
@@ -1209,7 +1237,7 @@ class ChatQueryTest(ChatTest):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
             self.assertEqual('gumptionthomas', log_line['username'])
             self.assertEqual('foobar {0}'.format(i+10), log_line['chat'])
-        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.URL, 'foobar', next_cursor))
+        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.url, 'foobar', next_cursor))
         body = json.loads(response.body)
         self.assertLength(1, body)
         log_lines = body['chats']
@@ -1220,7 +1248,7 @@ class ChatQueryTest(ChatTest):
             self.assertEqual('foobar {0}'.format(i+20), log_line['chat'])
 
     def test_get_since_before(self):
-        url = "{0}?q=foobar&since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1229,7 +1257,7 @@ class ChatQueryTest(ChatTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?q=foobar&before={1}&size=50".format(self.URL, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1238,7 +1266,7 @@ class ChatQueryTest(ChatTest):
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={2}".format(self.URL, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1247,7 +1275,7 @@ class ChatQueryTest(ChatTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1298,7 +1326,7 @@ class DeathTest(MultiPageApiTest):
         self.log_lines.insert(0, log_line)
 
     def test_get(self):
-        response = self.get(url='{0}?size={1}'.format(self.URL, 50))
+        response = self.get(url='{0}?size={1}'.format(self.url, 50))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
@@ -1324,7 +1352,7 @@ class DeathTest(MultiPageApiTest):
             self.assertEqual(username, log_line['username'])
 
     def test_get_since_before(self):
-        url = "{0}?since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1333,7 +1361,7 @@ class DeathTest(MultiPageApiTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?before={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?before={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1342,7 +1370,7 @@ class DeathTest(MultiPageApiTest):
         self.assertLength(len(self.log_lines)-1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={2}".format(self.URL, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(self.url, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1351,7 +1379,7 @@ class DeathTest(MultiPageApiTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1372,7 +1400,7 @@ class DeathQueryTest(DeathTest):
             self.log_lines.append(log_line)
 
     def test_get(self):
-        response = self.get(url='{0}?q={1}'.format(self.URL, 'cactus'))
+        response = self.get(url='{0}?q={1}'.format(self.url, 'cactus'))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
@@ -1396,7 +1424,7 @@ class DeathQueryTest(DeathTest):
             self.assertEqual('gumptionthomas', log_line['username'])
 
     def test_get_multi(self):
-        response = self.get(url='{0}?q={1}'.format(self.URL, 'anvil'))
+        response = self.get(url='{0}?q={1}'.format(self.url, 'anvil'))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(2, body)
@@ -1406,7 +1434,7 @@ class DeathQueryTest(DeathTest):
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
             self.assertEqual('gumptionthomas', log_line['username'])
-        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.URL, 'anvil', next_cursor))
+        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.url, 'anvil', next_cursor))
         body = json.loads(response.body)
         self.assertLength(2, body)
         next_cursor = body['cursor']
@@ -1415,7 +1443,7 @@ class DeathQueryTest(DeathTest):
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
             self.assertEqual('gumptionthomas', log_line['username'])
-        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.URL, 'anvil', next_cursor))
+        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.url, 'anvil', next_cursor))
         body = json.loads(response.body)
         self.assertLength(1, body)
         log_lines = body['deaths']
@@ -1425,7 +1453,7 @@ class DeathQueryTest(DeathTest):
             self.assertEqual('gumptionthomas', log_line['username'])
 
     def test_get_since_before(self):
-        url = "{0}?q=anvil&since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=anvil&since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1434,7 +1462,7 @@ class DeathQueryTest(DeathTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?q=anvil&before={1}&size=50".format(self.URL, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=anvil&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1443,7 +1471,7 @@ class DeathQueryTest(DeathTest):
         self.assertLength(len(self.log_lines)-1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?q=anvil&since={1}&before={2}".format(self.URL, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=anvil&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1452,7 +1480,7 @@ class DeathQueryTest(DeathTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?q=anvil&since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=anvil&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1499,7 +1527,7 @@ class LogLineDataTest(MultiPageApiTest):
             self.log_lines.append(log_line)
 
     def test_get(self):
-        response = self.get(url='{0}?size={1}'.format(self.URL, 50))
+        response = self.get(url='{0}?size={1}'.format(self.url, 50))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
@@ -1524,7 +1552,7 @@ class LogLineDataTest(MultiPageApiTest):
             self.assertEqual(username, log_line['username'])
 
     def test_get_since_before(self):
-        url = "{0}?since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1533,7 +1561,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?before={1}".format(self.URL, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?before={1}".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1542,7 +1570,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={2}".format(self.URL, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1551,7 +1579,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1560,7 +1588,7 @@ class LogLineDataTest(MultiPageApiTest):
         self.assertLength(0, log_lines)
 
     def test_get_chats(self):
-        url = "{0}?tag={1}".format(self.URL, 'chat')
+        url = "{0}?tag={1}".format(self.url, 'chat')
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1584,7 +1612,7 @@ class LogLineDataQueryTest(LogLineDataTest):
             self.log_lines.append(log_line)
 
     def test_get(self):
-        response = self.get(url='{0}?q={1}'.format(self.URL, 'yo'))
+        response = self.get(url='{0}?q={1}'.format(self.url, 'yo'))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
@@ -1608,7 +1636,7 @@ class LogLineDataQueryTest(LogLineDataTest):
             self.assertEqual('gumptionthomas', log_line['username'])
 
     def test_get_multi(self):
-        response = self.get('{0}?q={1}&tag=chat'.format(self.URL, 'foobar'))
+        response = self.get('{0}?q={1}&tag=chat'.format(self.url, 'foobar'))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(2, body)
@@ -1619,7 +1647,7 @@ class LogLineDataQueryTest(LogLineDataTest):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
             self.assertEqual('gumptionthomas', log_line['username'])
             self.assertEqual('foobar {0}'.format(i), log_line['chat'])
-        response = self.get(url='{0}?q={1}&tag=chat&cursor={2}'.format(self.URL, 'foobar', next_cursor))
+        response = self.get(url='{0}?q={1}&tag=chat&cursor={2}'.format(self.url, 'foobar', next_cursor))
         body = json.loads(response.body)
         self.assertLength(2, body)
         next_cursor = body['cursor']
@@ -1629,7 +1657,7 @@ class LogLineDataQueryTest(LogLineDataTest):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
             self.assertEqual('gumptionthomas', log_line['username'])
             self.assertEqual('foobar {0}'.format(i+10), log_line['chat'])
-        response = self.get(url='{0}?q={1}&tag=chat&cursor={2}'.format(self.URL, 'foobar', next_cursor))
+        response = self.get(url='{0}?q={1}&tag=chat&cursor={2}'.format(self.url, 'foobar', next_cursor))
         body = json.loads(response.body)
         self.assertLength(1, body)
         log_lines = body['loglines']
@@ -1652,7 +1680,7 @@ class LogLineDataQueryTest(LogLineDataTest):
             self.assertEqual('gumptionthomas', log_line['username'])
 
     def test_get_since_before(self):
-        url = "{0}?q=foobar&since={1}".format(self.URL, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1661,7 +1689,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?q=foobar&before={1}&size=50".format(self.URL, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1670,7 +1698,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={2}".format(self.URL, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1679,7 +1707,7 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1756,7 +1784,7 @@ class ScreenShotTest(MultiPageApiTest):
             self.screenshots.append(screen_shot)
         self.assertEqual(10, models.ScreenShot.query().count())
         # self.run_deferred(5)
-        response = self.get(url='{0}?size={1}'.format(self.URL, 50))
+        response = self.get(url='{0}?size={1}'.format(self.url, 50))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
@@ -1791,7 +1819,7 @@ class ScreenShotTest(MultiPageApiTest):
             screen_shot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info)
             self.screenshots.insert(0, screen_shot)
             time.sleep(1)
-        url = "{0}?since={1}".format(self.URL, self.screenshots[0].created.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}".format(self.url, self.screenshots[0].created.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1800,7 +1828,7 @@ class ScreenShotTest(MultiPageApiTest):
         self.assertLength(1, screenshots)
         for i, screenshot in enumerate(screenshots):
             self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-        url = "{0}?before={1}".format(self.URL, self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?before={1}".format(self.url, self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1809,7 +1837,7 @@ class ScreenShotTest(MultiPageApiTest):
         self.assertLength(len(self.screenshots)-2, screenshots)
         for i, screenshot in enumerate(screenshots):
             self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-        url = "{0}?since={1}&before={2}".format(self.URL, self.screenshots[4].created.strftime("%Y-%m-%d %H:%M:%S"), self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(self.url, self.screenshots[4].created.strftime("%Y-%m-%d %H:%M:%S"), self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1818,7 +1846,7 @@ class ScreenShotTest(MultiPageApiTest):
         self.assertLength(3, screenshots)
         for i, screenshot in enumerate(screenshots):
             self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-        url = "{0}?since={1}&before={1}".format(self.URL, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)

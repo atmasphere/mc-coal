@@ -174,6 +174,161 @@ Some resources return a list of results that can span requests. These resources 
     }
 
 
+========
+User API
+========
+.. http:get:: /api/v1/data/users
+
+  Get a :ref:`list <list>` of all users ordered by created timestamp.
+
+  :query size: The number of results to return per call (Default: 10. Maximum: 50).
+  :query cursor: The cursor string signifying where to start the results.
+
+  :status 200 OK: Successfully queried the users.
+
+    :Response Data: - **users** -- The list of users.
+                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
+
+    Each entry in **users** is a dictionary of the user information.
+
+    .. _user_response_data:
+
+    :User: - **key** -- The user key.
+           - **usernames** -- The user's minecraft usernames. Empty list if the user has not claimed a minecraft username.
+           - **email** -- The user's email.
+           - **nickname** -- The user's nickname.
+           - **active** -- A boolean indicating whether the user is active.
+           - **admin** -- A boolean indicating whether the user is an admin.
+           - **last_coal_login** -- The timestamp of the user's last COAL login.
+           - **created** -- The user's creation timestamp.
+           - **updated** -- The user's updated timestamp.
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/v1/data/users HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "users": [
+        {
+          "usernames": ["gumptionthomas"],
+          "updated": "2013-04-14 18:37:35 CDT-0500",
+          "created": "2013-03-04 15:05:52 CST-0600",
+          "admin": true,
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+          "active": true,
+          "last_coal_login": "2013-04-13 14:03:33 CDT-0500",
+          "nickname": "thomas",
+          "email": "t@gmail.com"
+        },
+        {
+          "usernames": "[]",
+          "updated": "2013-03-14 17:23:09 CDT-0500",
+          "created": "2013-03-04 17:43:37 CST-0600",
+          "admin": false,
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchiZdQw",
+          "active": true,
+          "last_coal_login": null,
+          "nickname": "jennifer",
+          "email": "j@gmail.com"
+        },
+        {
+          "usernames": ["quazifene"],
+          "updated": "2013-04-14 18:56:59 CDT-0500",
+          "created": "2013-03-04 17:53:12 CST-0600",
+          "admin": true,
+          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchiBfQw",
+          "active": true,
+          "last_coal_login": "2013-04-12 14:04:39 CDT-0500",
+          "nickname": "mark",
+          "email": "m@gmail.com"
+        }
+      ]
+    }
+
+.. http:get:: /api/v1/data/users/(key)
+
+  Get the information for the user (`key`).
+
+  :arg key: The requested user's key. (*required*)
+
+  :status 200 OK: Successfully read the user.
+
+    :Response Data: See :ref:`User response data <user_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/v1/data/users/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "username": ["gumptionthomas"],
+      "updated": "2013-04-14 18:37:35 CDT-0500",
+      "created": "2013-03-04 15:05:52 CST-0600",
+      "admin": true,
+      "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+      "active": true,
+      "last_coal_login": "2013-04-13 14:03:33 CDT-0500",
+      "nickname": "thomas",
+      "email": "t@gmail.com"
+    }
+
+.. http:get:: /api/v1/data/users/self
+
+  Get the information for the authenticated user.
+
+  :status 200 OK: Successfully read the current user.
+
+    :Response Data: See :ref:`User response data <user_response_data>`
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    GET /api/v1/data/users/self HTTP/1.1
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+  .. sourcecode:: javascript
+
+    {
+      "username": ["gumptionthomas"],
+      "updated": "2013-04-14 18:37:35 CDT-0500",
+      "created": "2013-03-04 15:05:52 CST-0600",
+      "admin": true,
+      "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
+      "active": true,
+      "last_coal_login": "2013-04-13 14:03:33 CDT-0500",
+      "nickname": "thomas",
+      "email": "t@gmail.com"
+    }
+
+
 ==========
 Server API
 ==========
@@ -292,167 +447,14 @@ Server API
     }
 
 
-========
-User API
-========
-.. http:get:: /api/v1/data/users
-
-  Get a :ref:`list <list>` of all users ordered by email.
-
-  :query size: The number of results to return per call (Default: 10. Maximum: 50).
-  :query cursor: The cursor string signifying where to start the results.
-
-  :status 200 OK: Successfully queried the users.
-
-    :Response Data: - **users** -- The list of users.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
-
-    Each entry in **users** is a dictionary of the user information.
-
-    .. _user_response_data:
-
-    :User: - **key** -- The user key.
-           - **username** -- The user's minecraft username. Empty string if the user is not mapped to a minecraft player.
-           - **email** -- The user's email.
-           - **nickname** -- The user's nickname.
-           - **active** -- A boolean indicating whether the user is active.
-           - **admin** -- A boolean indicating whether the user is an admin.
-           - **last_coal_login** -- The timestamp of the user's last COAL login.
-           - **created** -- The user's creation timestamp.
-           - **updated** -- The user's updated timestamp.
-
-  **Example request**:
-
-  .. sourcecode:: http
-
-    GET /api/v1/data/users HTTP/1.1
-
-  **Example response**:
-
-  .. sourcecode:: http
-
-    HTTP/1.1 200 OK
-    Content-Type: application/json
-
-  .. sourcecode:: javascript
-
-    {
-      "users": [
-        {
-          "username": "",
-          "updated": "2013-03-14 17:23:09 CDT-0500",
-          "created": "2013-03-04 17:43:37 CST-0600",
-          "admin": false,
-          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchiZdQw",
-          "active": true,
-          "last_coal_login": null,
-          "nickname": "jennifer",
-          "email": "j@gmail.com"
-        },
-        {
-          "username": "quazifene",
-          "updated": "2013-04-14 18:56:59 CDT-0500",
-          "created": "2013-03-04 17:53:12 CST-0600",
-          "admin": true,
-          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchiBfQw",
-          "active": true,
-          "last_coal_login": "2013-04-12 14:04:39 CDT-0500",
-          "nickname": "mark",
-          "email": "m@gmail.com"
-        },
-        {
-          "username": "gumptionthomas",
-          "updated": "2013-04-14 18:37:35 CDT-0500",
-          "created": "2013-03-04 15:05:52 CST-0600",
-          "admin": true,
-          "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
-          "active": true,
-          "last_coal_login": "2013-04-13 14:03:33 CDT-0500",
-          "nickname": "thomas",
-          "email": "t@gmail.com"
-        }
-      ]
-    }
-
-.. http:get:: /api/v1/data/users/(key)
-
-  Get the information for the user (`key`).
-
-  :arg key: The requested user's key. (*required*)
-
-  :status 200 OK: Successfully read the user.
-
-    :Response Data: See :ref:`User response data <user_response_data>`
-
-  **Example request**:
-
-  .. sourcecode:: http
-
-    GET /api/v1/data/users/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw HTTP/1.1
-
-  **Example response**:
-
-  .. sourcecode:: http
-
-    HTTP/1.1 200 OK
-    Content-Type: application/json
-
-  .. sourcecode:: javascript
-
-    {
-      "username": "gumptionthomas",
-      "updated": "2013-04-14 18:37:35 CDT-0500",
-      "created": "2013-03-04 15:05:52 CST-0600",
-      "admin": true,
-      "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
-      "active": true,
-      "last_coal_login": "2013-04-13 14:03:33 CDT-0500",
-      "nickname": "thomas",
-      "email": "t@gmail.com"
-    }
-
-.. http:get:: /api/v1/data/users/self
-
-  Get the information for the authenticated user.
-
-  :status 200 OK: Successfully read the current user.
-
-    :Response Data: See :ref:`User response data <user_response_data>`
-
-  **Example request**:
-
-  .. sourcecode:: http
-
-    GET /api/v1/data/users/self HTTP/1.1
-
-  **Example response**:
-
-  .. sourcecode:: http
-
-    HTTP/1.1 200 OK
-    Content-Type: application/json
-
-  .. sourcecode:: javascript
-
-    {
-      "username": "gumptionthomas",
-      "updated": "2013-04-14 18:37:35 CDT-0500",
-      "created": "2013-03-04 15:05:52 CST-0600",
-      "admin": true,
-      "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw",
-      "active": true,
-      "last_coal_login": "2013-04-13 14:03:33 CDT-0500",
-      "nickname": "thomas",
-      "email": "t@gmail.com"
-    }
-
-
 ==========
 Player API
 ==========
-.. http:get:: /api/v1/data/players
+.. http:get:: /api/v1/data/servers/(server_key)/players
 
-  Get a :ref:`list <list>` of all minecraft players ordered by username.
+  Get a :ref:`list <list>` of all minecraft players on the server (`server_key`). Results are ordered by username.
+
+  :arg server_key: The target server's key. (*required*)
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
@@ -467,6 +469,7 @@ Player API
     .. _player_response_data:
 
     :Player: - **key** -- The player key.
+             - **server_key** -- The player's server key.
              - **username** -- The player's minecraft username.
              - **user_key** -- The player's user key. ``null`` if the player is not mapped to a user.
              - **last_login** -- The timestamp of the player's last minecraft login. ``null`` if the player has not logged in.
@@ -477,7 +480,7 @@ Player API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/players HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players HTTP/1.1
 
   **Example response**:
 
@@ -496,6 +499,7 @@ Player API
           "last_login": "2013-04-13 20:50:34 CDT-0500",
           "last_session_duration": 8126,
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "is_playing": false
         },
           "username": "quazifene",
@@ -503,15 +507,17 @@ Player API
           "last_login": "2013-04-13 21:21:30 CDT-0500",
           "last_session_duration": 6821,
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIuCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIJcXVhemlmZW5lDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "is_playing": false
         }
       ]
     }
 
-.. http:get:: /api/v1/data/players/(key_username)
+.. http:get:: /api/v1/data/servers/(server_key)/players/(key_username)
 
-  Get the information for the player (`key_username`).
+  Get the information for the player (`key_username`) on the server (`server_key`).
 
+  :arg server_key: The target server's key. (*required*)
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
   :status 200 OK: Successfully read the player.
@@ -522,13 +528,13 @@ Player API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/players/gumptionthomas HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas HTTP/1.1
 
   **OR**
 
   .. sourcecode:: http
 
-    GET /api/v1/data/players/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM HTTP/1.1
 
   **Example response**:
 
@@ -545,6 +551,7 @@ Player API
       "last_login": "2013-04-13 20:50:34 CDT-0500",
       "last_session_duration": 8126,
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
+      "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
       "is_playing": false
     }
 

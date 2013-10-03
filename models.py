@@ -324,12 +324,12 @@ class User(auth_models.User):
         return None
 
     @classmethod
-    def query_by_email(cls):
-        return cls.query().order(cls.email)
+    def query_all(cls):
+        return cls.query().order(cls.created)
 
     @classmethod
-    def query_by_email_reverse(cls):
-        return cls.query().order(-cls.email)
+    def query_all_reverse(cls):
+        return cls.query().order(-cls.created)
 
 
 @ae_ndb_serializer

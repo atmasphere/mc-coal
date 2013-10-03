@@ -235,7 +235,7 @@ class AdminHandler(PagingHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            User.query_by_email(), User.query_by_email_reverse(), coal_config.RESULTS_PER_PAGE
+            User.query_all(), User.query_all_reverse(), coal_config.RESULTS_PER_PAGE
         )
         servers = []
         for server in Server.query():
@@ -302,7 +302,7 @@ class UsersHandler(PagingHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            User.query_by_email(), User.query_by_email_reverse(), coal_config.RESULTS_PER_PAGE
+            User.query_all(), User.query_all_reverse(), coal_config.RESULTS_PER_PAGE
         )
         context = {'users': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('users.html', context=context)

@@ -208,6 +208,45 @@ class MultiPageJsonHandler(JsonHandler, MultiPage):
     pass
 
 
+USER_FIELDS = ['active', 'admin', 'email', 'nickname', 'usernames']
+USER_FIELD_FUNCTIONS = {
+    'key': lambda o: o.key.urlsafe(),
+    'last_coal_login': lambda o: api_datetime(o.last_login),
+    'created': lambda o: api_datetime(o.created),
+    'updated': lambda o: api_datetime(o.updated)
+}
+USER_STRATEGY = ModelStrategy(User).include(*USER_FIELDS).include(**USER_FIELD_FUNCTIONS)
+
+
+class UsersHandler(MultiPageJsonHandler):
+    @authentication_required(authenticate=authenticate_user_required)
+    @validate_params(form_class=MultiPageForm)
+    def get(self):
+        self.json_response(self.fetch_page(User.query_all(), results_name='users'), USER_STRATEGY)
+
+
+class UserKeyHandler(JsonHandler):
+    def get_user_by_key(self, key, abort=True):
+        fail_code = 404
+        if key == 'self':
+            fail_code = 403
+            user = self.request.user
+        else:
+            try:
+                user_key = ndb.Key(urlsafe=key)
+                user = user_key.get()
+            except Exception:
+                user = None
+        if abort and not user:
+            self.abort(fail_code)
+        return user
+
+    @authentication_required(authenticate=authenticate_user_required)
+    def get(self, key):
+        user = self.get_user_by_key(key)
+        self.json_response(user, USER_STRATEGY)
+
+
 SERVER_FIELDS = ['name', 'version', 'is_running', 'server_day', 'server_time', 'is_raining', 'is_thundering']
 SERVER_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
@@ -241,76 +280,50 @@ class ServersKeyHandler(JsonHandler):
         self.json_response(self.get_server_by_key(key), SERVER_STRATEGY)
 
 
-USER_FIELDS = ['active', 'admin', 'email', 'nickname', 'username']
-USER_FIELD_FUNCTIONS = {
-    'key': lambda o: o.key.urlsafe(),
-    'last_coal_login': lambda o: api_datetime(o.last_login),
-    'created': lambda o: api_datetime(o.created),
-    'updated': lambda o: api_datetime(o.updated)
-}
-USER_STRATEGY = ModelStrategy(User).include(*USER_FIELDS).include(**USER_FIELD_FUNCTIONS)
-
-
-class UsersHandler(MultiPageJsonHandler):
-    @authentication_required(authenticate=authenticate_user_required)
-    @validate_params(form_class=MultiPageForm)
-    def get(self):
-        self.json_response(self.fetch_page(User.query_by_email(), results_name='users'), USER_STRATEGY)
-
-
-class UserKeyHandler(JsonHandler):
-    def get_user_by_key(self, key, abort=True):
-        fail_code = 404
-        if key == 'self':
-            fail_code = 403
-            user = self.request.user
-        else:
-            try:
-                user_key = ndb.Key(urlsafe=key)
-                user = user_key.get()
-            except Exception:
-                user = None
-        if abort and not user:
-            self.abort(fail_code)
-        return user
-
-    @authentication_required(authenticate=authenticate_user_required)
-    def get(self, key):
-        user = self.get_user_by_key(key)
-        self.json_response(user, USER_STRATEGY)
-
-
 PLAYER_FIELDS = ['username', 'is_playing']
 PLAYER_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
+    'server_key': lambda o: o.server_key.urlsafe(),
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
     'last_login': lambda o: api_datetime(o.last_login_timestamp),
     'last_session_duration': lambda o: o.last_session_duration.total_seconds() if o.last_session_duration is not None else None
 }
 PLAYER_STRATEGY = ModelStrategy(Player).include(*PLAYER_FIELDS).include(**PLAYER_FIELD_FUNCTIONS)
 
+class ServerModelBase(object):
+    def get_server_key_by_urlsafe(self, urlsafe_server_key, abort_404=True):
+        try:
+            return ndb.Key(urlsafe=urlsafe_server_key)
+        except Exception:
+            if abort_404:
+                self.abort(404)
 
-class PlayersHandler(MultiPageJsonHandler):
+
+class PlayersHandler(MultiPageJsonHandler, ServerModelBase):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=MultiPageForm)
-    def get(self):
-        self.json_response(self.fetch_page(Player.query_by_username(Server.global_key()), results_name='players'), PLAYER_STRATEGY)
+    def get(self, server_key):
+        server_key = self.get_server_key_by_urlsafe(server_key)
+        self.json_response(self.fetch_page(Player.query_by_username(server_key), results_name='players'), PLAYER_STRATEGY)
 
 
-class PlayerKeyUsernameHandler(JsonHandler):
-    def get_player_by_key_or_username(self, key_username, abort_404=True):
+class PlayerKeyUsernameHandler(JsonHandler, ServerModelBase):
+    def get_player_by_key_or_username(self, key_username, server_key=None, abort_404=True):
+        player = None
         try:
             player_key = ndb.Key(urlsafe=key_username)
-            player = player_key.get()
+            if server_key is None or server_key == player_key.parent():
+                player = player_key.get()
         except Exception:
-            player = Player.lookup(Server.global_key(), key_username)
+            player = Player.lookup(server_key, key_username)
         if abort_404 and not player:
             self.abort(404)
         return player
 
     @authentication_required(authenticate=authenticate_user_required)
-    def get(self, key_username):
-        player = self.get_player_by_key_or_username(key_username)
+    def get(self, server_key, key_username):
+        server_key = self.get_server_key_by_urlsafe(server_key)
+        player = self.get_player_by_key_or_username(key_username, server_key=server_key)
         self.json_response(player, PLAYER_STRATEGY)
 
 
@@ -681,25 +694,32 @@ routes = [
     webapp2.Route('/api/agent/ping', 'api.PingHandler', name='api_agent_ping'),
     webapp2.Route('/api/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line'),
 
-    webapp2.Route('/api/v1/data/servers', 'api.ServersHandler', name='api_data_servers'),
-    webapp2.Route('/api/v1/data/servers/<key>', 'api.ServersKeyHandler', name='api_data_server_key'),
     webapp2.Route('/api/v1/data/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),
     webapp2.Route('/api/v1/data/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
     webapp2.Route('/api/v1/data/users', 'api.UsersHandler', name='api_data_users'),
+
     webapp2.Route('/api/v1/data/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
     webapp2.Route('/api/v1/data/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
     webapp2.Route('/api/v1/data/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
     webapp2.Route('/api/v1/data/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
-    webapp2.Route('/api/v1/data/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
-    webapp2.Route('/api/v1/data/players', 'api.PlayersHandler', name='api_data_players'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/players', 'api.PlayersHandler', name='api_data_players'),
+    
     webapp2.Route('/api/v1/data/sessions/<key>', 'api.PlaySessionKeyHandler', name='api_data_session_key'),
     webapp2.Route('/api/v1/data/sessions', 'api.PlaySessionsHandler', name='api_data_sessions'),
+    
     webapp2.Route('/api/v1/data/chats/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
     webapp2.Route('/api/v1/data/chats', 'api.ChatHandler', name='api_data_chats'),
+    
     webapp2.Route('/api/v1/data/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
     webapp2.Route('/api/v1/data/deaths', 'api.DeathHandler', name='api_data_deaths'),
+    
     webapp2.Route('/api/v1/data/loglines/<key>', 'api.LogLineKeyHandler', name='api_data_logline_key'),
     webapp2.Route('/api/v1/data/loglines', 'api.LogLinesHandler', name='api_data_loglines'),
+    
     webapp2.Route('/api/v1/data/screenshots/<key>', 'api.ScreenShotKeyHandler', name='api_data_screenshot_key'),
-    webapp2.Route('/api/v1/data/screenshots', 'api.ScreenShotsHandler', name='api_data_screenshots')
+    webapp2.Route('/api/v1/data/screenshots', 'api.ScreenShotsHandler', name='api_data_screenshots'),
+    
+    webapp2.Route('/api/v1/data/servers/<key>', 'api.ServersKeyHandler', name='api_data_server_key'),
+    webapp2.Route('/api/v1/data/servers', 'api.ServersHandler', name='api_data_servers')
 ]
