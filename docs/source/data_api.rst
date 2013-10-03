@@ -559,9 +559,11 @@ Player API
 ===========
 Session API
 ===========
-.. http:get:: /api/v1/data/sessions
+.. http:get:: /api/v1/data/servers/(server_key)/sessions
 
-  Get a :ref:`list <list>` of all minecraft play sessions ordered by descending login timestamp.
+  Get a :ref:`list <list>` of all minecraft play sessions on the server (`server_key`) ordered by descending login timestamp.
+
+  :arg server_key: The target server's key. (*required*)
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
@@ -578,6 +580,7 @@ Session API
     .. _session_response_data:
 
     :Session: - **key** -- The play session key.
+              - **server_key** -- The play session's server key.
               - **username** -- The minecraft username associated with the play session.
               - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
               - **user_key** -- The user key. ``null`` if the username is not mapped to a player or the player is not mapped to a user.
@@ -593,7 +596,7 @@ Session API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/sessions HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/sessions HTTP/1.1
 
   **Example response**:
 
@@ -616,6 +619,7 @@ Session API
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
           "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "duration": 8126,
           "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
         },
@@ -629,16 +633,18 @@ Session API
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIuCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIJdmVzaWN1bGFyDA",
           "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY-NYfDA",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGPnWHww",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "duration": 1911,
           "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYpesgDA"
         }
       ]
     }
 
-.. http:get:: /api/v1/data/sessions/(key)
+.. http:get:: /api/v1/data/servers/(server_key)/sessions/(key)
 
-  Get the information for the play session (`key`).
+  Get the information for the play session (`key`) on the server (`server_key`).
 
+  :arg server_key: The target server's key. (*required*)
   :arg key: The requested play session's key. (*required*)
 
   :status 200 OK: Successfully read the play session.
@@ -649,7 +655,7 @@ Session API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/sessions/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/sessions/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw HTTP/1.1
 
   **Example response**:
 
@@ -670,14 +676,16 @@ Session API
       "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
       "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw",
+      "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
       "duration": 8126,
       "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
     }
 
-.. http:get:: /api/v1/data/players/(key_username)/sessions
+.. http:get:: /api/v1/data/servers/(server_key)/players/(key_username)/sessions
 
-  Get a :ref:`list <list>` of a player's minecraft play sessions ordered by descending login timestamp.
+  Get a :ref:`list <list>` of a player's minecraft play sessions on the server (`server_key`) ordered by descending login timestamp.
 
+  :arg server_key: The target server's key. (*required*)
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
@@ -696,7 +704,7 @@ Session API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/players/gumptionthomas/session HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/session HTTP/1.1
 
   **Example response**:
 
@@ -719,6 +727,7 @@ Session API
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
           "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYlOIjDA",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGIWpHAw",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "duration": 24,
           "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYhZEkDA"
         },
@@ -732,6 +741,7 @@ Session API
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
           "login_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY9PogDA",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "duration": 8126,
           "logout_logline_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYtMQgDA"
         }
