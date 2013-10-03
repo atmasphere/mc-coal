@@ -299,6 +299,18 @@ class ServerModelHandler(JsonHandler):
             if abort_404:
                 self.abort(404)
 
+    def get_player_by_key_or_username(self, server_key, key_username, abort_404=True):
+        player = None
+        try:
+            player_key = ndb.Key(urlsafe=key_username)
+            if server_key == player_key.parent():
+                player = player_key.get()
+        except Exception:
+            player = Player.lookup(server_key, key_username)
+        if abort_404 and not player:
+            self.abort(404)
+        return player
+
 
 class MultiPageServerModelHandler(ServerModelHandler, MultiPage):
     pass
@@ -313,18 +325,6 @@ class PlayersHandler(MultiPageServerModelHandler):
 
 
 class PlayerKeyUsernameHandler(ServerModelHandler):
-    def get_player_by_key_or_username(self, server_key, key_username, abort_404=True):
-        player = None
-        try:
-            player_key = ndb.Key(urlsafe=key_username)
-            if server_key == player_key.parent():
-                player = player_key.get()
-        except Exception:
-            player = Player.lookup(server_key, key_username)
-        if abort_404 and not player:
-            self.abort(404)
-        return player
-
     @authentication_required(authenticate=authenticate_user_required)
     def get(self, server_key, key_username):
         server_key = self.get_server_key_by_urlsafe(server_key)
@@ -355,18 +355,6 @@ class PlaySessionsForm(MultiPageForm):
 
 
 class PlaySessionsHandler(MultiPageServerModelHandler):
-    def get_player_by_key_or_username(self, server_key, key_username, abort_404=True):
-        player = None
-        try:
-            player_key = ndb.Key(urlsafe=key_username)
-            if server_key == player_key.parent():
-                player = player_key.get()
-        except Exception:
-            player = Player.lookup(server_key, key_username)
-        if abort_404 and not player:
-            self.abort(404)
-        return player
-
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=PlaySessionsForm)
     def get(self, server_key, key_username=None):
@@ -423,24 +411,14 @@ class ChatPostForm(form.Form):
     chat = fields.StringField(validators=[validators.DataRequired()])
 
 
-class ChatHandler(MultiPageJsonHandler):
-    def get_player_by_key_or_username(self, key_username, abort_404=True):
-        try:
-            player_key = ndb.Key(urlsafe=key_username)
-            player = player_key.get()
-        except Exception:
-            player = Player.lookup(Server.global_key(), key_username)
-        if abort_404 and not player:
-            self.abort(404)
-        return player
-
+class ChatHandler(MultiPageServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ChatForm)
-    def get(self, key_username=None):
-        server_key = Server.global_key()
+    def get(self, server_key, key_username=None):
+        server_key = self.get_server_key_by_urlsafe(server_key)
         username = None
         if key_username:
-            player = self.get_player_by_key_or_username(key_username)
+            player = self.get_player_by_key_or_username(server_key, key_username)
             username = player.username
         since = self.request.form.since.data or None
         before = self.request.form.before.data or None
@@ -461,19 +439,26 @@ class ChatHandler(MultiPageJsonHandler):
 
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ChatPostForm)
-    def post(self):
-        server_key = Server.global_key()
-        user = self.request.user
+    def post(self, server_key, key_username=None):
+        server_key = self.get_server_key_by_urlsafe(server_key)
+        username = self.request.user.get_server_play_name(server_key)
+        if key_username:
+            player = self.get_player_by_key_or_username(server_key, key_username)
+            username = player.username
+            if username not in self.request.user.usernames:
+                self.abort(403)
         chat = u"/say {0}".format(self.request.form.chat.data)
-        Command.push(server_key, user.play_name, chat)
+        Command.push(server_key, username, chat)
         self.response.set_status(201)
 
 
-class ChatKeyHandler(JsonHandler):
-    def get_log_line_by_key(self, key, abort_404=True):
+class ChatKeyHandler(ServerModelHandler):
+    def get_log_line_by_key(self, server_key, key, abort_404=True):
+        log_line = None
         try:
             log_line_key = ndb.Key(urlsafe=key)
-            log_line = log_line_key.get()
+            if server_key == log_line_key.parent():
+                log_line = log_line_key.get()
         except Exception:
             log_line = None
         if abort_404 and not log_line:
@@ -481,8 +466,9 @@ class ChatKeyHandler(JsonHandler):
         return log_line
 
     @authentication_required(authenticate=authenticate_user_required)
-    def get(self, key):
-        log_line = self.get_log_line_by_key(key)
+    def get(self, server_key, key):
+        server_key = self.get_server_key_by_urlsafe(server_key)
+        log_line = self.get_log_line_by_key(server_key, key)
         if CHAT_TAG not in log_line.tags:
             self.abort(404)
         self.json_response(log_line, CHAT_STRATEGY)
@@ -710,19 +696,18 @@ routes = [
     webapp2.Route('/api/v1/data/users', 'api.UsersHandler', name='api_data_users'),
 
     webapp2.Route('/api/v1/data/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
-    webapp2.Route('/api/v1/data/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
     webapp2.Route('/api/v1/data/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
 
     webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
     webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
     webapp2.Route('/api/v1/data/servers/<server_key>/players', 'api.PlayersHandler', name='api_data_players'),
     
     webapp2.Route('/api/v1/data/servers/<server_key>/sessions/<key>', 'api.PlaySessionKeyHandler', name='api_data_session_key'),
     webapp2.Route('/api/v1/data/servers/<server_key>/sessions', 'api.PlaySessionsHandler', name='api_data_sessions'),
 
-    
-    webapp2.Route('/api/v1/data/chats/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
-    webapp2.Route('/api/v1/data/chats', 'api.ChatHandler', name='api_data_chats'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/chats/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/chats', 'api.ChatHandler', name='api_data_chats'),
     
     webapp2.Route('/api/v1/data/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
     webapp2.Route('/api/v1/data/deaths', 'api.DeathHandler', name='api_data_deaths'),

@@ -1075,12 +1075,16 @@ class PlaySessionKeyTest(KeyApiTest, ServerModelTestBase):
         self.assertIsNotNone(play_session['login_timestamp'])
 
 
-class ChatTest(MultiPageApiTest):
-    URL = '/api/v1/data/chats'
+class ChatsTest(MultiPageApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'chats'
     ALLOWED = ['GET', 'POST']
 
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe())
+
     def setUp(self):
-        super(ChatTest, self).setUp()
+        super(ChatsTest, self).setUp()
         self.now = datetime.datetime.now()
         self.players = []
         self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
@@ -1090,6 +1094,10 @@ class ChatTest(MultiPageApiTest):
             log_line = models.LogLine.create(self.server, CHAT_LOG_LINES_CRON[i], TIME_ZONE)
             self.log_lines.append(log_line)
         log_line = models.LogLine.create(self.server, TIME_STAMP_LOG_LINE, TIME_ZONE)
+        self.post_username = None
+
+    def test_get_wrong_server(self):
+        pass
 
     def test_get(self):
         response = self.get(url='{0}?size={1}'.format(self.url, 50))
@@ -1103,19 +1111,6 @@ class ChatTest(MultiPageApiTest):
             self.assertEqual(self.log_lines[i].chat, log_line['chat'])
             self.assertEqual(self.log_lines[i].username, log_line['username'])
             self.assertIsNotNone(log_line['timestamp'])
-
-    def test_get_username(self):
-        username = "vesicular"
-        url = "/api/v1/data/players/{0}/chats".format(username)
-        response = self.get(url=url)
-        self.assertOK(response)
-        body = json.loads(response.body)
-        self.assertLength(1, body)
-        log_lines = body['chats']
-        self.assertLength(2, log_lines)
-        for i, log_line in enumerate(log_lines):
-            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-            self.assertEqual(username, log_line['username'])
 
     def test_get_since_before(self):
         url = "{0}?since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
@@ -1168,7 +1163,7 @@ class ChatTest(MultiPageApiTest):
         self.assertEqual(u'/say {0}'.format(chat), command.command)
 
     def test_post_no_player(self):
-        play_name = self.user.play_name
+        play_name = self.user.get_server_play_name(self.server.key)
         nickname = self.user.nickname
         chat = u'Hello world...'
         params = {'chat': chat}
@@ -1183,7 +1178,7 @@ class ChatTest(MultiPageApiTest):
     def test_post_no_player_no_nickname(self):
         self.user.nickname = None
         self.user.put()
-        play_name = self.user.play_name
+        play_name = self.user.get_server_play_name(self.server.key)
         email = self.user.email
         chat = u'Hello world...'
         params = {'chat': chat}
@@ -1206,9 +1201,44 @@ class ChatTest(MultiPageApiTest):
         self.assertUnauthorized(response)
 
 
-class ChatQueryTest(ChatTest):
+class ChatsPlayerTest(ChatsTest):
+    URL = ServerModelTestBase.URL + 'players/{1}/chats'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.players[0].key.urlsafe())
+
     def setUp(self):
-        super(ChatQueryTest, self).setUp()
+        super(ChatsPlayerTest, self).setUp()
+        new_log_lines = []
+        i = 7
+        for log_line in self.log_lines:
+            if log_line.username != self.players[0].username:
+                new_line = '2012-10-09 20:46:0{0} [INFO] <{1}> yo yo'.format(i, self.players[0].username)
+                new_log_lines.append(models.LogLine.create(self.server, new_line, log_line.zone))
+                i += 1
+        self.log_lines = new_log_lines
+
+    def test_get_since_before(self):
+        pass
+
+    def test_post_no_player(self):
+        pass
+
+    def test_post_no_player_no_nickname(self):
+        pass
+
+    def test_post_invalid_username(self):
+        self.assertEmpty(self.user.usernames)
+        chat = u'Hello world...'
+        params = {'chat': chat}
+        response = self.post(params=params)
+        self.assertForbidden(response)
+
+
+class ChatsQueryTest(ChatsTest):
+    def setUp(self):
+        super(ChatsQueryTest, self).setUp()
         self.now = datetime.datetime.now()
         self.log_lines = []
         for i in range(25):
@@ -1216,6 +1246,9 @@ class ChatQueryTest(ChatTest):
             chat_log_line = '{0} [INFO] <gumptionthomas> foobar {1}'.format(dt.strftime("%Y-%m-%d %H:%M:%S"), i)
             log_line = models.LogLine.create(self.server, chat_log_line, TIME_ZONE)
             self.log_lines.append(log_line)
+
+    def test_get_wrong_server(self):
+        pass
 
     def test_get(self):
         response = self.get(url='{0}?q={1}'.format(self.url, 'yo'))
@@ -1228,18 +1261,6 @@ class ChatQueryTest(ChatTest):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
             self.assertIn('yo', log_line['line'])
             self.assertIsNotNone(log_line['timestamp'])
-
-    def test_get_username(self):
-        url = "/api/v1/data/players/gumptionthomas/chats?q=foobar"
-        response = self.get(url=url)
-        self.assertOK(response)
-        body = json.loads(response.body)
-        self.assertLength(2, body)
-        log_lines = body['chats']
-        self.assertLength(10, log_lines)
-        for i, log_line in enumerate(log_lines):
-            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-            self.assertEqual('gumptionthomas', log_line['username'])
 
     def test_get_multi(self):
         response = self.get(url='{0}?q={1}'.format(self.url, 'foobar'))
@@ -1310,18 +1331,140 @@ class ChatQueryTest(ChatTest):
         self.assertLength(0, log_lines)
 
 
-class ChatKeyTest(KeyApiTest):
-    URL = '/api/v1/data/chats'
+class ChatsQueryPlayerTest(ChatsTest):
+    URL = ServerModelTestBase.URL + 'players/{1}/chats'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.players[0].key.urlsafe())
+
+    def setUp(self):
+        super(ChatsQueryPlayerTest, self).setUp()
+        self.now = datetime.datetime.now()
+        new_log_lines = []
+        i = 7
+        for log_line in self.log_lines:
+            if log_line.username != self.players[0].username:
+                new_line = '2012-10-09 20:46:0{0} [INFO] <{1}> yo yo'.format(i, self.players[0].username)
+                new_log_lines.append(models.LogLine.create(self.server, new_line, log_line.zone))
+                i += 1
+        self.log_lines = new_log_lines
+        self.log_lines = []
+        for i in range(25):
+            dt = self.now - datetime.timedelta(minutes=i)
+            chat_log_line = '{0} [INFO] <gumptionthomas> foobar {1}'.format(dt.strftime("%Y-%m-%d %H:%M:%S"), i)
+            log_line = models.LogLine.create(self.server, chat_log_line, TIME_ZONE)
+            self.log_lines.append(log_line)
+
+    def test_get_wrong_server(self):
+        pass
+
+    def test_get(self):
+        response = self.get(url='{0}?q={1}'.format(self.url, 'yo'))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(3, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertIn('yo', log_line['line'])
+            self.assertIsNotNone(log_line['timestamp'])
+
+    def test_get_multi(self):
+        response = self.get(url='{0}?q={1}'.format(self.url, 'foobar'))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        next_cursor = body['cursor']
+        log_lines = body['chats']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+            self.assertEqual('foobar {0}'.format(i), log_line['chat'])
+        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.url, 'foobar', next_cursor))
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        next_cursor = body['cursor']
+        log_lines = body['chats']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+            self.assertEqual('foobar {0}'.format(i+10), log_line['chat'])
+        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.url, 'foobar', next_cursor))
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(5, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+            self.assertEqual('foobar {0}'.format(i+20), log_line['chat'])
+
+    def test_get_since_before(self):
+        url = "{0}?q=foobar&since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        url = "{0}?q=foobar&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(len(self.log_lines)-2, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        url = "{0}?q=foobar&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(3, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
+        url = "{0}?q=foobar&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['chats']
+        self.assertLength(0, log_lines)
+
+    def test_post_no_player(self):
+        pass
+
+    def test_post_no_player_no_nickname(self):
+        pass
+
+    def test_post_invalid_username(self):
+        self.assertEmpty(self.user.usernames)
+        chat = u'Hello world...'
+        params = {'chat': chat}
+        response = self.post(params=params)
+        self.assertForbidden(response)
+
+
+class ChatKeyTest(KeyApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'chats/{1}'
     ALLOWED = ['GET']
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.log_line.key.urlsafe())
 
     def setUp(self):
         super(ChatKeyTest, self).setUp()
         self.player = models.Player.get_or_create(self.server.key, "vesicular")
         self.log_line = models.LogLine.create(self.server, CHAT_LOG_LINE, TIME_ZONE)
-
-    @property
-    def url(self):
-        return "{0}/{1}".format(self.URL, self.log_line.key.urlsafe())
 
     def test_get(self):
         response = self.get()

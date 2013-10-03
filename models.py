@@ -211,26 +211,26 @@ class User(auth_models.User):
         return get_whitelist_user(self.email)
 
     @property
-    def username(self):
-        if self.usernames:
-            return self.usernames[0]
-        return None
-
-    @property
     def name(self):
         return self.nickname or self.email
 
     @property
-    def play_name(self):
-        if self.username:
-            return self.username
+    def unauthenticated_claims(self):
+        return UsernameClaim.query_unauthenticated_by_user_key(self.key).fetch()
+
+    def get_server_username(self, server_key):
+        for username in self.usernames:
+            if Player.lookup(server_key, username) is not None:
+                return username
+        return None
+
+    def get_server_play_name(self, server_key):
+        username = self.get_server_username(server_key)
+        if username is not None:
+            return username
         if self.nickname:
             return '*{0}'.format(self.nickname)
         return self.email
-
-    @property
-    def unauthenticated_claims(self):
-        return UsernameClaim.query_unauthenticated_by_user_key(self.key).fetch()
 
     def add_username(self, username):
         if username not in self.usernames:
@@ -1011,7 +1011,7 @@ class ScreenShot(NdbImage, ServerModel):
     def create(cls, server_key, user, **kwargs):
         instance = super(ScreenShot, cls).create(parent=server_key, **kwargs)
         instance.user_key = user.key if user else None
-        instance.username = user.username if user else None
+        instance.username = user.get_server_username(server_key) if user else None
         instance.random_id = random.random()
         instance.put()
         deferred.defer(blur, instance.key.urlsafe())

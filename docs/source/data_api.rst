@@ -189,7 +189,7 @@ User API
     :Response Data: - **users** -- The list of users.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **users** is a dictionary of the user information.
+    Each entry in **users** is a dictionary of user information.
 
     .. _user_response_data:
 
@@ -344,7 +344,7 @@ Server API
     :Response Data: - **servers** -- The list of servers.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **servers** is a dictionary of the server information.
+    Each entry in **servers** is a dictionary of server information.
 
     .. _server_response_data:
 
@@ -464,7 +464,7 @@ Player API
     :Response Data: - **players** -- The list of players.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **players** is a dictionary of the player information.
+    Each entry in **players** is a dictionary of player information.
 
     .. _player_response_data:
 
@@ -575,7 +575,7 @@ Session API
     :Response Data: - **sessions** -- The list of play sessions.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **sessions** is a dictionary of the play session information.
+    Each entry in **sessions** is a dictionary of play session information.
 
     .. _session_response_data:
 
@@ -698,7 +698,7 @@ Session API
     :Response Data: - **sessions** -- The list of the player's play sessions.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **sessions** is a dictionary of the player's play session information. See :ref:`Play session response data <session_response_data>`
+    Each entry in **sessions** is a dictionary of play session information. See :ref:`Play session response data <session_response_data>`
 
   **Example request**:
 
@@ -752,9 +752,11 @@ Session API
 ========
 Chat API
 ========
-.. http:get:: /api/v1/data/chats
+.. http:get:: /api/v1/data/servers/(server_key)/chats
 
-  Get a :ref:`list <list>` of all minecraft chats ordered by descending timestamp.
+  Get a :ref:`list <list>` of all minecraft chats on the server (`server_key`) ordered by descending timestamp.
+
+  :arg server_key: The target server's key. (*required*)
 
   :query q: A search string to limit the chat results to.
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
@@ -767,11 +769,12 @@ Chat API
     :Response Data: - **chats** -- The list of chats.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **chats** is a dictionary of the chat information.
+    Each entry in **chats** is a dictionary of chat information.
 
     .. _chat_response_data:
 
     :Chat: - **key** -- The chat log line key.
+           - **server_key** -- The chat's server key.
            - **chat** -- The chat text. May be ``null``.
            - **username** -- The minecraft username associated with the chat. May be ``null``.
            - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
@@ -785,7 +788,7 @@ Chat API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/chats HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/chats HTTP/1.1
 
   **Example response**:
 
@@ -802,6 +805,7 @@ Chat API
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:33:56 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nXV",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:33:55 CDT-0500",
           "created": "2013-04-19 10:33:56 CDT-0500",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
@@ -813,6 +817,7 @@ Chat API
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:32:56 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:32:55 CDT-0500",
           "created": "2013-04-19 10:32:56 CDT-0500",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
@@ -823,15 +828,17 @@ Chat API
       ]
     }
 
-.. http:post:: /api/v1/data/chats
+.. http:post:: /api/v1/data/servers/(server_key)/chats
 
-  Queue a new chat from the authenticated user. In game, the chat will appear as a "Server" chat with the user's minecraft username in angle brackets (much like a normal chat)::
+  Queue a new chat on the server (`server_key`) from the authenticated user. In game, the chat will appear as a "Server" chat with the user's default minecraft username in angle brackets (much like a normal chat)::
 
     [Server] <gumptionthomas> Hello world...
 
-  If the API user does not have an associated minecraft username, the user's email address will be used instead::
+  If the API user does not have an associated minecraft username, the user's nickname or email will be used instead::
 
     [Server] <t@gmail.com> Hello world...
+
+  :arg server_key: The target server's key. (*required*)
 
   :formparam chat: The chat text.
 
@@ -841,7 +848,7 @@ Chat API
 
   .. sourcecode:: http
 
-    POST /api/v1/data/chats HTTP/1.1
+    POST /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/chats HTTP/1.1
 
   .. sourcecode:: http
 
@@ -854,10 +861,11 @@ Chat API
     HTTP/1.1 201 OK
     Content-Type: application/json
 
-.. http:get:: /api/v1/data/chats/(key)
+.. http:get:: /api/v1/data/servers/(server_key)/chats/(key)
 
   Get the information for the chat (`key`).
 
+  :arg server_key: The target server's key. (*required*)
   :arg key: The requested chat's log line key. (*required*)
 
   :status 200 OK: Successfully read the chat.
@@ -868,7 +876,7 @@ Chat API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/chats/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/chats/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -883,6 +891,7 @@ Chat API
       "username": "gumptionthomas",
       "updated": "2013-04-19 10:32:56 CDT-0500",
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+      "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
       "timestamp": "2013-04-19 10:32:55 CDT-0500",
       "created": "2013-04-19 10:32:56 CDT-0500",
       "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
@@ -891,10 +900,11 @@ Chat API
       "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys"
     }
 
-.. http:get:: /api/v1/data/players/(key_username)/chats
+.. http:get:: /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/(key_username)/chats
 
-  Get a :ref:`list <list>` of a player's minecraft chats ordered by descending timestamp.
+  Get a :ref:`list <list>` of a player's minecraft chats on the server (`server_key`) ordered by descending timestamp.
 
+  :arg server_key: The target server's key. (*required*)
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
   :query q: A search string to limit the chat results to.
@@ -908,13 +918,13 @@ Chat API
     :Response Data: - **chats** -- The list of the player's chats.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **chats** is a dictionary of the player's log line information. See :ref:`Chat response data <chat_response_data>`
+    Each entry in **chats** is a dictionary of chat information. See :ref:`Chat response data <chat_response_data>`
 
   **Example request**:
 
   .. sourcecode:: http
 
-    GET /api/v1/data/players/gumptionthomas/chat HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/chats HTTP/1.1
 
   **Example response**:
 
@@ -931,6 +941,7 @@ Chat API
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:33:56 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nXV",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:33:55 CDT-0500",
           "created": "2013-04-19 10:33:56 CDT-0500",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
@@ -942,6 +953,7 @@ Chat API
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:32:56 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:32:55 CDT-0500",
           "created": "2013-04-19 10:32:56 CDT-0500",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
@@ -951,6 +963,38 @@ Chat API
         }
       ]
     }
+
+.. http:post:: /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/(key_username)/chats
+
+  Queue a new chat on the server (`server_key`) for the player (`key_username`) from the authenticated user. In game, the chat will appear as a "Server" chat with the username in angle brackets (much like a normal chat)::
+
+    [Server] <gumptionthomas> Hello world...
+
+  :arg server_key: The target server's key. (*required*)
+  :arg key_username: The requested player's key or minecraft username. (*required*)
+
+  :formparam chat: The chat text.
+
+  :status 403 Forbidden: The authenticated user has not claimed the player's username.
+
+  :status 201 Created: Successfully queued the chat. It will be sent to the agent on the next ping.
+
+  **Example request**:
+
+  .. sourcecode:: http
+
+    POST /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/chats HTTP/1.1
+
+  .. sourcecode:: http
+
+    chat=Hello+world...
+
+  **Example response**:
+
+  .. sourcecode:: http
+
+    HTTP/1.1 201 OK
+    Content-Type: application/json
 
 
 =========
@@ -971,7 +1015,7 @@ Death API
     :Response Data: - **deaths** -- The list of deaths.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **deaths** is a dictionary of the death information.
+    Each entry in **deaths** is a dictionary of death information.
 
     .. _death_response_data:
 
@@ -1081,7 +1125,7 @@ Death API
     :Response Data: - **deaths** -- The list of the player's deaths.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **deaths** is a dictionary of the player's log line information. See :ref:`Death response data <death_response_data>`
+    Each entry in **deaths** is a dictionary of death information. See :ref:`Death response data <death_response_data>`
 
   **Example request**:
 
@@ -1161,7 +1205,7 @@ Log Line API
     :Response Data: - **loglines** -- The list of log lines.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **loglines** is a dictionary of the log line information.
+    Each entry in **loglines** is a dictionary of log line information.
 
     .. _logline_response_data:
 
@@ -1303,7 +1347,7 @@ Log Line API
     :Response Data: - **loglines** -- The list of the player's log lines.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **loglines** is a dictionary of the player's log line information. See :ref:`Log line response data <logline_response_data>`
+    Each entry in **loglines** is a dictionary of log line information. See :ref:`Log line response data <logline_response_data>`
 
   **Example request**:
 
@@ -1406,7 +1450,7 @@ Screenshot API
     :Response Data: - **screenshots** -- The list of screenshots.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **screenshots** is a dictionary of the screenshot information.
+    Each entry in **screenshots** is a dictionary of screenshot information.
 
     .. _screenshot_response_data:
 

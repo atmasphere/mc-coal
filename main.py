@@ -146,7 +146,7 @@ class ChatsHandler(PagingHandler):
             'next_cursor': next_cursor,
             'previous_cursor': previous_cursor,
             'channel_token': channel_token,
-            'username': user.play_name,
+            'username': user.get_server_play_name(server_key),
         })
         self.render_template('chats.html', context=context)
 
@@ -160,7 +160,7 @@ class ChatsHandler(PagingHandler):
             form = ChatForm(self.request.POST)
             if form.validate():
                 chat = u"/say {0}".format(form.chat.data)
-                Command.push(server_key, user.play_name, chat)
+                Command.push(server_key, user.get_server_play_name(server_key), chat)
         except Exception, e:
             logging.error(u"Error POSTing chat: {0}".format(e))
             self.abort(500)
