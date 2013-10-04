@@ -22,7 +22,7 @@ Clients `register <http://tools.ietf.org/html/draft-ietf-oauth-dyn-reg-14#sectio
 
 .. _client_configuration:
 
-Most client registration and configuration endpoints (:http:post:`/oauth/register`, :http:get:`/oauth/client/(client_id)`, and :http:put:`/oauth/client/(client_id)`) return an ``application/json`` response body that is an object with the client configuration as top-level members:
+Most client registration and configuration endpoints (:http:post:`/oauth/register`, :http:get:`/oauth/clients/(client_id)`, and :http:put:`/oauth/clients/(client_id)`) return an ``application/json`` response body that is an object with the client configuration as top-level members:
 
   :Client Configuration:
     - **client_id** -- The client id.
@@ -30,7 +30,7 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
     - **scope** -- A space separated list of scope values that the client can use when requesting access tokens.
     - **client_secret** -- The client secret for use in other oauth flows.
     - **client_secret_expires_at** -- Time at which the ``client_secret`` will expire or 0 if it will not expire. The time is represented as the number of seconds from ``1970-01-01T0:0:0Z`` as measured in UTC until the date/time.
-    - **registration_access_token** -- The access token that is used at the client configuration endpoint to perform subsequent operations upon the client registration through the client configuration enpdoints (:http:get:`/oauth/client/(client_id)`, :http:put:`/oauth/client/(client_id)`, and :http:delete:`/oauth/client/(client_id)`).
+    - **registration_access_token** -- The access token that is used at the client configuration endpoint to perform subsequent operations upon the client registration through the client configuration enpdoints (:http:get:`/oauth/clients/(client_id)`, :http:put:`/oauth/clients/(client_id)`, and :http:delete:`/oauth/clients/(client_id)`).
     - **registration_client_uri** -- The fully qualified URL of the client configuration endpoint for this client.  The client MUST use this URL as given when communicating with the client configuration endpoint.
     - **client_name** -- (*optional*) -- The human-readable name of the client to be presented to the user.
     - **client_uri** -- (*optional*) -- The URL of the homepage of the client.
@@ -86,7 +86,7 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
       "client_secret": "bdv8HtrspbJh5F5KOlAUkDOl8KAyYcfsDQoTk1au",
       "client_secret_expires_at": 0,
       "registration_access_token": "VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE",
-      "registration_client_uri": "https://my-coal.org/oauth/client/my_example_app",
+      "registration_client_uri": "https://my-coal.org/oauth/clients/my_example_app",
       "client_name": "My Example Application",
       "client_uri": "http://example.com",
       "logo_uri": "http://example.com/logo.png"
@@ -96,12 +96,12 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
 Client Configuration
 ====================
 
-The client configuration endpoint is a protected resource that is provisioned by the server to facilitate viewing, updating, and deleting a client's registered information. If a client ever forgets its :ref:`client configuration <client_configuration>` values, they can be retreived via :http:get:`/oauth/client/(client_id)` as long as the client knows its ``registration_client_uri`` and ``registration_access_token``.
+The client configuration endpoint is a protected resource that is provisioned by the server to facilitate viewing, updating, and deleting a client's registered information. If a client ever forgets its :ref:`client configuration <client_configuration>` values, they can be retreived via :http:get:`/oauth/clients/(client_id)` as long as the client knows its ``registration_client_uri`` and ``registration_access_token``.
 
 The location of this endpoint is communicated to the client through the ``registration_client_uri`` member of the :http:post:`/oauth/register` response. Authorization for this endpoint requires that the client's ``registration_access_token`` be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
 
 
-.. http:get:: /oauth/client/(client_id)
+.. http:get:: /oauth/clients/(client_id)
 
   Read the current configuration of the client (`client_id`).
 
@@ -116,7 +116,7 @@ The location of this endpoint is communicated to the client through the ``regist
 
   .. sourcecode:: http
 
-    GET /oauth/client/my_example_app HTTP/1.1
+    GET /oauth/clients/my_example_app HTTP/1.1
     Authorization: Bearer VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE
 
   **Example response**:
@@ -135,14 +135,14 @@ The location of this endpoint is communicated to the client through the ``regist
       "client_secret": "bdv8HtrspbJh5F5KOlAUkDOl8KAyYcfsDQoTk1au",
       "client_secret_expires_at": 0,
       "registration_access_token": "VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE",
-      "registration_client_uri": "https://my-coal.org/oauth/client/my_example_app",
+      "registration_client_uri": "https://my-coal.org/oauth/clients/my_example_app",
       "client_name": "My Example Application",
       "client_uri": "http://example.com",
       "logo_uri": "http://example.com/logo.png"
     }
 
 
-.. http:put:: /oauth/client/(client_id)
+.. http:put:: /oauth/clients/(client_id)
 
   Update the configuration of the client (`client_id`).
 
@@ -170,7 +170,7 @@ The location of this endpoint is communicated to the client through the ``regist
 
   .. sourcecode:: http
 
-    PUT /oauth/client/my_example_app HTTP/1.1
+    PUT /oauth/clients/my_example_app HTTP/1.1
     Authorization: Bearer VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE
 
   .. sourcecode:: javascript
@@ -201,13 +201,13 @@ The location of this endpoint is communicated to the client through the ``regist
       "client_secret": "bdv8HtrspbJh5F5KOlAUkDOl8KAyYcfsDQoTk1au",
       "client_secret_expires_at": 0,
       "registration_access_token": "VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE",
-      "registration_client_uri": "https://my-coal.org/oauth/client/my_example_app",
+      "registration_client_uri": "https://my-coal.org/oauth/clients/my_example_app",
       "client_name": "My Example Application v2",
       "client_uri": "http://example.com/v2",
       "logo_uri": "http://example.com/logo_v2.png"
     }
 
-.. http:delete:: /oauth/client/(client_id)
+.. http:delete:: /oauth/clients/(client_id)
 
   Remove the client and all grants and tokens associated with it (`client_id`).
 
@@ -222,7 +222,7 @@ The location of this endpoint is communicated to the client through the ``regist
 
   .. sourcecode:: http
 
-    DELETE /oauth/client/my_example_app HTTP/1.1
+    DELETE /oauth/clients/my_example_app HTTP/1.1
     Authorization: Bearer VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE
 
   **Example response**:

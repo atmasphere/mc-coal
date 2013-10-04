@@ -536,7 +536,7 @@ class RegistrationHandlerTest(OauthTest):
         self.assertEqual(body['client_name'], TEST_CLIENT_NAME)
         self.assertEqual(body['client_uri'], TEST_CLIENT_URI)
         self.assertEqual(body['logo_uri'], TEST_LOGO_URI)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/client/{0}'.format(TEST_CLIENT_ID))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(TEST_CLIENT_ID))
         self.assertEqual(body['registration_access_token'], client.registration_access_token)
         self.assertEqual(body['client_secret'], client.secret)
         self.assertEqual(body['client_secret_expires_at'], client.secret_expires_at)
@@ -556,7 +556,7 @@ class RegistrationHandlerTest(OauthTest):
         self.assertEqual(len(body), NUM_CLIENT_FIELDS-3)
         self.assertEqual(body['client_id'], client.client_id)
         self.assertEqual(body['redirect_uris'], [TEST_REDIRECT_URI])
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/client/{0}'.format(client.client_id))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(client.client_id))
         self.assertEqual(body['registration_access_token'], client.registration_access_token)
         self.assertEqual(body['client_secret'], client.secret)
         self.assertEqual(body['client_secret_expires_at'], client.secret_expires_at)
@@ -591,14 +591,14 @@ class RegistrationHandlerTest(OauthTest):
         self.assertEqual(body['client_name'], TEST_CLIENT_NAME)
         self.assertEqual(body['client_uri'], TEST_CLIENT_URI)
         self.assertEqual(body['logo_uri'], TEST_LOGO_URI)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/client/{0}'.format(client.client_id))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(client.client_id))
         self.assertEqual(body['registration_access_token'], client.registration_access_token)
         self.assertEqual(body['client_secret'], client.secret)
         self.assertEqual(body['client_secret_expires_at'], client.secret_expires_at)
 
 
 class ClientHanderTest(OauthTest):
-    URL = '/oauth/client/{0}'
+    URL = '/oauth/clients/{0}'
     ALLOWED = ['GET', 'POST', 'DELETE']
 
     def setUp(self):
@@ -619,7 +619,7 @@ class ClientHanderTest(OauthTest):
         self.assertEqual(body['client_name'], TEST_CLIENT_NAME)
         self.assertEqual(body['client_uri'], TEST_CLIENT_URI)
         self.assertEqual(body['logo_uri'], TEST_LOGO_URI)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/client/{0}'.format(TEST_CLIENT_ID))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(TEST_CLIENT_ID))
         self.assertEqual(body['registration_access_token'], self.client.registration_access_token)
         self.assertEqual(body['client_secret'], self.client.secret)
         self.assertEqual(body['client_secret_expires_at'], self.client.secret_expires_at)
@@ -646,7 +646,7 @@ class ClientHanderTest(OauthTest):
         self.assertEqual(body['client_name'], 'new_client_name')
         self.assertEqual(body['client_uri'], TEST_CLIENT_URI)
         self.assertEqual(body['logo_uri'], TEST_LOGO_URI)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/client/{0}'.format(TEST_CLIENT_ID))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(TEST_CLIENT_ID))
         self.assertEqual(body['registration_access_token'], self.client.registration_access_token)
         self.assertEqual(body['client_secret'], self.client.secret)
         self.assertEqual(body['client_secret_expires_at'], self.client.secret_expires_at)
@@ -667,7 +667,7 @@ class ClientHanderTest(OauthTest):
         self.assertIsNone(client.name)
         self.assertIsNone(client.uri)
         self.assertIsNone(client.logo_uri)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/client/{0}'.format(TEST_CLIENT_ID))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(TEST_CLIENT_ID))
         self.assertEqual(body['registration_access_token'], self.client.registration_access_token)
         self.assertEqual(body['client_secret'], self.client.secret)
         self.assertEqual(body['client_secret_expires_at'], self.client.secret_expires_at)
