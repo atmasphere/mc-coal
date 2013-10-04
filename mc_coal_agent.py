@@ -182,7 +182,7 @@ def ping_host(client, running, server_day, server_time, raining, thundering, com
             params['server_time'] = server_time
         params['is_raining'] = raining
         params['is_thundering'] = thundering
-        response_json = client.post("/api/agent/ping", params=params).json()
+        response_json = client.post("/api/v1/agent/ping", params=params).json()
         commands = response_json['commands']
         last_line = response_json['last_line']
         logger.debug(u"PING: {0}, {1}".format(commands, last_line))
@@ -223,7 +223,7 @@ def post_line(client, line, zone, skip_chat):
     while True:
         tries = tries + 1
         try:
-            response = client.post("/api/agent/log_line", params)
+            response = client.post("/api/v1/agent/log_line", params)
             logger.debug(u"REPORTED ({0}): {1}".format(response.status_code, line))
             break
         except requests.exceptions.RequestException as e:

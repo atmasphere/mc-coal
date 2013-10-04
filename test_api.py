@@ -151,9 +151,9 @@ NUM_PLAYER_FIELDS = 7
 NUM_USER_FIELDS = 9
 NUM_SERVER_FIELDS =11
 NUM_PLAY_SESSION_FIELDS = 12
-NUM_LOG_LINE_FIELDS = 14
 NUM_CHAT_FIELDS = 10
 NUM_DEATH_FIELDS = 10
+NUM_LOG_LINE_FIELDS = 15
 NUM_SCREENSHOT_FIELDS = 7
 
 
@@ -1688,12 +1688,16 @@ class DeathKeyTest(KeyApiTest, ServerModelTestBase):
         self.assertEqual(self.log_line.username, log_line['username'])
 
 
-class LogLineDataTest(MultiPageApiTest):
-    URL = '/api/v1/data/loglines'
+class LogLinesTest(MultiPageApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'loglines'
     ALLOWED = ['GET']
 
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe())
+
     def setUp(self):
-        super(LogLineDataTest, self).setUp()
+        super(LogLinesTest, self).setUp()
         self.now = datetime.datetime.now()
         self.players = []
         self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
@@ -1714,19 +1718,6 @@ class LogLineDataTest(MultiPageApiTest):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
             self.assertEqual(self.log_lines[i].line, log_line['line'])
             self.assertIsNotNone(log_line['timestamp'])
-
-    def test_get_username(self):
-        username = "gumptionthomas"
-        url = "/api/v1/data/players/{0}/loglines".format(username)
-        response = self.get(url=url)
-        self.assertOK(response)
-        body = json.loads(response.body)
-        self.assertLength(1, body)
-        log_lines = body['loglines']
-        self.assertLength(4, log_lines)
-        for i, log_line in enumerate(log_lines):
-            self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-            self.assertEqual(username, log_line['username'])
 
     def test_get_since_before(self):
         url = "{0}?since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
@@ -1776,10 +1767,35 @@ class LogLineDataTest(MultiPageApiTest):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
             self.assertIn('chat', log_line['tags'])
 
+    def test_get_wrong_server(self):
+        pass
 
-class LogLineDataQueryTest(LogLineDataTest):
+
+class LogLinesPlayerTest(LogLinesTest):
+    URL = ServerModelTestBase.URL + 'players/{1}/loglines'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.players[0].key.urlsafe())
+
     def setUp(self):
-        super(LogLineDataQueryTest, self).setUp()
+        super(LogLinesPlayerTest, self).setUp()
+        for log_line in models.LogLine.query():
+            log_line.key.delete()
+        self.log_lines = []
+        for i in range(3):
+            dt = self.now - datetime.timedelta(minutes=i)
+            chat_log_line = '{0} [INFO] <gumptionthomas> foobar {1}'.format(dt.strftime("%Y-%m-%d %H:%M:%S"), i)
+            log_line = models.LogLine.create(self.server, chat_log_line, TIME_ZONE)
+            self.log_lines.append(log_line)
+
+    def test_get_since_before(self):
+        pass
+
+
+class LogLinesQueryTest(LogLinesTest):
+    def setUp(self):
+        super(LogLinesQueryTest, self).setUp()
         self.now = datetime.datetime.now()
         self.log_lines = []
         for i in range(25):
@@ -1799,18 +1815,6 @@ class LogLineDataQueryTest(LogLineDataTest):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
             self.assertIn('yo', log_line['line'])
             self.assertIsNotNone(log_line['timestamp'])
-
-    def test_get_username(self):
-        url = "/api/v1/data/players/gumptionthomas/loglines?q=foobar"
-        response = self.get(url=url)
-        self.assertOK(response)
-        body = json.loads(response.body)
-        self.assertLength(2, body)
-        log_lines = body['loglines']
-        self.assertLength(10, log_lines)
-        for i, log_line in enumerate(log_lines):
-            self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-            self.assertEqual('gumptionthomas', log_line['username'])
 
     def test_get_multi(self):
         response = self.get('{0}?q={1}&tag=chat'.format(self.url, 'foobar'))
@@ -1845,7 +1849,7 @@ class LogLineDataQueryTest(LogLineDataTest):
             self.assertEqual('foobar {0}'.format(i+20), log_line['chat'])
 
     def test_get_chats(self):
-        url = "/api/v1/data/loglines?q=foobar&tag=chat"
+        url = "{0}?q=foobar&tag=chat".format(self.url)
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1893,16 +1897,35 @@ class LogLineDataQueryTest(LogLineDataTest):
         self.assertLength(0, log_lines)
 
 
-class LogLineKeyDataTest(KeyApiTest):
-    URL = '/api/v1/data/loglines'
+class LogLinesQueryPlayerTest(LogLinesQueryTest):
+    URL = ServerModelTestBase.URL + 'players/{1}/loglines'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.players[0].key.urlsafe())
+
+    def setUp(self):
+        super(LogLinesQueryPlayerTest, self).setUp()
+        for i in range(2):
+            dt = self.now - datetime.timedelta(minutes=i)
+            chat_log_line = '{0} [INFO] <gumptionthomas> yo {1}'.format(dt.strftime("%Y-%m-%d %H:%M:%S"), i)
+            log_line = models.LogLine.create(self.server, chat_log_line, TIME_ZONE)
+            self.log_lines.append(log_line)
+
+    def test_get_since_before(self):
+        pass
+
+
+class LogLineKeyTest(KeyApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'loglines/{1}'
     ALLOWED = ['GET']
 
     @property
     def url(self):
-        return "{0}/{1}".format(self.URL, self.log_line.key.urlsafe())
+        return self.URL.format(self.server.key.urlsafe(), self.log_line.key.urlsafe())
 
     def setUp(self):
-        super(LogLineKeyDataTest, self).setUp()
+        super(LogLineKeyTest, self).setUp()
         self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
         self.log_line = models.LogLine.create(self.server, CONNECT_LOG_LINE, TIME_ZONE)
 

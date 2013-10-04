@@ -1183,9 +1183,11 @@ Death API
 ============
 Log Line API
 ============
-.. http:get:: /api/v1/data/loglines
+.. http:get:: /api/v1/data/server/(server_key)/loglines
 
-  Get a :ref:`list <list>` of all minecraft log lines ordered by descending timestamp.
+  Get a :ref:`list <list>` of all minecraft log lines on the server (`server_key`) ordered by descending timestamp.
+
+  :arg server_key: The target server's key. (*required*)
 
   :query tag: A tag to limit the type of log line results.
 
@@ -1220,6 +1222,7 @@ Log Line API
     .. _logline_response_data:
 
     :Log Line: - **key** -- The log line key.
+               - **server_key** -- The log line's server key.
                - **line** -- The complete raw log line text.
                - **username** -- The minecraft username associated with the log line. May be ``null``.
                - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
@@ -1238,7 +1241,7 @@ Log Line API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/loglines HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/loglines HTTP/1.1
 
   **Example response**:
 
@@ -1256,6 +1259,7 @@ Log Line API
           "updated": "2013-04-19 10:32:56 CDT-0500",
           "log_level": "INFO",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:32:55 CDT-0500",
           "tags": [
               "timestamp",
@@ -1275,6 +1279,7 @@ Log Line API
           "updated": "2013-04-19 00:26:53 CDT-0500",
           "log_level": "INFO",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYlL4iDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 00:26:53 CDT-0500",
           "tags": [
               "timestamp",
@@ -1293,10 +1298,11 @@ Log Line API
       ]
     }
 
-.. http:get:: /api/v1/data/loglines/(key)
+.. http:get:: /api/v1/data/server/(server_key)/loglines/(key)
 
   Get the information for the log line (`key`).
 
+  :arg server_key: The target server's key. (*required*)
   :arg key: The requested log line's key. (*required*)
 
   :status 200 OK: Successfully read the log line.
@@ -1307,7 +1313,7 @@ Log Line API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/loglines/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/loglines/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -1323,6 +1329,7 @@ Log Line API
       "updated": "2013-04-19 10:32:56 CDT-0500",
       "log_level": "INFO",
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+      "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
       "timestamp": "2013-04-19 10:32:55 CDT-0500",
       "tags": [
           "timestamp",
@@ -1338,10 +1345,11 @@ Log Line API
       "port": null
     }
 
-.. http:get:: /api/v1/data/players/(key_username)/loglines
+.. http:get:: /api/v1/data/server/(server_key)/players/(key_username)/loglines
 
-  Get a :ref:`list <list>` of a player's (`key_username`) minecraft log lines ordered by descending timestamp.
+  Get a :ref:`list <list>` of a player's (`key_username`) minecraft log lines on the server (`server_key`) ordered by descending timestamp.
 
+  :arg server_key: The target server's key. (*required*)
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
   :query tag: A tag to limit the type of log line results. For possible values see :ref:`Log line tag options <logline_tag_options>`
@@ -1363,7 +1371,7 @@ Log Line API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/players/gumptionthomas/loglines HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/loglines HTTP/1.1
 
   **Example response**:
 
@@ -1381,6 +1389,7 @@ Log Line API
           "updated": "2013-04-19 10:32:56 CDT-0500",
           "log_level": "INFO",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:32:55 CDT-0500",
           "tags": [
               "timestamp",
@@ -1400,6 +1409,7 @@ Log Line API
           "updated": "2013-04-19 00:26:53 CDT-0500",
           "log_level": "INFO",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUYlL4iDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 00:26:53 CDT-0500",
           "tags": [
               "timestamp",
@@ -1420,6 +1430,7 @@ Log Line API
           "updated": "2013-04-13 08:11:27 CDT-0500",
           "log_level": "INFO",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY5dYfDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-13 08:11:26 CDT-0500",
           "tags": [
               "timestamp",
