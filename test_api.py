@@ -152,8 +152,8 @@ NUM_USER_FIELDS = 9
 NUM_SERVER_FIELDS =11
 NUM_PLAY_SESSION_FIELDS = 12
 NUM_LOG_LINE_FIELDS = 14
-NUM_CHAT_FIELDS = 9
-NUM_DEATH_FIELDS = 9
+NUM_CHAT_FIELDS = 10
+NUM_DEATH_FIELDS = 10
 NUM_SCREENSHOT_FIELDS = 7
 
 
@@ -1356,9 +1356,6 @@ class ChatsQueryPlayerTest(ChatsTest):
             log_line = models.LogLine.create(self.server, chat_log_line, TIME_ZONE)
             self.log_lines.append(log_line)
 
-    def test_get_wrong_server(self):
-        pass
-
     def test_get(self):
         response = self.get(url='{0}?q={1}'.format(self.url, 'yo'))
         self.assertOK(response)
@@ -1439,18 +1436,21 @@ class ChatsQueryPlayerTest(ChatsTest):
         log_lines = body['chats']
         self.assertLength(0, log_lines)
 
-    def test_post_no_player(self):
-        pass
-
-    def test_post_no_player_no_nickname(self):
-        pass
-
     def test_post_invalid_username(self):
         self.assertEmpty(self.user.usernames)
         chat = u'Hello world...'
         params = {'chat': chat}
         response = self.post(params=params)
         self.assertForbidden(response)
+
+    def test_get_wrong_server(self):
+        pass
+
+    def test_post_no_player(self):
+        pass
+
+    def test_post_no_player_no_nickname(self):
+        pass
 
 
 class ChatKeyTest(KeyApiTest, ServerModelTestBase):
@@ -1475,12 +1475,16 @@ class ChatKeyTest(KeyApiTest, ServerModelTestBase):
         self.assertEqual(self.log_line.username, log_line['username'])
 
 
-class DeathTest(MultiPageApiTest):
-    URL = '/api/v1/data/deaths'
+class DeathsTest(MultiPageApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'deaths'
     ALLOWED = ['GET']
 
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe())
+
     def setUp(self):
-        super(DeathTest, self).setUp()
+        super(DeathsTest, self).setUp()
         self.now = datetime.datetime.now()
         self.players = []
         self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
@@ -1506,19 +1510,6 @@ class DeathTest(MultiPageApiTest):
             self.assertEqual(self.log_lines[i].death_message, log_line['message'])
             self.assertEqual(self.log_lines[i].username, log_line['username'])
             self.assertIsNotNone(log_line['timestamp'])
-
-    def test_get_username(self):
-        username = "gumptionthomas"
-        url = "/api/v1/data/players/{0}/deaths".format(username)
-        response = self.get(url=url)
-        self.assertOK(response)
-        body = json.loads(response.body)
-        self.assertLength(1, body)
-        log_lines = body['deaths']
-        self.assertLength(3, log_lines)
-        for i, log_line in enumerate(log_lines):
-            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-            self.assertEqual(username, log_line['username'])
 
     def test_get_since_before(self):
         url = "{0}?since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
@@ -1556,10 +1547,31 @@ class DeathTest(MultiPageApiTest):
         log_lines = body['deaths']
         self.assertLength(0, log_lines)
 
+    def test_get_wrong_server(self):
+        pass
 
-class DeathQueryTest(DeathTest):
+
+class DeathsPlayerTest(DeathsTest):
+    URL = ServerModelTestBase.URL + 'players/{1}/deaths'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.players[0].key.urlsafe())
+
     def setUp(self):
-        super(DeathQueryTest, self).setUp()
+        super(DeathsPlayerTest, self).setUp()
+        self.log_lines.pop(0)
+        death_log_line = '{0} [INFO] gumptionthomas tried to swim in lava'.format(self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        log_line = models.LogLine.create(self.server, death_log_line, TIME_ZONE)
+        self.log_lines.insert(0, log_line)
+
+    def test_get_since_before(self):
+        pass
+
+
+class DeathsQueryTest(DeathsTest):
+    def setUp(self):
+        super(DeathsQueryTest, self).setUp()
         self.now = datetime.datetime.now()
         self.log_lines = []
         for i in range(25):
@@ -1579,18 +1591,6 @@ class DeathQueryTest(DeathTest):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
             self.assertIn('cactus', log_line['line'])
             self.assertIsNotNone(log_line['timestamp'])
-
-    def test_get_username(self):
-        url = "/api/v1/data/players/gumptionthomas/deaths?q=anvil"
-        response = self.get(url=url)
-        self.assertOK(response)
-        body = json.loads(response.body)
-        self.assertLength(2, body)
-        log_lines = body['deaths']
-        self.assertLength(10, log_lines)
-        for i, log_line in enumerate(log_lines):
-            self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-            self.assertEqual('gumptionthomas', log_line['username'])
 
     def test_get_multi(self):
         response = self.get(url='{0}?q={1}'.format(self.url, 'anvil'))
@@ -1658,13 +1658,21 @@ class DeathQueryTest(DeathTest):
         self.assertLength(0, log_lines)
 
 
-class DeathKeyTest(KeyApiTest):
-    URL = '/api/v1/data/deaths'
+class DeathsQueryPlayerTest(DeathsQueryTest):
+    URL = ServerModelTestBase.URL + 'players/{1}/deaths'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.players[0].key.urlsafe())
+
+
+class DeathKeyTest(KeyApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'deaths/{1}'
     ALLOWED = ['GET']
 
     @property
     def url(self):
-        return "{0}/{1}".format(self.URL, self.log_line.key.urlsafe())
+        return self.URL.format(self.server.key.urlsafe(), self.log_line.key.urlsafe())
 
     def setUp(self):
         super(DeathKeyTest, self).setUp()

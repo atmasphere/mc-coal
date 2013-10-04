@@ -1000,9 +1000,11 @@ Chat API
 =========
 Death API
 =========
-.. http:get:: /api/v1/data/deaths
+.. http:get:: /api/v1/data/server/(server_key)/deaths
 
-  Get a :ref:`list <list>` of all minecraft deaths ordered by descending timestamp.
+  Get a :ref:`list <list>` of all minecraft deaths on the server (`server_key`) ordered by descending timestamp.
+
+  :arg server_key: The target server's key. (*required*)
 
   :query q: A search string to limit the death results to.
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
@@ -1020,6 +1022,7 @@ Death API
     .. _death_response_data:
 
     :Death: - **key** -- The death log line key.
+            - **server_key** -- The death log line's server key.
             - **message** -- The death message. May be ``null``.
             - **username** -- The minecraft username associated with the death.
             - **player_key** -- The player key.
@@ -1033,7 +1036,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/deaths HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/deaths HTTP/1.1
 
   **Example response**:
 
@@ -1050,6 +1053,7 @@ Death API
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:33:56 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nXV",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:33:55 CDT-0500",
           "created": "2013-04-19 10:33:56 CDT-0500",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
@@ -1061,6 +1065,7 @@ Death API
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:32:56 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:32:55 CDT-0500",
           "created": "2013-04-19 10:32:56 CDT-0500",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
@@ -1071,10 +1076,11 @@ Death API
       ]
     }
 
-.. http:get:: /api/v1/data/deaths/(key)
+.. http:get:: /api/v1/data/server/(server_key)/deaths/(key)
 
-  Get the information for the death (`key`).
+  Get the information for the death (`key`) on the server (`server_key`).
 
+  :arg server_key: The target server's key. (*required*)
   :arg key: The requested death's log line key. (*required*)
 
   :status 200 OK: Successfully read the death.
@@ -1085,7 +1091,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/deaths/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/deaths/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -1100,6 +1106,7 @@ Death API
       "username": "gumptionthomas",
       "updated": "2013-04-19 10:32:56 CDT-0500",
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+      "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
       "timestamp": "2013-04-19 10:32:55 CDT-0500",
       "created": "2013-04-19 10:32:56 CDT-0500",
       "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
@@ -1108,10 +1115,11 @@ Death API
       "line": "2013-04-19 10:32:55 [INFO] gumptionthomas was shot by arrow"
     }
 
-.. http:get:: /api/v1/data/players/(key_username)/deaths
+.. http:get:: /api/v1/data/server/(server_key)/players/(key_username)/deaths
 
-  Get a :ref:`list <list>` of a player's (`key_username`) minecraft deaths ordered by descending timestamp.
+  Get a :ref:`list <list>` of a player's (`key_username`) minecraft deaths on the server (`server_key`) ordered by descending timestamp.
 
+  :arg server_key: The target server's key. (*required*)
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
   :query q: A search string to limit the death results to.
@@ -1131,7 +1139,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/players/gumptionthomas/deaths HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/deaths HTTP/1.1
 
   **Example response**:
 
@@ -1148,6 +1156,7 @@ Death API
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:33:56 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nXV",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:33:55 CDT-0500",
           "created": "2013-04-19 10:33:56 CDT-0500",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",
@@ -1159,6 +1168,7 @@ Death API
           "username": "gumptionthomas",
           "updated": "2013-04-19 10:32:56 CDT-0500",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA",
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH",
           "timestamp": "2013-04-19 10:32:55 CDT-0500",
           "created": "2013-04-19 10:32:56 CDT-0500",
           "player_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM",

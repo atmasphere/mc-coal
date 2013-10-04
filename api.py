@@ -311,6 +311,18 @@ class ServerModelHandler(JsonHandler):
             self.abort(404)
         return player
 
+    def get_server_model_by_key(self, server_key, key, abort_404=True):
+        instance = None
+        try:
+            instance_key = ndb.Key(urlsafe=key)
+            if server_key == instance_key.parent():
+                instance = instance_key.get()
+        except Exception:
+            instance = None
+        if abort_404 and not instance:
+            self.abort(404)
+        return instance
+
 
 class MultiPageServerModelHandler(ServerModelHandler, MultiPage):
     pass
@@ -392,6 +404,7 @@ class PlaySessionKeyHandler(ServerModelHandler):
 CHAT_FIELDS = ['username', 'line', 'chat']
 CHAT_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
+    'server_key': lambda o: o.server_key.urlsafe(),
     'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
     'timestamp': lambda o: api_datetime(o.timestamp, zone=o.zone),
@@ -453,22 +466,10 @@ class ChatHandler(MultiPageServerModelHandler):
 
 
 class ChatKeyHandler(ServerModelHandler):
-    def get_log_line_by_key(self, server_key, key, abort_404=True):
-        log_line = None
-        try:
-            log_line_key = ndb.Key(urlsafe=key)
-            if server_key == log_line_key.parent():
-                log_line = log_line_key.get()
-        except Exception:
-            log_line = None
-        if abort_404 and not log_line:
-            self.abort(404)
-        return log_line
-
     @authentication_required(authenticate=authenticate_user_required)
     def get(self, server_key, key):
         server_key = self.get_server_key_by_urlsafe(server_key)
-        log_line = self.get_log_line_by_key(server_key, key)
+        log_line = self.get_server_model_by_key(server_key, key)
         if CHAT_TAG not in log_line.tags:
             self.abort(404)
         self.json_response(log_line, CHAT_STRATEGY)
@@ -477,6 +478,7 @@ class ChatKeyHandler(ServerModelHandler):
 DEATH_FIELDS = ['username', 'line']
 DEATH_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
+    'server_key': lambda o: o.server_key.urlsafe(),
     'message': lambda o: o.death_message,
     'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
@@ -493,24 +495,14 @@ class DeathForm(MultiPageForm):
     before = fields.DateTimeField(validators=[validators.Optional()])
 
 
-class DeathHandler(MultiPageJsonHandler):
-    def get_player_by_key_or_username(self, key_username, abort_404=True):
-        try:
-            player_key = ndb.Key(urlsafe=key_username)
-            player = player_key.get()
-        except Exception:
-            player = Player.lookup(Server.global_key(), key_username)
-        if abort_404 and not player:
-            self.abort(404)
-        return player
-
+class DeathHandler(MultiPageServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=DeathForm)
-    def get(self, key_username=None):
-        server_key = Server.global_key()
+    def get(self, server_key, key_username=None):
+        server_key = self.get_server_key_by_urlsafe(server_key)
         username = None
         if key_username:
-            player = self.get_player_by_key_or_username(key_username)
+            player = self.get_player_by_key_or_username(server_key, key_username)
             username = player.username
         since = self.request.form.since.data or None
         before = self.request.form.before.data or None
@@ -530,20 +522,11 @@ class DeathHandler(MultiPageJsonHandler):
             self.json_response(self.fetch_page(query, results_name='deaths'), DEATH_STRATEGY)
 
 
-class DeathKeyHandler(JsonHandler):
-    def get_log_line_by_key(self, key, abort_404=True):
-        try:
-            log_line_key = ndb.Key(urlsafe=key)
-            log_line = log_line_key.get()
-        except Exception:
-            log_line = None
-        if abort_404 and not log_line:
-            self.abort(404)
-        return log_line
-
+class DeathKeyHandler(ServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
-    def get(self, key):
-        log_line = self.get_log_line_by_key(key)
+    def get(self, server_key, key):
+        server_key = self.get_server_key_by_urlsafe(server_key)
+        log_line = self.get_server_model_by_key(server_key, key)
         if DEATH_TAG not in log_line.tags:
             self.abort(404)
         self.json_response(log_line, DEATH_STRATEGY)
@@ -696,10 +679,10 @@ routes = [
     webapp2.Route('/api/v1/data/users', 'api.UsersHandler', name='api_data_users'),
 
     webapp2.Route('/api/v1/data/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
-    webapp2.Route('/api/v1/data/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
 
     webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
     webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
     webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
     webapp2.Route('/api/v1/data/servers/<server_key>/players', 'api.PlayersHandler', name='api_data_players'),
     
@@ -709,8 +692,8 @@ routes = [
     webapp2.Route('/api/v1/data/servers/<server_key>/chats/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
     webapp2.Route('/api/v1/data/servers/<server_key>/chats', 'api.ChatHandler', name='api_data_chats'),
     
-    webapp2.Route('/api/v1/data/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
-    webapp2.Route('/api/v1/data/deaths', 'api.DeathHandler', name='api_data_deaths'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/deaths', 'api.DeathHandler', name='api_data_deaths'),
     
     webapp2.Route('/api/v1/data/loglines/<key>', 'api.LogLineKeyHandler', name='api_data_logline_key'),
     webapp2.Route('/api/v1/data/loglines', 'api.LogLinesHandler', name='api_data_loglines'),
