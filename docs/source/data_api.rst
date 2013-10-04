@@ -480,7 +480,7 @@ Player API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players HTTP/1.1
 
   **Example response**:
 
@@ -528,13 +528,13 @@ Player API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas HTTP/1.1
 
   **OR**
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIzCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSBlBsYXllciIOZ3VtcHRpb250aG9tYXMM HTTP/1.1
 
   **Example response**:
 
@@ -596,7 +596,7 @@ Session API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/sessions HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/sessions HTTP/1.1
 
   **Example response**:
 
@@ -655,7 +655,7 @@ Session API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/sessions/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/sessions/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIsCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSC1BsYXlTZXNzaW9uGNPbIAw HTTP/1.1
 
   **Example response**:
 
@@ -704,7 +704,7 @@ Session API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/session HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/session HTTP/1.1
 
   **Example response**:
 
@@ -788,7 +788,7 @@ Chat API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/chats HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/chats HTTP/1.1
 
   **Example response**:
 
@@ -848,7 +848,7 @@ Chat API
 
   .. sourcecode:: http
 
-    POST /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/chats HTTP/1.1
+    POST /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/chats HTTP/1.1
 
   .. sourcecode:: http
 
@@ -876,7 +876,7 @@ Chat API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/chats/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/chats/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -900,7 +900,7 @@ Chat API
       "line": "2013-04-19 10:32:55 [INFO] [Server] <gumptionthomas> hey guys"
     }
 
-.. http:get:: /api/v1/data/server/(server_key)/players/(key_username)/chats
+.. http:get:: /api/v1/data/servers/(server_key)/players/(key_username)/chats
 
   Get a :ref:`list <list>` of a player's (`key_username`) minecraft chats on the server (`server_key`) ordered by descending timestamp.
 
@@ -924,7 +924,7 @@ Chat API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/chats HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/chats HTTP/1.1
 
   **Example response**:
 
@@ -964,7 +964,7 @@ Chat API
       ]
     }
 
-.. http:post:: /api/v1/data/server/(server_key)/players/(key_username)/chats
+.. http:post:: /api/v1/data/servers/(server_key)/players/(key_username)/chats
 
   Queue a new chat on the server (`server_key`) for the player (`key_username`) from the authenticated user. In game, the chat will appear as a "Server" chat with the username in angle brackets (much like a normal chat)::
 
@@ -983,7 +983,7 @@ Chat API
 
   .. sourcecode:: http
 
-    POST /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/chats HTTP/1.1
+    POST /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/chats HTTP/1.1
 
   .. sourcecode:: http
 
@@ -1000,7 +1000,7 @@ Chat API
 =========
 Death API
 =========
-.. http:get:: /api/v1/data/server/(server_key)/deaths
+.. http:get:: /api/v1/data/servers/(server_key)/deaths
 
   Get a :ref:`list <list>` of all minecraft deaths on the server (`server_key`) ordered by descending timestamp.
 
@@ -1036,7 +1036,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/deaths HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/deaths HTTP/1.1
 
   **Example response**:
 
@@ -1076,7 +1076,7 @@ Death API
       ]
     }
 
-.. http:get:: /api/v1/data/server/(server_key)/deaths/(key)
+.. http:get:: /api/v1/data/servers/(server_key)/deaths/(key)
 
   Get the information for the death (`key`) on the server (`server_key`).
 
@@ -1091,7 +1091,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/deaths/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/deaths/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -1115,7 +1115,7 @@ Death API
       "line": "2013-04-19 10:32:55 [INFO] gumptionthomas was shot by arrow"
     }
 
-.. http:get:: /api/v1/data/server/(server_key)/players/(key_username)/deaths
+.. http:get:: /api/v1/data/servers/(server_key)/players/(key_username)/deaths
 
   Get a :ref:`list <list>` of a player's (`key_username`) minecraft deaths on the server (`server_key`) ordered by descending timestamp.
 
@@ -1139,7 +1139,7 @@ Death API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/deaths HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/deaths HTTP/1.1
 
   **Example response**:
 
@@ -1183,7 +1183,7 @@ Death API
 ============
 Log Line API
 ============
-.. http:get:: /api/v1/data/server/(server_key)/loglines
+.. http:get:: /api/v1/data/servers/(server_key)/loglines
 
   Get a :ref:`list <list>` of all minecraft log lines on the server (`server_key`) ordered by descending timestamp.
 
@@ -1241,7 +1241,7 @@ Log Line API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/loglines HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/loglines HTTP/1.1
 
   **Example response**:
 
@@ -1298,7 +1298,7 @@ Log Line API
       ]
     }
 
-.. http:get:: /api/v1/data/server/(server_key)/loglines/(key)
+.. http:get:: /api/v1/data/servers/(server_key)/loglines/(key)
 
   Get the information for the log line (`key`).
 
@@ -1313,7 +1313,7 @@ Log Line API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/loglines/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/loglines/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIoCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSB0xvZ0xpbmUY674nDA HTTP/1.1
 
   **Example response**:
 
@@ -1345,7 +1345,7 @@ Log Line API
       "port": null
     }
 
-.. http:get:: /api/v1/data/server/(server_key)/players/(key_username)/loglines
+.. http:get:: /api/v1/data/servers/(server_key)/players/(key_username)/loglines
 
   Get a :ref:`list <list>` of a player's (`key_username`) minecraft log lines on the server (`server_key`) ordered by descending timestamp.
 
@@ -1371,7 +1371,7 @@ Log Line API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/loglines HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/players/gumptionthomas/loglines HTTP/1.1
 
   **Example response**:
 
@@ -1457,7 +1457,7 @@ Log Line API
 ==============
 Screenshot API
 ==============
-.. http:get:: /api/v1/data/server/(server_key)/screenshots
+.. http:get:: /api/v1/data/servers/(server_key)/screenshots
 
   Get a :ref:`list <list>` of all screenshots on the server (`server_key`) ordered by descending create timestamp.
 
@@ -1490,7 +1490,7 @@ Screenshot API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/screenshots HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/screenshots HTTP/1.1
 
   **Example response**:
 
@@ -1526,7 +1526,7 @@ Screenshot API
       ]
     }
 
-.. http:get:: /api/v1/data/server/(server_key)/screenshots/(key)
+.. http:get:: /api/v1/data/servers/(server_key)/screenshots/(key)
 
   Get the information for the screenshot (`key`).
 
@@ -1541,7 +1541,7 @@ Screenshot API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/screenshots/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/screenshots/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA HTTP/1.1
 
   **Example response**:
 
@@ -1563,7 +1563,7 @@ Screenshot API
       "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH"
     }
 
-.. http:get:: /api/v1/data/server/(server_key)/users/(key)/screenshots
+.. http:get:: /api/v1/data/servers/(server_key)/users/(key)/screenshots
 
   Get a :ref:`list <list>` of a user (`key`) uploaded screenshots on the server (`server_key`) ordered by descending create timestamp.
 
@@ -1586,7 +1586,7 @@ Screenshot API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/users/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw/screenshots HTTP/1.1
+    GET /api/v1/data/servers/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/users/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw/screenshots HTTP/1.1
 
   **Example response**:
 
