@@ -154,7 +154,7 @@ NUM_PLAY_SESSION_FIELDS = 12
 NUM_CHAT_FIELDS = 10
 NUM_DEATH_FIELDS = 10
 NUM_LOG_LINE_FIELDS = 15
-NUM_SCREENSHOT_FIELDS = 7
+NUM_SCREENSHOT_FIELDS = 8
 
 
 class ApiTest(OauthTest):
@@ -1939,8 +1939,12 @@ class LogLineKeyTest(KeyApiTest, ServerModelTestBase):
 
 
 class ScreenShotTest(MultiPageApiTest):
-    URL = '/api/v1/data/screenshots'
+    URL = ServerModelTestBase.URL + 'screenshots'
     ALLOWED = ['GET']
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe())
 
     def setUp(self):
         super(ScreenShotTest, self).setUp()
@@ -1968,8 +1972,10 @@ class ScreenShotTest(MultiPageApiTest):
         taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         tasks = taskqueue_stub.GetTasks('default')
         self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
+        logging.disable(logging.ERROR)
         for task in tasks:
             deferred.run(base64.b64decode(task['body']))
+        logging.disable(logging.NOTSET)
 
     def create_blob_info(self, path, image_data=None):
         if not image_data:
@@ -1983,27 +1989,13 @@ class ScreenShotTest(MultiPageApiTest):
             screen_shot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
             self.screenshots.append(screen_shot)
         self.assertEqual(10, models.ScreenShot.query().count())
-        # self.run_deferred(5)
+        self.run_deferred(5)
         response = self.get(url='{0}?size={1}'.format(self.url, 50))
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
         screenshots = body['screenshots']
         self.assertLength(len(self.screenshots), screenshots)
-        for i, screenshot in enumerate(screenshots):
-            self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-            self.assertEqual(self.screenshots[i].get_serving_url(), screenshot['original_url'])
-            # self.assertEqual(self.screenshots[i].blurred_image_serving_url, screenshot['blurred_url'])
-            self.assertEqual(self.screenshots[i].user_key.urlsafe(), screenshot['user_key'])
-
-    def test_get_user(self):
-        url = "/api/v1/data/users/{0}/screenshots".format(self.user.key.urlsafe())
-        response = self.get(url=url)
-        self.assertOK(response)
-        body = json.loads(response.body)
-        self.assertLength(1, body)
-        screenshots = body['screenshots']
-        self.assertLength(5, screenshots)
         for i, screenshot in enumerate(screenshots):
             self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
             self.assertEqual(self.screenshots[i].get_serving_url(), screenshot['original_url'])
@@ -2055,13 +2047,21 @@ class ScreenShotTest(MultiPageApiTest):
         self.assertLength(0, screenshots)
 
 
+class ScreenShotUserTest(ScreenShotTest):
+    URL = ServerModelTestBase.URL + 'users/{1}/screenshots'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.user.key.urlsafe())
+
+
 class ScreenShotKeyTest(KeyApiTest):
-    URL = '/api/v1/data/screenshots'
+    URL = ServerModelTestBase.URL + 'screenshots/{1}'
     ALLOWED = ['GET']
 
     @property
     def url(self):
-        return "{0}/{1}".format(self.URL, self.screenshot.key.urlsafe())
+        return self.URL.format(self.server.key.urlsafe(), self.screenshot.key.urlsafe())
 
     def setUp(self):
         super(ScreenShotKeyTest, self).setUp()
@@ -2071,7 +2071,7 @@ class ScreenShotKeyTest(KeyApiTest):
         self.blob_info = self.create_blob_info(IMAGE_PATH)
         self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
         self.screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
-        # self.run_deferred()
+        self.run_deferred()
 
     @property
     def blobs(self):
@@ -2081,8 +2081,10 @@ class ScreenShotKeyTest(KeyApiTest):
         taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         tasks = taskqueue_stub.GetTasks('default')
         self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
+        logging.disable(logging.ERROR)
         for task in tasks:
             deferred.run(base64.b64decode(task['body']))
+        logging.disable(logging.NOTSET)
 
     def create_blob_info(self, path, image_data=None):
         if not image_data:

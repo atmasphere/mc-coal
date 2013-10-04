@@ -1457,9 +1457,11 @@ Log Line API
 ==============
 Screenshot API
 ==============
-.. http:get:: /api/v1/data/screenshots
+.. http:get:: /api/v1/data/server/(server_key)/screenshots
 
-  Get a :ref:`list <list>` of all screenshots ordered by descending create timestamp.
+  Get a :ref:`list <list>` of all screenshots on the server (`server_key`) ordered by descending create timestamp.
+
+  :arg server_key: The target server's key. (*required*)
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
@@ -1476,6 +1478,7 @@ Screenshot API
     .. _screenshot_response_data:
 
     :Screenshot: - **key** -- The screenshot key.
+                 - **server_key** -- The screenshot's server key.
                  - **user_key** -- The user's key that uploaded the screenshot.
                  - **random_id** -- A random float attached to the screenshot at creation time.
                  - **original_url** -- The URL of the original screenshot.
@@ -1487,7 +1490,7 @@ Screenshot API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/screenshots HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/screenshots HTTP/1.1
 
   **Example response**:
 
@@ -1508,6 +1511,7 @@ Screenshot API
           "random_id": 0.23893109322623773,
           "blurred_url": "http://lh4.ggpht.com/j8qNAEjoxIubBdRNZgjj629-2vjFOzWfSgkGPOmvR8VHiIBYTLjlrHfDMmu2-_tm1-6T86eokuXxqugWSDyx-IZjQtFQMCrs3A",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYxrQgDA"
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH"
         },
         {
           "updated": "2013-04-07 01:52:11 CDT-0500",
@@ -1517,14 +1521,16 @@ Screenshot API
           "random_id": 0.6780209099707669,
           "blurred_url": "http://lh6.ggpht.com/x0BKS8tbI88RRkhUX6vJ7MmzjhBaZShbKf51Th5oghUYtezZbD94SHu4nYQjYQhoAyJVcgThprqvZSmKE1M5uqf5JQLu0miL",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA"
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH"
         }
       ]
     }
 
-.. http:get:: /api/v1/data/screenshots/(key)
+.. http:get:: /api/v1/data/server/(server_key)/screenshots/(key)
 
   Get the information for the screenshot (`key`).
 
+  :arg server_key: The target server's key. (*required*)
   :arg key: The requested screenshot's key. (*required*)
 
   :status 200 OK: Successfully read the screenshot.
@@ -1535,7 +1541,7 @@ Screenshot API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/screenshots/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/screenshots/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA HTTP/1.1
 
   **Example response**:
 
@@ -1554,13 +1560,15 @@ Screenshot API
       "random_id": 0.6780209099707669,
       "blurred_url": "http://lh6.ggpht.com/x0BKS8tbI88RRkhUX6vJ7MmzjhBaZShbKf51Th5oghUYtezZbD94SHu4nYQjYQhoAyJVcgThprqvZSmKE1M5uqf5JQLu0miL",
       "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA"
+      "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH"
     }
 
-.. http:get:: /api/v1/data/users/(key)/screenshots
+.. http:get:: /api/v1/data/server/(server_key)/users/(key)/screenshots
 
-  Get a :ref:`list <list>` of a user (`key`) uploaded screenshots ordered by descending create timestamp.
+  Get a :ref:`list <list>` of a user (`key`) uploaded screenshots on the server (`server_key`) ordered by descending create timestamp.
 
-  :arg key: The requested user's key. (*required*)
+  :arg server_key: The target server's key. (*required*)
+  :arg key: The requested user's key. If you want to reference the authenticated user, use ``self``. (*required*)
 
   :query size: The number of results to return per call (Default: 10. Maximum: 50).
   :query cursor: The cursor string signifying where to start the results.
@@ -1578,7 +1586,7 @@ Screenshot API
 
   .. sourcecode:: http
 
-    GET /api/v1/data/users/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw/screenshots HTTP/1.1
+    GET /api/v1/data/server/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH/users/ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHILCxIEVXNlchivbgw/screenshots HTTP/1.1
 
   **Example response**:
 
@@ -1599,6 +1607,7 @@ Screenshot API
           "random_id": 0.6780209099707669,
           "blurred_url": "http://lh6.ggpht.com/x0BKS8tbI88RRkhUX6vJ7MmzjhBaZShbKf51Th5oghUYtezZbD94SHu4nYQjYQhoAyJVcgThprqvZSmKE1M5uqf5JQLu0miL",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QYyPkWDA"
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH"
         },
         {
           "updated": "2013-03-25 18:39:36 CDT-0500",
@@ -1608,6 +1617,7 @@ Screenshot API
           "random_id": 0.07680268292837988,
           "blurred_url": "http://lh5.ggpht.com/B-pQmMTlp6vZ7ke48-19e7YdUclpRUE30y4L_DS45a9dUt9QjJIiniONIKB_-P80RL54YM0Qk4-zqHB9SEpEG52Wlkfjkak",
           "key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdHIrCxIGU2VydmVyIg1nbG9iYWxfc2VydmVyDAsSClNjcmVlblNob3QY8MAPDA"
+          "server_key": "ahRzfmd1bXB0aW9uLW1pbmVjcmFmdH"
         }
       ]
     }

@@ -591,6 +591,7 @@ class LogLineKeyHandler(ServerModelHandler):
 SCREEN_SHOT_FIELDS = ['random_id']
 SCREEN_SHOT_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
+    'server_key': lambda o: o.server_key.urlsafe(),
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
     'original_url': lambda o: o.get_serving_url(),
     'blurred_url': lambda o: o.blurred_image_serving_url,
@@ -605,7 +606,7 @@ class ScreenShotForm(MultiPageForm):
     before = fields.DateTimeField(validators=[validators.Optional()])
 
 
-class ScreenShotsHandler(MultiPageJsonHandler):
+class ScreenShotsHandler(MultiPageServerModelHandler):
     def get_user_by_key(self, key, abort=True):
         fail_code = 404
         if key == 'self':
@@ -623,8 +624,8 @@ class ScreenShotsHandler(MultiPageJsonHandler):
 
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ScreenShotForm)
-    def get(self, key=None):
-        server_key = Server.global_key()
+    def get(self, server_key, key=None):
+        server_key = self.get_server_key_by_urlsafe(server_key)
         user_key = None
         if key:
             user = self.get_user_by_key(key)
@@ -635,20 +636,11 @@ class ScreenShotsHandler(MultiPageJsonHandler):
         self.json_response(self.fetch_page(query, results_name='screenshots'), SCREEN_SHOT_STRATEGY)
 
 
-class ScreenShotKeyHandler(JsonHandler):
-    def get_screen_shot_by_key(self, key, abort_404=True):
-        try:
-            screen_shot_key = ndb.Key(urlsafe=key)
-            screen_shot = screen_shot_key.get()
-        except Exception:
-            screen_shot = None
-        if abort_404 and not screen_shot:
-            self.abort(404)
-        return screen_shot
-
+class ScreenShotKeyHandler(ServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
-    def get(self, key):
-        screen_shot = self.get_screen_shot_by_key(key)
+    def get(self, server_key, key):
+        server_key = self.get_server_key_by_urlsafe(server_key)
+        screen_shot = self.get_server_model_by_key(server_key, key)
         self.json_response(screen_shot, SCREEN_SHOT_STRATEGY)
 
 
@@ -659,10 +651,10 @@ routes = [
     webapp2.Route('/api/agent/ping', 'api.PingHandler', name='api_agent_ping_legacy'),
     webapp2.Route('/api/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line_legacy'),
 
-    webapp2.Route('/api/v1/data/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),
     webapp2.Route('/api/v1/data/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
     webapp2.Route('/api/v1/data/users', 'api.UsersHandler', name='api_data_users'),
 
+    webapp2.Route('/api/v1/data/servers/<server_key>/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),
     webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
     webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
     webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
@@ -682,8 +674,8 @@ routes = [
     webapp2.Route('/api/v1/data/servers/<server_key>/loglines/<key>', 'api.LogLineKeyHandler', name='api_data_logline_key'),
     webapp2.Route('/api/v1/data/servers/<server_key>/loglines', 'api.LogLinesHandler', name='api_data_loglines'),
     
-    webapp2.Route('/api/v1/data/screenshots/<key>', 'api.ScreenShotKeyHandler', name='api_data_screenshot_key'),
-    webapp2.Route('/api/v1/data/screenshots', 'api.ScreenShotsHandler', name='api_data_screenshots'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/screenshots/<key>', 'api.ScreenShotKeyHandler', name='api_data_screenshot_key'),
+    webapp2.Route('/api/v1/data/servers/<server_key>/screenshots', 'api.ScreenShotsHandler', name='api_data_screenshots'),
     
     webapp2.Route('/api/v1/data/servers/<key>', 'api.ServersKeyHandler', name='api_data_server_key'),
     webapp2.Route('/api/v1/data/servers', 'api.ServersHandler', name='api_data_servers')
