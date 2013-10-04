@@ -683,7 +683,7 @@ Session API
 
 .. http:get:: /api/v1/data/servers/(server_key)/players/(key_username)/sessions
 
-  Get a :ref:`list <list>` of a player's minecraft play sessions on the server (`server_key`) ordered by descending login timestamp.
+  Get a :ref:`list <list>` of a player's (`key_username`) minecraft play sessions on the server (`server_key`) ordered by descending login timestamp.
 
   :arg server_key: The target server's key. (*required*)
   :arg key_username: The requested player's key or minecraft username. (*required*)
@@ -902,7 +902,7 @@ Chat API
 
 .. http:get:: /api/v1/data/server/(server_key)/players/(key_username)/chats
 
-  Get a :ref:`list <list>` of a player's minecraft chats on the server (`server_key`) ordered by descending timestamp.
+  Get a :ref:`list <list>` of a player's (`key_username`) minecraft chats on the server (`server_key`) ordered by descending timestamp.
 
   :arg server_key: The target server's key. (*required*)
   :arg key_username: The requested player's key or minecraft username. (*required*)
@@ -1110,7 +1110,7 @@ Death API
 
 .. http:get:: /api/v1/data/players/(key_username)/deaths
 
-  Get a :ref:`list <list>` of a player's minecraft deaths ordered by descending timestamp.
+  Get a :ref:`list <list>` of a player's (`key_username`) minecraft deaths ordered by descending timestamp.
 
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
@@ -1330,7 +1330,7 @@ Log Line API
 
 .. http:get:: /api/v1/data/players/(key_username)/loglines
 
-  Get a :ref:`list <list>` of a player's minecraft log lines ordered by descending timestamp.
+  Get a :ref:`list <list>` of a player's (`key_username`) minecraft log lines ordered by descending timestamp.
 
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
