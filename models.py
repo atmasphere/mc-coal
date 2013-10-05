@@ -12,10 +12,7 @@ import webapp2_extras.appengine.auth.models as auth_models
 
 from pytz.gae import pytz
 
-try:
-    from PIL import Image, ImageFilter
-except ImportError:
-    Image = ImageFilter = None
+from PIL import Image, ImageFilter
 
 from restler.decorators import ae_ndb_serializer
 
