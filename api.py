@@ -645,38 +645,35 @@ class ScreenShotKeyHandler(ServerModelHandler):
 
 
 routes = [
-    webapp2.Route('/api/v1/agent/ping', 'api.PingHandler', name='api_agent_ping'),
-    webapp2.Route('/api/v1/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line'),
+    webapp2.Route('/api/v1/agents/ping', 'api.PingHandler', name='api_agents_ping'),
+    webapp2.Route('/api/v1/agents/logline', 'api.LogLineHandler', name='api_agents_logline'),
 
-    webapp2.Route('/api/agent/ping', 'api.PingHandler', name='api_agent_ping_legacy'),
-    webapp2.Route('/api/agent/log_line', 'api.LogLineHandler', name='api_agent_log_line_legacy'),
+    webapp2.Route('/api/v1/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
+    webapp2.Route('/api/v1/users', 'api.UsersHandler', name='api_data_users'),
 
-    webapp2.Route('/api/v1/data/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
-    webapp2.Route('/api/v1/data/users', 'api.UsersHandler', name='api_data_users'),
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
+    webapp2.Route('/api/v1/servers/<server_key>/players', 'api.PlayersHandler', name='api_data_players'),
+    
+    webapp2.Route('/api/v1/servers/<server_key>/sessions/<key>', 'api.PlaySessionKeyHandler', name='api_data_session_key'),
+    webapp2.Route('/api/v1/servers/<server_key>/sessions', 'api.PlaySessionsHandler', name='api_data_sessions'),
 
-    webapp2.Route('/api/v1/data/servers/<server_key>/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/players', 'api.PlayersHandler', name='api_data_players'),
+    webapp2.Route('/api/v1/servers/<server_key>/chats/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
+    webapp2.Route('/api/v1/servers/<server_key>/chats', 'api.ChatHandler', name='api_data_chats'),
     
-    webapp2.Route('/api/v1/data/servers/<server_key>/sessions/<key>', 'api.PlaySessionKeyHandler', name='api_data_session_key'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/sessions', 'api.PlaySessionsHandler', name='api_data_sessions'),
+    webapp2.Route('/api/v1/servers/<server_key>/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
+    webapp2.Route('/api/v1/servers/<server_key>/deaths', 'api.DeathHandler', name='api_data_deaths'),
+    
+    webapp2.Route('/api/v1/servers/<server_key>/loglines/<key>', 'api.LogLineKeyHandler', name='api_data_logline_key'),
+    webapp2.Route('/api/v1/servers/<server_key>/loglines', 'api.LogLinesHandler', name='api_data_loglines'),
+    
+    webapp2.Route('/api/v1/servers/<server_key>/screenshots/<key>', 'api.ScreenShotKeyHandler', name='api_data_screenshot_key'),
+    webapp2.Route('/api/v1/servers/<server_key>/screenshots', 'api.ScreenShotsHandler', name='api_data_screenshots'),
+    webapp2.Route('/api/v1/servers/<server_key>/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),
 
-    webapp2.Route('/api/v1/data/servers/<server_key>/chats/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/chats', 'api.ChatHandler', name='api_data_chats'),
-    
-    webapp2.Route('/api/v1/data/servers/<server_key>/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/deaths', 'api.DeathHandler', name='api_data_deaths'),
-    
-    webapp2.Route('/api/v1/data/servers/<server_key>/loglines/<key>', 'api.LogLineKeyHandler', name='api_data_logline_key'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/loglines', 'api.LogLinesHandler', name='api_data_loglines'),
-    
-    webapp2.Route('/api/v1/data/servers/<server_key>/screenshots/<key>', 'api.ScreenShotKeyHandler', name='api_data_screenshot_key'),
-    webapp2.Route('/api/v1/data/servers/<server_key>/screenshots', 'api.ScreenShotsHandler', name='api_data_screenshots'),
-    
-    webapp2.Route('/api/v1/data/servers/<key>', 'api.ServersKeyHandler', name='api_data_server_key'),
-    webapp2.Route('/api/v1/data/servers', 'api.ServersHandler', name='api_data_servers')
+    webapp2.Route('/api/v1/servers/<key>', 'api.ServersKeyHandler', name='api_data_server_key'),
+    webapp2.Route('/api/v1/servers', 'api.ServersHandler', name='api_data_servers')
 ]

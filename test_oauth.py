@@ -91,7 +91,7 @@ class OauthTest(BaseTest, WebTest):
 
     def get_authorization_code(self, email=None):
         self.user = self.log_in_user(email=email)
-        url = '/oauth/auth'
+        url = '/oauth/v1/auth'
         query_params = {
             'client_id': TEST_CLIENT_ID,
             'redirect_uri': TEST_REDIRECT_URI,
@@ -121,7 +121,7 @@ class OauthTest(BaseTest, WebTest):
         return code
 
     def get_tokens(self, email=None):
-        url = '/oauth/token'
+        url = '/oauth/v1/token'
         code = self.get_authorization_code(email=email)
         params = {
             'code': code,
@@ -186,7 +186,7 @@ class OauthTest(BaseTest, WebTest):
 
 
 class AuthorizationCodeHandlerTest(OauthTest):
-    URL = '/oauth/auth'
+    URL = '/oauth/v1/auth'
     ALLOWED = ['GET', 'POST']
 
     def setUp(self):
@@ -339,7 +339,7 @@ class AuthorizationCodeHandlerTest(OauthTest):
 
 
 class TokenHandlerTest(OauthTest):
-    URL = '/oauth/token'
+    URL = '/oauth/v1/token'
     ALLOWED = ['POST']
 
     def setUp(self):
@@ -508,7 +508,7 @@ class TokenHandlerTest(OauthTest):
 
 
 class RegistrationHandlerTest(OauthTest):
-    URL = '/oauth/register'
+    URL = '/oauth/v1/register'
     ALLOWED = ['POST']
 
     def setUp(self):
@@ -536,7 +536,7 @@ class RegistrationHandlerTest(OauthTest):
         self.assertEqual(body['client_name'], TEST_CLIENT_NAME)
         self.assertEqual(body['client_uri'], TEST_CLIENT_URI)
         self.assertEqual(body['logo_uri'], TEST_LOGO_URI)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(TEST_CLIENT_ID))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/v1/clients/{0}'.format(TEST_CLIENT_ID))
         self.assertEqual(body['registration_access_token'], client.registration_access_token)
         self.assertEqual(body['client_secret'], client.secret)
         self.assertEqual(body['client_secret_expires_at'], client.secret_expires_at)
@@ -556,7 +556,7 @@ class RegistrationHandlerTest(OauthTest):
         self.assertEqual(len(body), NUM_CLIENT_FIELDS-3)
         self.assertEqual(body['client_id'], client.client_id)
         self.assertEqual(body['redirect_uris'], [TEST_REDIRECT_URI])
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(client.client_id))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/v1/clients/{0}'.format(client.client_id))
         self.assertEqual(body['registration_access_token'], client.registration_access_token)
         self.assertEqual(body['client_secret'], client.secret)
         self.assertEqual(body['client_secret_expires_at'], client.secret_expires_at)
@@ -591,14 +591,14 @@ class RegistrationHandlerTest(OauthTest):
         self.assertEqual(body['client_name'], TEST_CLIENT_NAME)
         self.assertEqual(body['client_uri'], TEST_CLIENT_URI)
         self.assertEqual(body['logo_uri'], TEST_LOGO_URI)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(client.client_id))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/v1/clients/{0}'.format(client.client_id))
         self.assertEqual(body['registration_access_token'], client.registration_access_token)
         self.assertEqual(body['client_secret'], client.secret)
         self.assertEqual(body['client_secret_expires_at'], client.secret_expires_at)
 
 
 class ClientHanderTest(OauthTest):
-    URL = '/oauth/clients/{0}'
+    URL = '/oauth/v1/clients/{0}'
     ALLOWED = ['GET', 'POST', 'DELETE']
 
     def setUp(self):
@@ -619,7 +619,7 @@ class ClientHanderTest(OauthTest):
         self.assertEqual(body['client_name'], TEST_CLIENT_NAME)
         self.assertEqual(body['client_uri'], TEST_CLIENT_URI)
         self.assertEqual(body['logo_uri'], TEST_LOGO_URI)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(TEST_CLIENT_ID))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/v1/clients/{0}'.format(TEST_CLIENT_ID))
         self.assertEqual(body['registration_access_token'], self.client.registration_access_token)
         self.assertEqual(body['client_secret'], self.client.secret)
         self.assertEqual(body['client_secret_expires_at'], self.client.secret_expires_at)
@@ -646,7 +646,7 @@ class ClientHanderTest(OauthTest):
         self.assertEqual(body['client_name'], 'new_client_name')
         self.assertEqual(body['client_uri'], TEST_CLIENT_URI)
         self.assertEqual(body['logo_uri'], TEST_LOGO_URI)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(TEST_CLIENT_ID))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/v1/clients/{0}'.format(TEST_CLIENT_ID))
         self.assertEqual(body['registration_access_token'], self.client.registration_access_token)
         self.assertEqual(body['client_secret'], self.client.secret)
         self.assertEqual(body['client_secret_expires_at'], self.client.secret_expires_at)
@@ -667,7 +667,7 @@ class ClientHanderTest(OauthTest):
         self.assertIsNone(client.name)
         self.assertIsNone(client.uri)
         self.assertIsNone(client.logo_uri)
-        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/clients/{0}'.format(TEST_CLIENT_ID))
+        self.assertEqual(body['registration_client_uri'], 'https://localhost:80/oauth/v1/clients/{0}'.format(TEST_CLIENT_ID))
         self.assertEqual(body['registration_access_token'], self.client.registration_access_token)
         self.assertEqual(body['client_secret'], self.client.secret)
         self.assertEqual(body['client_secret_expires_at'], self.client.secret_expires_at)
@@ -724,7 +724,7 @@ class ClientHanderTest(OauthTest):
 
 
 class ShowAuthorizationCodeHandlerTest(OauthTest):
-    URL = '/oauth/show'
+    URL = '/oauth/v1/show'
     ALLOWED = ['GET']
 
     def test_get(self):
@@ -750,7 +750,7 @@ class ShowAuthorizationCodeHandlerTest(OauthTest):
 
 
 class TestHandlerTest(OauthTest):
-    URL = '/oauth/test'
+    URL = '/oauth/v1/test'
     ALLOWED = ['GET']
 
     def test_get(self):

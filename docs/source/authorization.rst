@@ -4,11 +4,11 @@
 Authorization
 *************
 
-Clients making calls to the :ref:`Data APIs <data_api>` on behalf of a user require an :ref:`access token <access_token>` which can be acquired via the following (simplified) `OAuth 2.0 <http://tools.ietf.org/html/draft-ietf-oauth-v2-31>`_ flow.
+Clients making calls to the :ref:`API <api>` on behalf of a user require an :ref:`access token <access_token>` which can be acquired via the following (simplified) `OAuth 2.0 <http://tools.ietf.org/html/draft-ietf-oauth-v2-31>`_ flow.
 
-1. :ref:`Register <client_regististration>` the client via :http:post:`/oauth/register` and record the :ref:`client configuration <client_configuration>` contained in the response. These :ref:`client configuration <client_configuration>` values should be kept secure.
-2. :ref:`Redirect <authorization_code>` the user's browser to :http:get:`/oauth/auth` with the required :ref:`client configuration <client_configuration>` values in the query parameters, including a ``redirect_uri``. If the user grants the authorization to the client, the user's browser will be redirected to the ``redirect_uri`` with an :ref:`authorization code <authorization_code>`.
-3. :ref:`Request <access_token>` :http:post:`/oauth/token` with the :ref:`authorization code <authorization_code>` plus other :ref:`client configuration <client_configuration>` values and record the :ref:`access token <access_token>` and :ref:`refresh token <refresh_token>` contained in the response.
+1. :ref:`Register <client_regististration>` the client via :http:post:`/oauth/v1/register` and record the :ref:`client configuration <client_configuration>` contained in the response. These :ref:`client configuration <client_configuration>` values should be kept secure.
+2. :ref:`Redirect <authorization_code>` the user's browser to :http:get:`/oauth/v1/auth` with the required :ref:`client configuration <client_configuration>` values in the query parameters, including a ``redirect_uri``. If the user grants the authorization to the client, the user's browser will be redirected to the ``redirect_uri`` with an :ref:`authorization code <authorization_code>`.
+3. :ref:`Request <access_token>` :http:post:`/oauth/v1/token` with the :ref:`authorization code <authorization_code>` plus other :ref:`client configuration <client_configuration>` values and record the :ref:`access token <access_token>` and :ref:`refresh token <refresh_token>` contained in the response.
 4. :ref:`Refresh <refresh_token>` the :ref:`access token <access_token>` if it expires or otherwise becomes invalid using the :ref:`refresh token <refresh_token>`.
 
 
@@ -22,7 +22,7 @@ Clients `register <http://tools.ietf.org/html/draft-ietf-oauth-dyn-reg-14#sectio
 
 .. _client_configuration:
 
-Most client registration and configuration endpoints (:http:post:`/oauth/register`, :http:get:`/oauth/clients/(client_id)`, and :http:put:`/oauth/clients/(client_id)`) return an ``application/json`` response body that is an object with the client configuration as top-level members:
+Most client registration and configuration endpoints (:http:post:`/oauth/v1/register`, :http:get:`/oauth/v1/clients/(client_id)`, and :http:put:`/oauth/v1/clients/(client_id)`) return an ``application/json`` response body that is an object with the client configuration as top-level members:
 
   :Client Configuration:
     - **client_id** -- The client id.
@@ -30,14 +30,14 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
     - **scope** -- A space separated list of scope values that the client can use when requesting access tokens.
     - **client_secret** -- The client secret for use in other oauth flows.
     - **client_secret_expires_at** -- Time at which the ``client_secret`` will expire or 0 if it will not expire. The time is represented as the number of seconds from ``1970-01-01T0:0:0Z`` as measured in UTC until the date/time.
-    - **registration_access_token** -- The access token that is used at the client configuration endpoint to perform subsequent operations upon the client registration through the client configuration enpdoints (:http:get:`/oauth/clients/(client_id)`, :http:put:`/oauth/clients/(client_id)`, and :http:delete:`/oauth/clients/(client_id)`).
+    - **registration_access_token** -- The access token that is used at the client configuration endpoint to perform subsequent operations upon the client registration through the client configuration enpdoints (:http:get:`/oauth/v1/clients/(client_id)`, :http:put:`/oauth/v1/clients/(client_id)`, and :http:delete:`/oauth/v1/clients/(client_id)`).
     - **registration_client_uri** -- The fully qualified URL of the client configuration endpoint for this client.  The client MUST use this URL as given when communicating with the client configuration endpoint.
     - **client_name** -- (*optional*) -- The human-readable name of the client to be presented to the user.
     - **client_uri** -- (*optional*) -- The URL of the homepage of the client.
     - **logo_uri** -- (*optional*) -- The URL that references a logo for the client.
 
 
-.. http:post:: /oauth/register
+.. http:post:: /oauth/v1/register
 
   :json string_array redirect_uris: An array of redirect URIs for use in other oauth flows.
   :json string client_id: (*optional*) -- A requested client id. If a client is already registered with the same client id, a unique client id based on the requested one will be created instead. If this parameter is omitted, a completely random client id will be created.
@@ -57,7 +57,7 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
 
   .. sourcecode:: http
 
-    POST /oauth/register HTTP/1.1
+    POST /oauth/v1/register HTTP/1.1
 
   .. sourcecode:: javascript
 
@@ -86,7 +86,7 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
       "client_secret": "bdv8HtrspbJh5F5KOlAUkDOl8KAyYcfsDQoTk1au",
       "client_secret_expires_at": 0,
       "registration_access_token": "VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE",
-      "registration_client_uri": "https://my-coal.org/oauth/clients/my_example_app",
+      "registration_client_uri": "https://my-coal.org/oauth/v1/clients/my_example_app",
       "client_name": "My Example Application",
       "client_uri": "http://example.com",
       "logo_uri": "http://example.com/logo.png"
@@ -96,19 +96,19 @@ Most client registration and configuration endpoints (:http:post:`/oauth/registe
 Client Configuration
 ====================
 
-The client configuration endpoint is a protected resource that is provisioned by the server to facilitate viewing, updating, and deleting a client's registered information. If a client ever forgets its :ref:`client configuration <client_configuration>` values, they can be retreived via :http:get:`/oauth/clients/(client_id)` as long as the client knows its ``registration_client_uri`` and ``registration_access_token``.
+The client configuration endpoint is a protected resource that is provisioned by the server to facilitate viewing, updating, and deleting a client's registered information. If a client ever forgets its :ref:`client configuration <client_configuration>` values, they can be retreived via :http:get:`/oauth/v1/clients/(client_id)` as long as the client knows its ``registration_client_uri`` and ``registration_access_token``.
 
-The location of this endpoint is communicated to the client through the ``registration_client_uri`` member of the :http:post:`/oauth/register` response. Authorization for this endpoint requires that the client's ``registration_access_token`` be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
+The location of this endpoint is communicated to the client through the ``registration_client_uri`` member of the :http:post:`/oauth/v1/register` response. Authorization for this endpoint requires that the client's ``registration_access_token`` be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
 
 
-.. http:get:: /oauth/clients/(client_id)
+.. http:get:: /oauth/v1/clients/(client_id)
 
   Read the current configuration of the client (`client_id`).
 
   :reqheader Authorization: The client's ``registration_access_token`` using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
   :resheader WWW-Authenticate: If there is a problem with authorization, the value will be ``Bearer error="invalid_token"`` as specified in `RFC6750: WWW-Authenticate Response Header Field <http://tools.ietf.org/html/rfc6750#section-3>`_.
 
-  :status 200 OK: Successfully returned the client configuration. The ``application/json`` response body will be an object with the :ref:`client configuration <client_configuration>` as top-level members. Some of these values, including the ``client_secret``, ``client_secret_expires_at``, and ``registration_access_token``, may be different from those in the initial :http:post:`/oauth/register` response.  If there is a new client secret and/or registration access token in the response, the client must immediately discard its previous client secret and/or registration access token.  The value of the ``client_id`` will not change from the initial :http:post:`/oauth/register` response.
+  :status 200 OK: Successfully returned the client configuration. The ``application/json`` response body will be an object with the :ref:`client configuration <client_configuration>` as top-level members. Some of these values, including the ``client_secret``, ``client_secret_expires_at``, and ``registration_access_token``, may be different from those in the initial :http:post:`/oauth/v1/register` response.  If there is a new client secret and/or registration access token in the response, the client must immediately discard its previous client secret and/or registration access token.  The value of the ``client_id`` will not change from the initial :http:post:`/oauth/v1/register` response.
 
   :status 401 Unauthorized: Invalid or no ``Authorization`` request header provided. The ``WWW-Authenticate`` response header will contain the error.
 
@@ -116,7 +116,7 @@ The location of this endpoint is communicated to the client through the ``regist
 
   .. sourcecode:: http
 
-    GET /oauth/clients/my_example_app HTTP/1.1
+    GET /oauth/v1/clients/my_example_app HTTP/1.1
     Authorization: Bearer VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE
 
   **Example response**:
@@ -135,14 +135,14 @@ The location of this endpoint is communicated to the client through the ``regist
       "client_secret": "bdv8HtrspbJh5F5KOlAUkDOl8KAyYcfsDQoTk1au",
       "client_secret_expires_at": 0,
       "registration_access_token": "VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE",
-      "registration_client_uri": "https://my-coal.org/oauth/clients/my_example_app",
+      "registration_client_uri": "https://my-coal.org/oauth/v1/clients/my_example_app",
       "client_name": "My Example Application",
       "client_uri": "http://example.com",
       "logo_uri": "http://example.com/logo.png"
     }
 
 
-.. http:put:: /oauth/clients/(client_id)
+.. http:put:: /oauth/v1/clients/(client_id)
 
   Update the configuration of the client (`client_id`).
 
@@ -157,7 +157,7 @@ The location of this endpoint is communicated to the client through the ``regist
   :json string client_uri: (*optional*) -- The new URL of the homepage of the client. If not present, the homepage URL will be set to ``null``.
   :json string logo_uri: (*optional*) -- The new URL that references a logo for the client. If not present, the logo URL will be set to ``null``.
 
-  :status 200 OK: Successfully updated the client configuration. The ``application/json`` response body will be an object with the new :ref:`client configuration <client_configuration>` as top-level members. Some of these values, including the ``client_secret``, ``client_secret_expires_at``, and ``registration_access_token``, may be different from those in the initial :http:post:`/oauth/register` response.  If there is a new client secret and/or registration access token in the response, the client must immediately discard its previous client secret and/or registration access token.  The value of the ``client_id`` will not change from the initial :http:post:`/oauth/register` response.
+  :status 200 OK: Successfully updated the client configuration. The ``application/json`` response body will be an object with the new :ref:`client configuration <client_configuration>` as top-level members. Some of these values, including the ``client_secret``, ``client_secret_expires_at``, and ``registration_access_token``, may be different from those in the initial :http:post:`/oauth/v1/register` response.  If there is a new client secret and/or registration access token in the response, the client must immediately discard its previous client secret and/or registration access token.  The value of the ``client_id`` will not change from the initial :http:post:`/oauth/v1/register` response.
 
   :status 400 Bad Request: The ``application/json`` response body will be an object with the error information as top-level members:
 
@@ -170,7 +170,7 @@ The location of this endpoint is communicated to the client through the ``regist
 
   .. sourcecode:: http
 
-    PUT /oauth/clients/my_example_app HTTP/1.1
+    PUT /oauth/v1/clients/my_example_app HTTP/1.1
     Authorization: Bearer VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE
 
   .. sourcecode:: javascript
@@ -201,13 +201,13 @@ The location of this endpoint is communicated to the client through the ``regist
       "client_secret": "bdv8HtrspbJh5F5KOlAUkDOl8KAyYcfsDQoTk1au",
       "client_secret_expires_at": 0,
       "registration_access_token": "VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE",
-      "registration_client_uri": "https://my-coal.org/oauth/clients/my_example_app",
+      "registration_client_uri": "https://my-coal.org/oauth/v1/clients/my_example_app",
       "client_name": "My Example Application v2",
       "client_uri": "http://example.com/v2",
       "logo_uri": "http://example.com/logo_v2.png"
     }
 
-.. http:delete:: /oauth/clients/(client_id)
+.. http:delete:: /oauth/v1/clients/(client_id)
 
   Remove the client and all grants and tokens associated with it (`client_id`).
 
@@ -222,7 +222,7 @@ The location of this endpoint is communicated to the client through the ``regist
 
   .. sourcecode:: http
 
-    DELETE /oauth/clients/my_example_app HTTP/1.1
+    DELETE /oauth/v1/clients/my_example_app HTTP/1.1
     Authorization: Bearer VlhLNF2vifRsppohNr7gBcbcOO5khEqADalHlPYE
 
   **Example response**:
@@ -240,7 +240,7 @@ Authorization Code
 
 Clients are granted a unique, one-time-use authorization code in response to an explicit, web-based authorization grant from a logged-in user.
 
-.. http:get:: /oauth/auth
+.. http:get:: /oauth/v1/auth
 
   A user-facing web UI to prompt the user to grant or deny OAuth access for a client.
 
@@ -256,7 +256,7 @@ Clients are granted a unique, one-time-use authorization code in response to an 
 
   .. sourcecode:: http
 
-    GET /oauth/auth?client_id=my_example_app&redirect_uri=http://example.com/callback&response_type=code&scope=data HTTP/1.1
+    GET /oauth/v1/auth?client_id=my_example_app&redirect_uri=http://example.com/callback&response_type=code&scope=data HTTP/1.1
 
   **Example (user browser) response**:
 
@@ -285,7 +285,7 @@ Access Token
 
 Clients use an :ref:`authorization code <authorization_code>` to acquire an :ref:`access token <access_token>` and a :ref:`refresh token <refresh_token>`. These tokens are unique and tied to both the client and the user that granted the authorization code. Authorization for :ref:`secured Data APIs <secured_resources>` requires that a valid access token be set in the request ``Authorization`` header field using the "Bearer" scheme as specified in `RFC6750: Authorization Request Header Field <http://tools.ietf.org/html/rfc6750#section-2.1>`_.
 
-.. http:post:: /oauth/token
+.. http:post:: /oauth/v1/token
 
   The client acquires tokens by making a request to the token endpoint, posting the following parameters in the request body using the ``application/x-www-form-urlencoded`` format with a character encoding of ``UTF-8``.
 
@@ -321,7 +321,7 @@ Clients use an :ref:`authorization code <authorization_code>` to acquire an :ref
 
   .. sourcecode:: http
 
-    POST /oauth/token HTTP/1.1
+    POST /oauth/v1/token HTTP/1.1
     Content-Type: application/x-www-form-urlencoded
 
     client_id=my_example_app&
@@ -356,7 +356,7 @@ Refresh Token
 
 When an access token expires, or otherwise becomes invalid, a one-time-use refresh token can be used to generate a new set of tokens (access and refresh).
 
-.. http:post:: /oauth/token
+.. http:post:: /oauth/v1/token
 
   The client acquires tokens by making a request to the token endpoint, posting the following parameters in the request body using the ``application/x-www-form-urlencoded`` format with a character encoding of ``UTF-8``.
 
@@ -391,7 +391,7 @@ When an access token expires, or otherwise becomes invalid, a one-time-use refre
 
   .. sourcecode:: http
 
-    POST /oauth/token HTTP/1.1
+    POST /oauth/v1/token HTTP/1.1
     Content-Type: application/x-www-form-urlencoded
 
     client_id=my_example_app&

@@ -217,7 +217,7 @@ class AgentApiTest(ApiTest):
 
     def get_agent_tokens(self, email=None):
         agent_client = self.server.agent
-        url = '/oauth/token'
+        url = '/oauth/v1/token'
         params = {
             'code': agent_client.secret,
             'grant_type': 'authorization_code',
@@ -252,7 +252,7 @@ class AgentApiTest(ApiTest):
 
 
 class PingTest(AgentApiTest):
-    URL = '/api/agent/ping'
+    URL = '/api/v1/agents/ping'
     ALLOWED = ['POST']
 
     def test_post(self):
@@ -369,7 +369,7 @@ class PingTest(AgentApiTest):
 
 
 class LogLineTest(AgentApiTest):
-    URL = '/api/agent/log_line'
+    URL = '/api/v1/agents/logline'
     ALLOWED = ['POST']
 
     def test_post_missing_param(self):
@@ -677,7 +677,7 @@ class LogLineTest(AgentApiTest):
 
 
 class DeathLogLineTest(AgentApiTest):
-    URL = '/api/agent/log_line'
+    URL = '/api/v1/agents/logline'
     ALLOWED = ['POST']
 
     def test_all_deaths(self):
@@ -743,7 +743,7 @@ class KeyApiTest(ApiTest):
 
 
 class UsersTest(MultiPageApiTest):
-    URL = '/api/v1/data/users'
+    URL = '/api/v1/users'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -768,7 +768,7 @@ class UsersTest(MultiPageApiTest):
 
 
 class UserKeyTest(KeyApiTest):
-    URL = '/api/v1/data/users'
+    URL = '/api/v1/users'
     ALLOWED = ['GET']
 
     @property
@@ -803,7 +803,7 @@ class UserKeyTest(KeyApiTest):
 
 
 class ServersTest(MultiPageApiTest):
-    URL = '/api/v1/data/servers'
+    URL = '/api/v1/servers'
     ALLOWED = ['GET']
 
     def setUp(self):
@@ -825,7 +825,7 @@ class ServersTest(MultiPageApiTest):
 
 
 class ServerKeyTest(KeyApiTest):
-    URL = '/api/v1/data/servers'
+    URL = '/api/v1/servers'
     ALLOWED = ['GET']
 
     @property
@@ -846,7 +846,7 @@ class ServerKeyTest(KeyApiTest):
 
 
 class ServerModelTestBase(object):
-    URL = '/api/v1/data/servers/{0}/'
+    URL = '/api/v1/servers/{0}/'
 
     def test_get_invalid_server_key(self):
         url = self.url.replace(self.server.key.urlsafe(), 'invalid_key')

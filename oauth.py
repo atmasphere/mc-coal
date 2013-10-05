@@ -551,10 +551,10 @@ def authenticate_user_required(handler):
 
 
 routes = [
-    RedirectRoute('/oauth/auth', handler='oauth.AuthorizationCodeHandler', methods=['GET', 'POST'], name='oauth_auth'),
-    RedirectRoute('/oauth/token', handler='oauth.TokenHandler', methods=['POST'], name='oauth_token'),
-    RedirectRoute('/oauth/register', handler='oauth.RegistrationHandler', methods=['POST'], name='oauth_register'),
-    RedirectRoute('/oauth/clients/<client_id>', handler='oauth.ClientHandler', methods=['GET', 'PUT', 'DELETE'], name='oauth_client'),
-    RedirectRoute('/oauth/show', handler='oauth.ShowAuthorizationCodeHandler', methods=['GET'], name='oauth_show'),
-    RedirectRoute('/oauth/test', handler='oauth.TestHandler', methods=['GET'], name='oauth_test')
+    RedirectRoute('/oauth/v1/auth', handler='oauth.AuthorizationCodeHandler', methods=['GET', 'POST'], name='oauth_auth'),
+    RedirectRoute('/oauth/v1/token', handler='oauth.TokenHandler', methods=['POST'], name='oauth_token'),
+    RedirectRoute('/oauth/v1/register', handler='oauth.RegistrationHandler', methods=['POST'], name='oauth_register'),
+    RedirectRoute('/oauth/v1/clients/<client_id>', handler='oauth.ClientHandler', methods=['GET', 'PUT', 'DELETE'], name='oauth_client'),
+    RedirectRoute('/oauth/v1/show', handler='oauth.ShowAuthorizationCodeHandler', methods=['GET'], name='oauth_show'),
+    RedirectRoute('/oauth/v1/test', handler='oauth.TestHandler', methods=['GET'], name='oauth_test')
 ]

@@ -1,13 +1,10 @@
-MC-COAL API Documentation
-=========================
+MC COAL Documentation
+=====================
 
 Contents:
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
 
-   data_api
-   authorization
-
-:ref:`genindex`
-
+   install
+   api
