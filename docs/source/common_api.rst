@@ -1,8 +1,6 @@
-.. _common_information:
-
-==================
-Common Information
-==================
+======
+Common
+======
 
 .. _secured_resources:
 

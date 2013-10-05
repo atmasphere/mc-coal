@@ -80,6 +80,17 @@ indexes:
   - name: last_login_timestamp
     direction: desc
 
+- kind: Player
+  ancestor: yes
+  properties:
+  - name: username
+
+- kind: Player
+  ancestor: yes
+  properties:
+  - name: username
+    direction: desc
+
 - kind: ScreenShot
   ancestor: yes
   properties:
