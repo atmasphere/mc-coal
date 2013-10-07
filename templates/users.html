@@ -18,7 +18,7 @@
                 <div class="data"><h4>Is Admin:</h4>{% if u.admin %}True{% else %}False{% endif %}</div>
                 <div class="online">
                     <h4>Last COAL Login</h4>
-                    <div class="data">{% if u.last_login %}{{ u.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ u.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>
+                    <div class="data">{% if u.last_login %}{{ u.last_login|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ u.last_login|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% else %}Never{% endif %}</div>
                 </div>
                 <div class="name">{% if not u.white_list %}<a href="{{ uri_for('user', key=u.key.urlsafe()) }}">Edit</a>{% else %}Not Editable{% endif %}</div>
             </div>

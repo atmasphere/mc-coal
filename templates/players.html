@@ -25,7 +25,7 @@
                         </div>
                     {% else %}
                         <h4>Last Login</h4>
-                        <div class="data">{{ player.last_login_timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ player.last_login|datetimeformat('%I:%M%p') }}</div>
+                        <div class="data">{{ player.last_login_timestamp|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ player.last_login|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}</div>
                     {% endif %}
                 </div>
             </div>

@@ -9,7 +9,7 @@
 
         <div class="online">
             <div class="data">
-                {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%I:%M%p') }}
+                {{ chat.timestamp|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}
             </div>
         </div>
     </div>

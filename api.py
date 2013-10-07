@@ -15,7 +15,6 @@ from agar.auth import authentication_required
 from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
 
-from config import coal_config
 from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG
 from oauth import Client, authenticate_agent_oauth_required, authenticate_user_required
@@ -171,9 +170,12 @@ class LogLineHandler(JsonHandler):
 def api_datetime(dt, zone=None, dt_format=u"%Y-%m-%d %H:%M:%S", tz_format=u"%Z%z"):
     if dt:
         utc_dt = pytz.UTC.localize(dt)
-        try:
-            tz = pytz.timezone(zone or coal_config.TIMEZONE)
-        except:
+        if zone:
+            try:
+                tz = pytz.timezone(zone)
+            except:
+                tz = pytz.utc
+        else:
             tz = pytz.utc
         tz_dt = utc_dt.astimezone(tz) if utc_dt else None
         dt_tz_format = "{0} {1}".format(dt_format, tz_format) if tz_format else dt_format
@@ -361,8 +363,8 @@ PLAY_SESSION_FIELD_FUNCTIONS = {
     'server_key': lambda o: o.server_key.urlsafe(),
     'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
-    'login_timestamp': lambda o: api_datetime(o.login_timestamp, zone=o.zone),
-    'logout_timestamp': lambda o: api_datetime(o.logout_timestamp, zone=o.zone),
+    'login_timestamp': lambda o: api_datetime(o.login_timestamp),
+    'logout_timestamp': lambda o: api_datetime(o.logout_timestamp),
     'duration': lambda o: o.duration.total_seconds(),
     'login_logline_key': lambda o: o.login_log_line_key.urlsafe() if o.login_log_line_key is not None else None,
     'logout_logline_key': lambda o: o.logout_log_line_key.urlsafe() if o.logout_log_line_key is not None else None,
@@ -418,7 +420,7 @@ CHAT_FIELD_FUNCTIONS = {
     'server_key': lambda o: o.server_key.urlsafe(),
     'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
-    'timestamp': lambda o: api_datetime(o.timestamp, zone=o.zone),
+    'timestamp': lambda o: api_datetime(o.timestamp),
     'created': lambda o: api_datetime(o.created),
     'updated': lambda o: api_datetime(o.updated)
 }
@@ -493,7 +495,7 @@ DEATH_FIELD_FUNCTIONS = {
     'message': lambda o: o.death_message,
     'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
-    'timestamp': lambda o: api_datetime(o.timestamp, zone=o.zone),
+    'timestamp': lambda o: api_datetime(o.timestamp),
     'created': lambda o: api_datetime(o.created),
     'updated': lambda o: api_datetime(o.updated)
 }
@@ -549,7 +551,7 @@ LOG_LINE_FIELD_FUNCTIONS = {
     'server_key': lambda o: o.server_key.urlsafe(),
     'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
-    'timestamp': lambda o: api_datetime(o.timestamp, zone=o.zone),
+    'timestamp': lambda o: api_datetime(o.timestamp),
     'created': lambda o: api_datetime(o.created),
     'updated': lambda o: api_datetime(o.updated)
 }

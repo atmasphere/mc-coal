@@ -19,7 +19,7 @@
                 <h4>Logout Date</h4>
                 <div class="data">
                     {% if play_session.logout_timestamp %}
-                        {{ play_session.logout_timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ play_session.logout_timestamp|datetimeformat('%I:%M%p') }}
+                        {{ play_session.logout_timestamp|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ play_session.logout_timestamp|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}
                     {% else %}
                         <em>Currently Playing</em>
                     {% endif %}
@@ -28,7 +28,7 @@
 
             <div class="online login">
                 <h4>Login Date</h4>
-                <div class="data">{{ play_session.login_timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ play_session.login_timestamp|datetimeformat('%I:%M%p') }}</div>
+                <div class="data">{{ play_session.login_timestamp|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ play_session.login_timestamp|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}</div>
             </div>
 
             <div class="online playtime">

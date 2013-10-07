@@ -11,7 +11,7 @@
                 <div class="name">{{ edit_user.email or edit_user.nickname }}</div>
                 <div class="online">
                     <h4>Last COAL Login</h4>
-                    <div class="data">{% if edit_user.last_login %}{{ edit_user.last_login|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ edit_user.last_login|datetimeformat('%I:%M%p') }}{% else %}Never{% endif %}</div>
+                    <div class="data">{% if edit_user.last_login %}{{ edit_user.last_login|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ edit_user.last_login|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% else %}Never{% endif %}</div>
                 </div>
             </div>
         </div>
@@ -23,6 +23,9 @@
 
                 <label>Nickname</label>
                 {{ macros.with_errors(form.nickname, size="50") }}
+
+                <label>Timezone</label>
+                {{ macros.with_errors(form.timezone_name, size="8") }}
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save</button>

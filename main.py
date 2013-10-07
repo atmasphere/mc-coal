@@ -5,6 +5,8 @@ from google.appengine.ext import ndb
 from google.appengine.ext.ndb import Cursor
 from google.appengine.ext.webapp import blobstore_handlers
 
+from pytz.gae import pytz
+
 import webapp2
 
 from webapp2_extras.routes import RedirectRoute
@@ -23,6 +25,8 @@ from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authen
 
 
 RESULTS_PER_PAGE = 50
+TIMEZONE_CHOICES = [(tz, tz) for tz in pytz.common_timezones if tz.startswith('U')] + \
+[(tz, tz) for tz in pytz.common_timezones if not tz.startswith('U')]
 
 
 class MainHandlerBase(UserHandler):
@@ -417,15 +421,22 @@ class UserRemoveHandler(UserHandler):
         self.redirect(webapp2.uri_for('users'))
 
 
+class ValidTimezone(object):
+    def __call__(self, form, field):
+        timezone = field.data
+        try:
+            pytz.timezone(timezone)
+        except:
+            raise validators.ValidationError("Not a valid timezone".format(timezone))
+
+
 class UserProfileForm(form.Form):
-    email = fields.StringField(u'Email', [validators.Optional(), validators.Email(message=u'Invalid email address.')])
+    email = fields.StringField(u'Email', validators=[validators.Optional(), validators.Email(message=u'Invalid email address.')])
     nickname = fields.StringField(u'Nickname', validators=[validators.Optional()])
+    timezone_name = fields.SelectField(u'Timezone', choices=TIMEZONE_CHOICES, validators=[ValidTimezone()])
 
 
 class UniqueUsername(object):
-    def __init__(self, user=None):
-        self.user = user
-
     def __call__(self, form, field):
         username = field.data
         u = User.lookup(username=username)
@@ -455,6 +466,7 @@ class UserProfileHandler(UserHandler):
         if form.validate():
             user.email = form.email.data
             user.nickname = form.nickname.data
+            user.timezone_name = form.timezone_name.data
             user.put()
             self.redirect(next_url)
         claim_form = UsernameClaimForm()

@@ -13,8 +13,6 @@ COAL_USER_WHITELIST = [
     }
 ]
 
-COAL_TIMEZONE = 'US/Central'
-
 COAL_SECRET_KEY = 'a_secret_string'
 
 COAL_COOKIE_MAX_AGE = None

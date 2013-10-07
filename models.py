@@ -6,7 +6,7 @@ import random
 import string
 
 from google.appengine.ext import blobstore, ndb, deferred
-from google.appengine.api import users, memcache, mail, app_identity
+from google.appengine.api import users, mail, app_identity
 
 import webapp2_extras.appengine.auth.models as auth_models
 
@@ -198,6 +198,7 @@ class User(auth_models.User):
     email = ndb.StringProperty()
     nickname = ndb.StringProperty()
     usernames = ndb.StringProperty(repeated=True)
+    timezone_name = ndb.StringProperty(default='UTC')
     last_login = ndb.DateTimeProperty()
     last_chat_view = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
@@ -214,6 +215,10 @@ class User(auth_models.User):
     @property
     def unauthenticated_claims(self):
         return UsernameClaim.query_unauthenticated_by_user_key(self.key).fetch()
+
+    @property
+    def timezone(self):
+        return name_to_timezone(self.timezone_name)
 
     def get_server_username(self, server_key):
         for username in self.usernames:
@@ -463,11 +468,11 @@ class Server(ndb.Model):
                     status = 'UNKNOWN'
                 tf = '%A, %B %d, %Y %I:%M:%S %p'
                 now_utc_dt = pytz.utc.localize(datetime.datetime.now())
-                now_ts = now_utc_dt.astimezone(pytz.timezone(coal_config.TIMEZONE)).strftime(tf)
+                now_ts = now_utc_dt.strftime(tf)
                 last_ping_ts = "NEVER"
                 if self.last_ping:
                     last_ping_utc_dt = pytz.utc.localize(self.last_ping)
-                    last_ping_ts = last_ping_utc_dt.astimezone(pytz.timezone(coal_config.TIMEZONE)).strftime(tf)
+                    last_ping_ts = last_ping_utc_dt.strftime(tf)
                 body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
                     self.name,
                     status,
@@ -667,10 +672,7 @@ class LogLine(UsernameModel):
 
     @classmethod
     def create(cls, server, line, zone, **kwargs):
-        try:
-            tz = pytz.timezone(zone)
-        except:
-            tz = pytz.utc
+        tz = name_to_timezone(zone)
         zone = tz.zone
         kwargs['tags'] = [UNKNOWN_TAG]
         for regexes, tags in REGEX_TAGS:

@@ -31,7 +31,7 @@
             <div class="status wrap {% if server.is_running == True %}up{% elif server.is_running == False %}down{% else %}unknown{% endif %}">
                 <i class="sprite"></i>
                 <div class="right">
-                    <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}{% endif %})</h4>
+                    <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% endif %})</h4>
                     <strong>
                         {% if server.is_running == True %}
                             Running
