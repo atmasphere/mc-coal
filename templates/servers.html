@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+{% set nav="Admin" %}
+
+{% block title %}Servers{% endblock %}
+
+{% block content %}
+    <div class="player_list players">
+        <h2 class="box">Servers</h2>
+
+        <h2 class="box"><a href="{{ uri_for('server_create') }}">Create New Server</a></h2>
+
+        <div class="box">
+        {% for s in servers %}
+            <div class="player wrap">
+                <h1 class="data">{{ s.name }} <a href="{{ uri_for('server', key=s.key.urlsafe()) }}">Edit</a></h1>
+                <h3 class="data">Agent Client ID:</h3> {{ s.agent.client_id }}
+                <h3 class="data">Agent Secret:</h3> {{ s.agent.secret }}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+
+    {{ macros.previous_next_uri('servers', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+{% endblock %}

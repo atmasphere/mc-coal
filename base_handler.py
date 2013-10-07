@@ -4,8 +4,11 @@ from webapp2_extras import jinja2
 from filters import FILTERS
 
 
-def uri_for_pagination(name, cursor=None):
-    uri = webapp2.uri_for(name)
+def uri_for_pagination(name, server_key=None, cursor=None):
+    if server_key is None:
+        uri = webapp2.uri_for(name)
+    else:
+        uri = webapp2.uri_for(name, server_key=server_key)
     if cursor is not None and cursor != 'START':
         if cursor.startswith('PAGE_0'):
             uri = u"{0}{1}{2}".format(uri, '&' if '?' in uri else '?', cursor[7:])

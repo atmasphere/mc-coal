@@ -5,116 +5,100 @@
 {% block page_name %}Home{% endblock %}
 
 {% block content %}
-    {% if user and user.active %}
-        <div class="title box wrap">
-            <div class="left">
-                <h1>{{ config.TITLE }}</h1>
-                <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
-                {% if server.is_raining != None %}
-                    {% if server.is_raining %}
-                        / Raining
-                        {% if server.is_thundering %}
-                            & Thundering
-                        {% endif %}
-                    {% else %}
-                        / Clear
+    <div class="title box wrap">
+        <div class="left">
+            <h1><a href="{{ uri_for('home', server_key=server.key.urlsafe()) }}">{{ server.name }}</a></h1>
+            <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
+            {% if server.is_raining != None %}
+                {% if server.is_raining %}
+                    / Raining
+                    {% if server.is_thundering %}
+                        & Thundering
                     {% endif %}
+                {% else %}
+                    / Clear
                 {% endif %}
-                </h4>
-            </div>
-            <div class="status wrap {% if server.is_running == True %}up{% elif server.is_running == False %}down{% else %}unknown{% endif %}">
-                <i class="sprite"></i>
-                <div class="right">
-                    <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}{% endif %})</h4>
-                    <strong>
-                        {% if server.is_running == True %}
-                            Running
-                        {% elif server.is_running == False %}
-                            Down
-                        {% else %}
-                            Unknown
-                        {% endif %}
-                        (v{{ server.version }})
-                    </strong>
+            {% endif %}
+            </h4>
+        </div>
+        <div class="status wrap {% if server.is_running == True %}up{% elif server.is_running == False %}down{% else %}unknown{% endif %}">
+            <i class="sprite"></i>
+            <div class="right">
+                <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat('%I:%M%p') }}{% endif %})</h4>
+                <strong>
                     {% if server.is_running == True %}
-                        <br/>(Problems?&nbsp;Check&nbsp;<strong><a href="http://xpaw.ru/mcstatus/">Minecraft's&nbsp;Status</a></strong>)
+                        Running
+                    {% elif server.is_running == False %}
+                        Down
+                    {% else %}
+                        Unknown
                     {% endif %}
+                    (v{{ server.version }})
+                </strong>
+                {% if server.is_running == True %}
+                    <br/>(Problems?&nbsp;Check&nbsp;<strong><a href="http://xpaw.ru/mcstatus/">Minecraft's&nbsp;Status</a></strong>)
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="wrap">
+    <div class="player_list left">
+        <h3 class="box">Currently Playing</h3>
+        <div class="box">
+        {% if open_sessions %}
+
+            {% for open_session in open_sessions %}
+                <div class="player wrap">
+                    <div class="activity on"></div>
+                    <div class="avatar" style="background-image: url(https://minotar.net/helm/{{open_session.username}}/40)"></div>
+                    <div class="name">{{ open_session.username }}</div>
+                    <div class="online">
+                        {% if open_session.duration %}
+                            {{ macros.time_elapse(open_session.duration.days, open_session.duration.seconds) }}
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
+            {% endfor %}
+
+        {% else %}
+            <div class="pad">Nobody is currently online.</div>
+        {% endif %}
         </div>
+    </div>
 
-        <div class="wrap">
-        <div class="player_list left">
-            <h3 class="box">Currently Playing</h3>
-            <div class="box">
-            {% if open_sessions %}
+    <div class="player_list chats home">
+        <h3 class="box">Latest Chats</h3>
 
-                {% for open_session in open_sessions %}
-                    <div class="player wrap">
-                        <div class="activity on"></div>
-                        <div class="avatar" style="background-image: url(https://minotar.net/helm/{{open_session.username}}/40)"></div>
-                        <div class="name">{{ open_session.username }}</div>
-                        <div class="online">
-                            {% if open_session.duration %}
-                                {{ macros.time_elapse(open_session.duration.days, open_session.duration.seconds) }}
-                            {% endif %}
+        <div class="box">
+        {% if new_chats %}
+            {% for chat in new_chats %}
+                <div class="player wrap{% if chat.is_user(user) %} you{% endif %}{% if 'death' in chat.tags %} death_event{% endif %}{% if 'login' in chat.tags %} login_event{% endif %}{% if 'logout' in chat.tags %} logout_event{% endif %}">
+                    <div class="avatar" style="background-image: url(https://minotar.net/helm/{{chat.username}}/20)"></div>
+                    <div class="name">{{ chat.username }}</div>
+
+                    <div class="chat">
+                        {% if 'death' in chat.tags %}{{ chat.death_message }}{% elif 'login' in chat.tags %}Logged In{% elif 'logout' in chat.tags %}Logged Out{% else %}{{ chat.chat }}{% endif %}
+                    </div>
+
+                    <div class="online">
+                        <div class="data">
+                            {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%I:%M%p') }}
                         </div>
                     </div>
-                {% endfor %}
-
-            {% else %}
-                <div class="pad">Nobody is currently online.</div>
-            {% endif %}
-            </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="pad">There are no new chats.</div>
+        {% endif %}
         </div>
 
-        <div class="player_list chats home">
-            <h3 class="box">Latest Chats</h3>
-
-            <div class="box">
-            {% if new_chats %}
-                {% for chat in new_chats %}
-                    <div class="player wrap{% if chat.is_user(user) %} you{% endif %}{% if 'death' in chat.tags %} death_event{% endif %}{% if 'login' in chat.tags %} login_event{% endif %}{% if 'logout' in chat.tags %} logout_event{% endif %}">
-                        <div class="avatar" style="background-image: url(https://minotar.net/helm/{{chat.username}}/20)"></div>
-                        <div class="name">{{ chat.username }}</div>
-
-                        <div class="chat">
-                            {% if 'death' in chat.tags %}{{ chat.death_message }}{% elif 'login' in chat.tags %}Logged In{% elif 'logout' in chat.tags %}Logged Out{% else %}{{ chat.chat }}{% endif %}
-                        </div>
-
-                        <div class="online">
-                            <div class="data">
-                                {{ chat.timestamp|datetimeformat('%b %d, %Y') }}&nbsp;&nbsp;{{ chat.timestamp|datetimeformat('%I:%M%p') }}
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="pad">There are no new chats.</div>
-            {% endif %}
-            </div>
-
-            {% if chats_cursor %}
-            <div class="page box left">
-                <a href="{{ uri_for('chats')}}">More Chats</a>
-            </div>
-            {% endif %}
+        {% if chats_cursor %}
+        <div class="page box left">
+            <a href="{{ uri_for('chats', server_key=server.key.urlsafe())}}">More Chats</a>
         </div>
-        </div>
-        <br/>
-    {% elif user %}
-        <div class="box">
-            <div class="pad">
-                <p>You don't have permission to see this site.</p>
-                <p><a href="{{ logout_url }}">Log Out</a></p>
-            </div>
-        </div>
-    {% else %}
-        <div class="box">
-            <div class="pad">
-                <p>You aren't logged in.</p>
-                <p><a href="{{ login_url }}">Log In</a></p>
-            </div>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
+    </div>
+    <br/>
 {% endblock %}

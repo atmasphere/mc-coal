@@ -5,23 +5,19 @@
 {% block title %}Screenshots{% endblock %}
 
 {% block content %}
-    <div class="screen_shot_list screenshots">
+    <div class="screenshot_list screenshots">
         <h2 class="box">Screenshots</h2>
 
-        <div class="box">
-            <div class="pad">
-                <a href="{{ uri_for('screen_shot_upload') }}">Upload Screenshot</a>
-            </div>
-        </div>
+        <h2 class="box"><a href="{{ uri_for('screenshot_upload', server_key=server.key.urlsafe()) }}">Upload Screenshot</a></h2>
 
-        {% for screen_shot in screen_shots %}
+        {% for screenshot in screenshots %}
             <div class="box">
                 <div class="pad">
-                    <img class="screenshot" src="{{ screen_shot.get_serving_url() }}" width="25%", height="25%">
-                    <img class="screenshot" src="{{ screen_shot.blurred_image_serving_url or '/img/cap/blurring.png' }}" width="25%", height="25%">
+                    <img class="screenshot" src="{{ screenshot.get_serving_url() }}" width="25%", height="25%">
+                    <img class="screenshot" src="{{ screenshot.blurred_image_serving_url or '/img/cap/blurring.png' }}" width="25%", height="25%">
                     <div class="wrap">
-                        <div class="screenshot_uploader">Uploaded by {{ screen_shot.user.name }}</div>
-                        <form id="remove_screenshot_form" action="{{ uri_for('screen_shot_remove', key=screen_shot.key.urlsafe()) }}" method="POST">
+                        <div class="screenshot_uploader">Uploaded by {{ screenshot.user.name }}</div>
+                        <form id="remove_screenshot_form" action="{{ uri_for('screenshot_remove', server_key=server.key.urlsafe(), key=screenshot.key.urlsafe()) }}" method="POST">
                             <input type="submit" name="submit" value="Remove">
                         </form>
                     </div>
@@ -30,5 +26,5 @@
         {% endfor %}
     </div>
 
-    {{ macros.previous_next_uri('screen_shots', next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+    {{ macros.previous_next_uri('screenshots', server_key=server.key.urlsafe(), next_cursor=next_cursor, previous_cursor=previous_cursor) }}
 {% endblock %}

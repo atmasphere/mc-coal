@@ -111,7 +111,7 @@ class UserHandler(JinjaHandler, UserBase):
         return self.user is not None
 
     def logout(self, redirect_url=None):
-        redirect_url = redirect_url or webapp2.uri_for('home')
+        redirect_url = redirect_url or webapp2.uri_for('main')
         self.auth.unset_session()
         self.redirect(redirect_url)
 
@@ -121,10 +121,6 @@ class UserHandler(JinjaHandler, UserBase):
         finally:
             self.session_store.save_sessions(self.response)
 
-    @property
-    def server(self):
-        return None
-
     def get_template_context(self, context=None):
         template_context = dict()
         if context:
@@ -133,8 +129,7 @@ class UserHandler(JinjaHandler, UserBase):
         template_context['request'] = self.request
         template_context['user'] = self.user
         template_context['config'] = coal_config
-        server = self.server
-        template_context['server'] = server
+        server = template_context['server'] = template_context.get('server', None) or getattr(self.request, 'server', None)
         if server is not None:
             bg_img = ScreenShot.random(server.key)
             if bg_img is not None:
@@ -167,7 +162,7 @@ class AuthHandler(UserHandler):
                 ok, user = self.auth.store.user_model.create_user(auth_id, email=email, nickname=nickname)
                 if ok:
                     self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
-                    next_url = webapp2.uri_for('user_profile', next_url=next_url or webapp2.uri_for('home'))
+                    next_url = webapp2.uri_for('user_profile', next_url=next_url or webapp2.uri_for('main'))
                 else:
                     user = None
                     self.auth.unset_session()
@@ -185,7 +180,7 @@ class AuthHandler(UserHandler):
         user.last_login = datetime.datetime.now()
         user.put()
         if not (user and user.active and next_url):
-            next_url = webapp2.uri_for('home')
+            next_url = webapp2.uri_for('main')
         self.redirect(next_url)
 
 

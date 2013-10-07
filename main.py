@@ -22,23 +22,50 @@ import search
 from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin, authenticate_public
 
 
-class MainHandler(UserHandler):
-    @property
-    def server_key(self):
-        return Server.global_key()
+class MainHandlerBase(UserHandler):
+    def redirect_to_server(self, route_name):
+        server_keys = Server.query_all().fetch(2, keys_only=True)
+        if server_keys and len(server_keys) == 1:
+            self.redirect(webapp2.uri_for(route_name, server_key=server_keys[0].urlsafe()), abort=True)
+        else:
+            self.redirect(webapp2.uri_for('main'), abort=True)
 
-    @property
-    def server(self):
-        return self.server_key.get()
+    def get_server_by_key(self, key, route_name, abort=True):
+        if key is None:
+            self.redirect_to_server(route_name)
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is not None and not server.active:
+                server = None
+        except Exception:
+            server = None
+        if abort and not server:
+            self.abort(404)
+        self.request.server = server
+        return self.request.server
 
 
-class HomeHandler(MainHandler):
+class MainHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate_public)
     def get(self):
-        server_key = self.server_key
+        servers = Server.query_all().fetch(100)
+        if self.request.user and self.request.user.active:
+            if servers and len(servers) == 1:
+                self.redirect(webapp2.uri_for('home', server_key=servers[0].key.urlsafe()), abort=True)
+        context = {
+            'servers': servers
+        }
+        self.render_template('main.html', context=context)
+
+
+class HomeHandler(MainHandlerBase):
+    @authentication_required(authenticate=authenticate)
+    def get(self, server_key=None):
+        server = self.get_server_by_key(server_key, 'home')
         user = self.request.user
         if user and user.active:
-            open_sessions_query = PlaySession.query_latest_open(server_key)
+            open_sessions_query = PlaySession.query_latest_open(server.key)
             # Get open sessions
             playing_usernames = []
             open_sessions = []
@@ -47,7 +74,7 @@ class HomeHandler(MainHandler):
                     playing_usernames.append(open_session.username)
                     open_sessions.append(open_session)
             # Get new chats
-            new_chats_query = LogLine.query_latest_events(server_key)
+            new_chats_query = LogLine.query_latest_events(server.key)
             last_chat_view = self.request.user.last_chat_view
             if last_chat_view is not None:
                 new_chats_query = new_chats_query.filter(LogLine.timestamp > last_chat_view)
@@ -68,7 +95,7 @@ class HomeHandler(MainHandler):
         self.render_template('home.html', context=context)
 
 
-class PagingHandler(MainHandler):
+class PagingHandler(MainHandlerBase):
     def get_results_with_cursors(self, query, reverse_query, size):
         cursor = self.request.get('cursor', None)
         if cursor:
@@ -101,8 +128,8 @@ class ChatForm(form.Form):
 
 class ChatsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
-    def get(self):
-        server_key = self.server_key
+    def get(self, server_key=None):
+        server = self.get_server_by_key(server_key, 'chats')
         self.request.user.record_chat_view()
         query_string = self.request.get('q', None)
         # Search
@@ -112,7 +139,7 @@ class ChatsHandler(PagingHandler):
             if cursor and cursor.startswith('PAGE_'):
                 page = int(cursor.strip()[5:])
             offset = page*coal_config.RESULTS_PER_PAGE
-            results, number_found, _ = search.search_log_lines('chat:{0}'.format(query_string), server_key=server_key, limit=coal_config.RESULTS_PER_PAGE, offset=offset)
+            results, number_found, _ = search.search_log_lines('chat:{0}'.format(query_string), server_key=server.key, limit=coal_config.RESULTS_PER_PAGE, offset=offset)
             previous_cursor = next_cursor = None
             if page > 0:
                 previous_cursor = u'PAGE_{0}&q={1}'.format(page - 1 if page > 0 else 0, query_string)
@@ -121,20 +148,20 @@ class ChatsHandler(PagingHandler):
         # Latest
         else:
             results, previous_cursor, next_cursor = self.get_results_with_cursors(
-                LogLine.query_latest_events(server_key), LogLine.query_oldest_events(server_key), coal_config.RESULTS_PER_PAGE
+                LogLine.query_latest_events(server.key), LogLine.query_oldest_events(server.key), coal_config.RESULTS_PER_PAGE
             )
 
         context = {'chats': results, 'query_string': query_string or ''}
 
         if self.request.is_xhr:
-            self.render_xhr_response(context, next_cursor)
+            self.render_xhr_response(server.key, context, next_cursor)
         else:
-            self.render_html_response(server_key, context, next_cursor, previous_cursor)
+            self.render_html_response(server.key, context, next_cursor, previous_cursor)
 
-    def render_xhr_response(self, context, next_cursor):
+    def render_xhr_response(self, server_key, context, next_cursor):
         if next_cursor:
             context.update({
-                'next_uri': uri_for_pagination('chats', cursor=next_cursor)
+                'next_uri': uri_for_pagination('chats', server_key=server_key.urlsafe(), cursor=next_cursor)
             })
         self.response.headers['Content-Type'] = 'text/javascript'
         self.render_template('chats.js', context=context)
@@ -151,8 +178,8 @@ class ChatsHandler(PagingHandler):
         self.render_template('chats.html', context=context)
 
     @authentication_required(authenticate=authenticate)
-    def post(self):
-        server_key = self.server_key
+    def post(self, server_key=None):
+        server = self.get_server_by_key(server_key, 'chats')
         try:
             user = self.request.user
             if not (user and user.active):
@@ -160,7 +187,7 @@ class ChatsHandler(PagingHandler):
             form = ChatForm(self.request.POST)
             if form.validate():
                 chat = u"/say {0}".format(form.chat.data)
-                Command.push(server_key, user.get_server_play_name(server_key), chat)
+                Command.push(server_key, user.get_server_play_name(server.key), chat)
         except Exception, e:
             logging.error(u"Error POSTing chat: {0}".format(e))
             self.abort(500)
@@ -169,10 +196,10 @@ class ChatsHandler(PagingHandler):
 
 class PlayersHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
-    def get(self):
-        server_key = self.server_key
+    def get(self, server_key=None):
+        server = self.get_server_by_key(server_key, 'players')
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            Player.query_all_reverse(server_key), Player.query_all(server_key), coal_config.RESULTS_PER_PAGE
+            Player.query_all_reverse(server.key), Player.query_all(server.key), coal_config.RESULTS_PER_PAGE
         )
         context = {'players': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('players.html', context=context)
@@ -180,55 +207,79 @@ class PlayersHandler(PagingHandler):
 
 class PlaySessionsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
-    def get(self):
-        server_key = self.server_key
+    def get(self, server_key=None):
+        server = self.get_server_by_key(server_key, 'play_sessions')
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            PlaySession.query_latest(server_key), PlaySession.query_oldest(server_key), coal_config.RESULTS_PER_PAGE
+            PlaySession.query_latest(server.key), PlaySession.query_oldest(server.key), coal_config.RESULTS_PER_PAGE
         )
         context = {'play_sessions': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('play_sessions.html', context=context)
 
 
-class ScreenShotUploadHandler(MainHandler):
+class ScreenShotUploadHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
-    def get(self):
-        url = webapp2.uri_for('screen_shot_uploaded')
+    def get(self, server_key):
+        server = self.get_server_by_key(server_key, 'home')
+        url = webapp2.uri_for('screenshot_uploaded', server_key=server.key.urlsafe())
         upload_url = blobstore.create_upload_url(url)
         context = {'upload_url': upload_url}
         self.render_template('screen_shot_upload.html', context=context)
 
 
 class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase):
+    def redirect_to_server(self, route_name):
+        server_keys = Server.query_all().fetch(2, keys_only=True)
+        if server_keys and len(server_keys) == 1:
+            self.redirect(webapp2.uri_for(route_name, server_key=server_keys[0].urlsafe()), abort=True)
+        else:
+            self.redirect(webapp2.uri_for('main'), abort=True)
+
+    def get_server_by_key(self, key, route_name, abort=True):
+        if key is None:
+            self.redirect_to_server(route_name)
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+        except Exception:
+            server = None
+        if abort and not server:
+            self.abort(404)
+        self.request.server = server
+        return self.request.server
+
     @authentication_required(authenticate=authenticate)
-    def post(self):
-        server_key = Server.global_key()
+    def post(self, server_key):
+        server = self.get_server_by_key(server_key, 'home')
         blob_info = self.get_uploads('file')[0]
-        ScreenShot.create(server_key, self.request.user, blob_info=blob_info)
-        self.redirect(webapp2.uri_for('screen_shots'))
+        ScreenShot.create(server.key, self.request.user, blob_info=blob_info)
+        self.redirect(webapp2.uri_for('screenshots', server_key=server.key.urlsafe()))
 
 
 class ScreenShotsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
-    def get(self):
-        server_key = self.server_key
+    def get(self, server_key=None):
+        server = self.get_server_by_key(server_key, 'screenshots')
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            ScreenShot.query_latest(server_key), ScreenShot.query_oldest(server_key), 5
+            ScreenShot.query_latest(server.key), ScreenShot.query_oldest(server.key), 5
         )
-        context = {'screen_shots': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        context = {'screenshots': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('screen_shots.html', context=context)
 
 
-class ScreenShotRemoveHandler(MainHandler):
+class ScreenShotRemoveHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
-    def post(self, key):
+    def post(self, server_key, key):
+        server = self.get_server_by_key(server_key, 'screenshots')
         try:
-            screen_shot_key = ndb.Key(urlsafe=key)
-            screen_shot = screen_shot_key.get()
-            if screen_shot is not None:
-                screen_shot.key.delete()
+            screenshot_key = ndb.Key(urlsafe=key)
+            if screenshot_key.parent() != server.key:
+                self.abort(404)
+            screenshot = screenshot_key.get()
+            if screenshot is not None:
+                screenshot.key.delete()
         except Exception, e:
             logging.error(u"Error removing screen shot: {0}".format(e))
-        self.redirect(webapp2.uri_for('screen_shots'))
+        self.redirect(webapp2.uri_for('screenshots', server_key=server.key.urlsafe()))
 
 
 class AdminHandler(PagingHandler):
@@ -308,7 +359,7 @@ class UsersHandler(PagingHandler):
         self.render_template('users.html', context=context)
 
 
-class UserEditHandler(MainHandler):
+class UserEditHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
         try:
@@ -347,7 +398,7 @@ class UserEditHandler(MainHandler):
         self.render_template('user.html', context=context)
 
 
-class UserRemoveHandler(MainHandler):
+class UserRemoveHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
         try:
@@ -383,10 +434,10 @@ class UsernameClaimForm(form.Form):
     username = fields.StringField(u'Username', validators=[validators.DataRequired(), UniqueUsername()])
 
 
-class UserProfileHandler(MainHandler):
+class UserProfileHandler(UserHandler):
     @authentication_required(authenticate=authenticate)
     def get(self):
-        next_url = self.request.params.get('next_url', webapp2.uri_for('home'))
+        next_url = self.request.params.get('next_url', webapp2.uri_for('main'))
         user = self.request.user
         form = UserProfileForm(obj=user)
         claim_form = UsernameClaimForm()
@@ -395,7 +446,7 @@ class UserProfileHandler(MainHandler):
 
     @authentication_required(authenticate=authenticate)
     def post(self):
-        next_url = self.request.params.get('next_url', webapp2.uri_for('home'))
+        next_url = self.request.params.get('next_url', webapp2.uri_for('main'))
         user = self.request.user
         form = UserProfileForm(self.request.POST, user)
         if form.validate():
@@ -408,7 +459,7 @@ class UserProfileHandler(MainHandler):
         self.render_template('user_profile.html', context=context)
 
 
-class UsernameClaimHandler(MainHandler):
+class UsernameClaimHandler(UserHandler):
     @authentication_required(authenticate=authenticate)
     def post(self):
         next_url = self.request.params.get('next_url', webapp2.uri_for('user_profile'))
@@ -419,22 +470,115 @@ class UsernameClaimHandler(MainHandler):
         self.redirect(next_url)
 
 
+class ServersHandler(PagingHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self):
+        results, previous_cursor, next_cursor = self.get_results_with_cursors(
+            Server.query_all(), Server.query_all_reverse(), coal_config.RESULTS_PER_PAGE
+        )
+        context = {'servers': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
+        self.render_template('servers.html', context=context)
+
+
+class ServerForm(form.Form):
+    name = fields.StringField(u'Name', [validators.Required()])
+
+
+class ServerCreateHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self):
+        form = ServerForm()
+        context = {'form': form}
+        self.render_template('server_create.html', context=context)
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self):
+        try:
+            form = ServerForm(formdata=self.request.POST)
+            if form.validate():
+                Server.create(name=form.name.data)
+                self.redirect(webapp2.uri_for('servers'))
+        except Exception, e:
+            logging.error(u"Error POSTing server: {0}".format(e))
+            self.abort(404)
+        context = {'form': form}
+        self.render_template('server_create.html', context=context)
+
+
+class ServerEditHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.abort(404)
+            form = ServerForm(obj=server)
+        except Exception, e:
+            logging.error(u"Error GETting server: {0}".format(e))
+            self.abort(404)
+        context = {'edit_server': server, 'form': form}
+        self.render_template('server.html', context=context)
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.abort(404)
+            form = ServerForm(formdata=self.request.POST, obj=server)
+            if form.validate():
+                server.name = form.name.data
+                server.put()
+                self.redirect(webapp2.uri_for('servers'))
+        except Exception, e:
+            logging.error(u"Error POSTing server: {0}".format(e))
+            self.abort(404)
+        context = {'edit_server': server, 'form': form}
+        self.render_template('server.html', context=context)
+
+
+class ServerDeactivateHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.abort(404)
+            server.active = False
+            server.put()
+        except Exception, e:
+            logging.error(u"Error deactivating server: {0}".format(e))
+        self.redirect(webapp2.uri_for('servers'))
+
+
 application = webapp2.WSGIApplication(
     [
-        RedirectRoute('/', handler=HomeHandler, name="home"),
-        RedirectRoute('/chats', handler=ChatsHandler, strict_slash=True, name="chats"),
+        RedirectRoute('/', handler=MainHandler, name="main"),
         RedirectRoute('/players/claim', handler=UsernameClaimHandler, strict_slash=True, name="username_claim"),
-        RedirectRoute('/players', handler=PlayersHandler, strict_slash=True, name="players"),
-        RedirectRoute('/sessions', handler=PlaySessionsHandler, strict_slash=True, name="play_sessions"),
-        RedirectRoute('/screen_shot_upload', handler=ScreenShotUploadHandler, strict_slash=True, name="screen_shot_upload"),
-        RedirectRoute('/screen_shot_uploaded', handler=ScreenShotUploadedHandler, strict_slash=True, name="screen_shot_uploaded"),
-        RedirectRoute('/screen_shots', handler=ScreenShotsHandler, strict_slash=True, name="screen_shots"),
-        RedirectRoute('/screen_shots/<key>/remove', handler=ScreenShotRemoveHandler, strict_slash=True, name="screen_shot_remove"),
+        RedirectRoute('/chats', handler=ChatsHandler, strict_slash=True, name="naked_chats"),
+        RedirectRoute('/players', handler=PlayersHandler, strict_slash=True, name="naked_players"),
+        RedirectRoute('/sessions', handler=PlaySessionsHandler, strict_slash=True, name="naked_play_sessions"),
+        RedirectRoute('/screenshots', handler=ScreenShotsHandler, strict_slash=True, name="naked_screenshots_lol"),
+        RedirectRoute('/servers/<server_key>', handler=HomeHandler, name="home"),
+        RedirectRoute('/servers/<server_key>/chats', handler=ChatsHandler, strict_slash=True, name="chats"),
+        RedirectRoute('/servers/<server_key>/players', handler=PlayersHandler, strict_slash=True, name="players"),
+        RedirectRoute('/servers/<server_key>/sessions', handler=PlaySessionsHandler, strict_slash=True, name="play_sessions"),
+        RedirectRoute('/servers/<server_key>/screenshot_upload', handler=ScreenShotUploadHandler, strict_slash=True, name="screenshot_upload"),
+        RedirectRoute('/servers/<server_key>/screenshot_uploaded', handler=ScreenShotUploadedHandler, strict_slash=True, name="screenshot_uploaded"),
+        RedirectRoute('/servers/<server_key>/screenshots', handler=ScreenShotsHandler, strict_slash=True, name="screenshots"),
+        RedirectRoute('/servers/<server_key>/screenshots/<key>/remove', handler=ScreenShotRemoveHandler, strict_slash=True, name="screenshot_remove"),
         RedirectRoute('/profile', handler=UserProfileHandler, strict_slash=True, name="user_profile"),
         RedirectRoute('/admin', handler=AdminHandler, strict_slash=True, name="admin"),
         RedirectRoute('/admin/users', handler=UsersHandler, strict_slash=True, name="users"),
         RedirectRoute('/admin/users/<key>', handler=UserEditHandler, strict_slash=True, name="user"),
-        RedirectRoute('/admin/users/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove")
+        RedirectRoute('/admin/users/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove"),
+        RedirectRoute('/admin/server_create', handler=ServerCreateHandler, strict_slash=True, name="server_create"),
+        RedirectRoute('/admin/servers', handler=ServersHandler, strict_slash=True, name="servers"),
+        RedirectRoute('/admin/servers/<key>', handler=ServerEditHandler, strict_slash=True, name="server"),
+        RedirectRoute('/admin/users/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
     ],
     config={
         'webapp2_extras.sessions': {

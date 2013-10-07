@@ -209,6 +209,16 @@ class ApiTest(OauthTest):
             else:
                 self.assertMethodNotAllowed(response)
 
+    def test_get_inactive(self):
+        if self.url:
+            self.server.active = False
+            self.server.put()
+            response = self.get()
+            if 'GET' in self.ALLOWED:
+                self.assertNotFound(response)
+            else:
+                self.assertMethodNotAllowed(response)
+
 
 class AgentApiTest(ApiTest):
     def setUp(self):
@@ -766,6 +776,9 @@ class UsersTest(MultiPageApiTest):
             self.assertEqual(self.users[i].usernames, user['usernames'])
             self.assertIsNotNone(user['last_coal_login'])
 
+    def test_get_inactive(self):
+        pass
+
 
 class UserKeyTest(KeyApiTest):
     URL = '/api/v1/users'
@@ -801,6 +814,9 @@ class UserKeyTest(KeyApiTest):
         self.assertEqual(self.user.key.urlsafe(), response_user['key'])
         self.assertIsNotNone(response_user['last_coal_login'])
 
+    def test_get_inactive(self):
+        pass
+
 
 class ServersTest(MultiPageApiTest):
     URL = '/api/v1/servers'
@@ -819,6 +835,19 @@ class ServersTest(MultiPageApiTest):
         self.assertLength(1, body)
         reponse_servers = body['servers']
         self.assertLength(len(self.servers), reponse_servers)
+        for i, server in enumerate(reponse_servers):
+            self.assertEqual(NUM_SERVER_FIELDS, len(server))
+            self.assertFalse(server['is_running'])
+
+    def test_get_inactive(self):
+        self.server.active = False
+        self.server.put()
+        response = self.get()
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        reponse_servers = body['servers']
+        self.assertLength(len(self.servers)-1, reponse_servers)
         for i, server in enumerate(reponse_servers):
             self.assertEqual(NUM_SERVER_FIELDS, len(server))
             self.assertFalse(server['is_running'])
@@ -1957,8 +1986,8 @@ class ScreenShotTest(MultiPageApiTest):
         self.screenshots = []
         self.blob_info = self.create_blob_info(IMAGE_PATH)
         for i in range(5):
-            screen_shot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info)
-            self.screenshots.insert(0, screen_shot)
+            screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info)
+            self.screenshots.insert(0, screenshot)
         self.assertEqual(5, models.ScreenShot.query().count())
         #For speed, don't actually generate the blurs for these images
         taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
@@ -1986,8 +2015,8 @@ class ScreenShotTest(MultiPageApiTest):
 
     def test_get(self):
         for i in range(5):
-            screen_shot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
-            self.screenshots.append(screen_shot)
+            screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+            self.screenshots.append(screenshot)
         self.assertEqual(10, models.ScreenShot.query().count())
         self.run_deferred(5)
         response = self.get(url='{0}?size={1}'.format(self.url, 50))
@@ -2003,13 +2032,13 @@ class ScreenShotTest(MultiPageApiTest):
             self.assertEqual(self.screenshots[i].user_key.urlsafe(), screenshot['user_key'])
 
     def test_get_since_before(self):
-        for screen_shot in self.screenshots:
-            screen_shot.key.delete()
+        for screenshot in self.screenshots:
+            screenshot.key.delete()
         import time
         self.screenshots = []
         for i in range(5):
-            screen_shot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info)
-            self.screenshots.insert(0, screen_shot)
+            screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info)
+            self.screenshots.insert(0, screenshot)
             time.sleep(1)
         url = "{0}?since={1}".format(self.url, self.screenshots[0].created.strftime("%Y-%m-%d %H:%M:%S"))
         response = self.get(url=url)

@@ -7,11 +7,7 @@
     <div class="title box wrap">
         <h2 class="box"><a href="{{ uri_for('users') }}">Users</a></h2>
     </div>
-    {% for server in servers %}
-        <div class="title box wrap">
-            <h1 class="box">Server: {{ server.name }}</h1>
-            <h1 class="box">Agent Client ID:</h1> {{ server.agent.client_id }}
-            <h1 class="box">Agent Secret:</h1> {{ server.agent.secret }}
-        </div>
-    {% endfor %}
+    <div class="title box wrap">
+        <h2 class="box"><a href="{{ uri_for('servers') }}">Servers</a></h2>
+    </div>
 {% endblock %}

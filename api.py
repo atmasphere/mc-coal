@@ -125,6 +125,8 @@ class PingHandler(JsonHandler):
         timestamp = form.timestamp.data
         client = Client.get_by_client_id(self.request.authentication.client_id)
         server = client.server
+        if not server.active:
+            self.abort(404)
         server.update_is_running(
             is_server_running,
             last_ping=datetime.datetime.now(),
@@ -152,12 +154,15 @@ class LogLineHandler(JsonHandler):
     @validate_params(form_class=LogLineForm)
     def post(self):
         client = Client.get_by_client_id(self.request.authentication.client_id)
+        server = client.server
+        if not server.active:
+            self.abort(404)
         status_code = 200
         line = self.request.form.line.data
         zone = self.request.form.zone.data
-        existing_line = LogLine.lookup_line(client.server_key, line)
+        existing_line = LogLine.lookup_line(server.key, line)
         if existing_line is None:
-            log_line = LogLine.create(client.server, line, zone)
+            log_line = LogLine.create(server, line, zone)
             if log_line is not None:
                 status_code = 201
         self.json_response({}, status_code=status_code)
@@ -269,6 +274,8 @@ class ServersKeyHandler(JsonHandler):
         try:
             server_key = ndb.Key(urlsafe=key)
             server = server_key.get()
+            if server is not None and not server.active:
+                server = None
         except Exception:
             server = None
         if abort and not server:
@@ -292,12 +299,16 @@ PLAYER_STRATEGY = ModelStrategy(Player).include(*PLAYER_FIELDS).include(**PLAYER
 
 
 class ServerModelHandler(JsonHandler):
-    def get_server_key_by_urlsafe(self, urlsafe_server_key, abort_404=True):
+    def get_server(self, server_key, abort_404=True):
         try:
-            return ndb.Key(urlsafe=urlsafe_server_key)
+            server = ndb.Key(urlsafe=server_key).get()
+            if server is not None and not server.active:
+                server = None
         except Exception:
-            if abort_404:
-                self.abort(404)
+            server = None
+        if abort_404 and server is None:
+            self.abort(404)
+        return server
 
     def get_player_by_key_or_username(self, server_key, key_username, abort_404=True):
         player = None
@@ -332,14 +343,14 @@ class PlayersHandler(MultiPageServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=MultiPageForm)
     def get(self, server_key):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         self.json_response(self.fetch_page(Player.query_by_username(server_key), results_name='players'), PLAYER_STRATEGY)
 
 
 class PlayerKeyUsernameHandler(ServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     def get(self, server_key, key_username):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         player = self.get_player_by_key_or_username(server_key, key_username)
         self.json_response(player, PLAYER_STRATEGY)
 
@@ -370,7 +381,7 @@ class PlaySessionsHandler(MultiPageServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=PlaySessionsForm)
     def get(self, server_key, key_username=None):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         username = None
         if key_username:
             player = self.get_player_by_key_or_username(server_key, key_username)
@@ -396,7 +407,7 @@ class PlaySessionKeyHandler(ServerModelHandler):
 
     @authentication_required(authenticate=authenticate_user_required)
     def get(self, server_key, key):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         play_session = self.get_play_session_by_key(server_key, key)
         self.json_response(play_session, PLAY_SESSION_STRATEGY)
 
@@ -428,7 +439,7 @@ class ChatHandler(MultiPageServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ChatForm)
     def get(self, server_key, key_username=None):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         username = None
         if key_username:
             player = self.get_player_by_key_or_username(server_key, key_username)
@@ -453,7 +464,7 @@ class ChatHandler(MultiPageServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ChatPostForm)
     def post(self, server_key, key_username=None):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         username = self.request.user.get_server_play_name(server_key)
         if key_username:
             player = self.get_player_by_key_or_username(server_key, key_username)
@@ -468,7 +479,7 @@ class ChatHandler(MultiPageServerModelHandler):
 class ChatKeyHandler(ServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     def get(self, server_key, key):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         log_line = self.get_server_model_by_key(server_key, key)
         if CHAT_TAG not in log_line.tags:
             self.abort(404)
@@ -499,7 +510,7 @@ class DeathHandler(MultiPageServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=DeathForm)
     def get(self, server_key, key_username=None):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         username = None
         if key_username:
             player = self.get_player_by_key_or_username(server_key, key_username)
@@ -525,7 +536,7 @@ class DeathHandler(MultiPageServerModelHandler):
 class DeathKeyHandler(ServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     def get(self, server_key, key):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         log_line = self.get_server_model_by_key(server_key, key)
         if DEATH_TAG not in log_line.tags:
             self.abort(404)
@@ -556,7 +567,7 @@ class LogLinesHandler(MultiPageServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=LogLineForm)
     def get(self, server_key, key_username=None):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         username = None
         if key_username:
             player = self.get_player_by_key_or_username(server_key, key_username)
@@ -583,7 +594,7 @@ class LogLinesHandler(MultiPageServerModelHandler):
 class LogLineKeyHandler(ServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     def get(self, server_key, key):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         log_line = self.get_server_model_by_key(server_key, key)
         self.json_response(log_line, LOG_LINE_STRATEGY)
 
@@ -625,7 +636,7 @@ class ScreenShotsHandler(MultiPageServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     @validate_params(form_class=ScreenShotForm)
     def get(self, server_key, key=None):
-        server_key = self.get_server_key_by_urlsafe(server_key)
+        server_key = self.get_server(server_key).key
         user_key = None
         if key:
             user = self.get_user_by_key(key)
@@ -639,9 +650,9 @@ class ScreenShotsHandler(MultiPageServerModelHandler):
 class ScreenShotKeyHandler(ServerModelHandler):
     @authentication_required(authenticate=authenticate_user_required)
     def get(self, server_key, key):
-        server_key = self.get_server_key_by_urlsafe(server_key)
-        screen_shot = self.get_server_model_by_key(server_key, key)
-        self.json_response(screen_shot, SCREEN_SHOT_STRATEGY)
+        server_key = self.get_server(server_key).key
+        screenshot = self.get_server_model_by_key(server_key, key)
+        self.json_response(screenshot, SCREEN_SHOT_STRATEGY)
 
 
 routes = [

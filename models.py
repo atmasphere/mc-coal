@@ -390,6 +390,7 @@ class UsernameClaim(ndb.Model):
 @ae_ndb_serializer
 class Server(ndb.Model):
     name = ndb.StringProperty()
+    active = ndb.BooleanProperty(default=True)
     version = ndb.StringProperty()
     is_running = ndb.BooleanProperty()
     last_ping = ndb.DateTimeProperty()
@@ -510,25 +511,11 @@ class Server(ndb.Model):
 
     @classmethod
     def query_all(cls):
-        return cls.query().order(cls.created)
+        return cls.query().filter(cls.active==True).order(cls.created)
 
     @classmethod
     def query_all_reverse(cls):
-        return cls.query().order(-cls.created)
-
-    @classmethod
-    def global_key(cls):
-        server_key = None
-        data = memcache.get('global_server_key')
-        if data is not None:
-            server_key = ndb.Key(urlsafe=data)
-        else:
-            server = Server.query().order(Server.created).get()
-            if server is None:
-                server = Server.create()
-            server_key = server.key
-            memcache.add('global_server_key', server_key.urlsafe())
-        return server_key
+        return cls.query().filter(cls.active==True).order(-cls.created)
 
 
 class ServerModel(ndb.Model):
@@ -537,7 +524,7 @@ class ServerModel(ndb.Model):
         return self.key.parent()
 
     @classmethod
-    def server_query(cls, server_key=None):
+    def server_query(cls, server_key):
         return cls.query(ancestor=server_key)
 
 
@@ -952,9 +939,9 @@ class GaussianBlurFilter(ImageFilter.Filter):
         return image.gaussian_blur(self.radius)
 
 
-def blur(screen_shot_key):
-    screen_shot = ndb.Key(urlsafe=screen_shot_key).get()
-    screen_shot.create_blurred()
+def blur(screenshot_key):
+    screenshot = ndb.Key(urlsafe=screenshot_key).get()
+    screenshot.create_blurred()
 
 
 @ae_ndb_serializer
@@ -991,8 +978,8 @@ class ScreenShot(NdbImage, ServerModel):
     def generate_blurred_image_data(self):
         blob_reader = blobstore.BlobReader(self.blob_key)
         pil_image = Image.open(blob_reader)
-        screen_shot_filter = GaussianBlurFilter()
-        pil_image = pil_image.filter(screen_shot_filter)
+        screenshot_filter = GaussianBlurFilter()
+        pil_image = pil_image.filter(screenshot_filter)
         output = StringIO()
         pil_image.save(output, format="png")
         pil_image_data = output.getvalue()
@@ -1022,12 +1009,12 @@ class ScreenShot(NdbImage, ServerModel):
         # Small enough for offset?
         if count <= 100:
             offset = random.randrange(count)
-            screen_shot = ScreenShot.server_query().order(cls.random_id).get(offset=offset)
+            screenshot = ScreenShot.server_query(server_key).order(cls.random_id).get(offset=offset)
         else:  # Use statistics
-            screen_shot = ScreenShot.server_query().filter(cls.random_id > random.random()).order(cls.random_id).get()
-            if screen_shot is None:
-                screen_shot = ScreenShot.server_query().order(cls.random_id).get()
-        return screen_shot
+            screenshot = ScreenShot.server_query(server_key).filter(cls.random_id > random.random()).order(cls.random_id).get()
+            if screenshot is None:
+                screenshot = ScreenShot.server_query(server_key).order(cls.random_id).get()
+        return screenshot
 
     @classmethod
     def query_latest(cls, server_key, user_key=None, since=None, before=None):

@@ -1,5 +1,16 @@
 indexes:
 
+- kind: Server
+  properties:
+  - name: active
+  - name: created
+
+- kind: Server
+  properties:
+  - name: active
+  - name: created
+    direction: desc
+
 - kind: LogLine
   ancestor: yes
   properties:
