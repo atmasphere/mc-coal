@@ -35,4 +35,4 @@ class StatusCheckTest(BaseTest, WebTest):
         self.assertOK(self.response)
         server = models.Server.query().get()
         self.assertIsNone(server.is_running)
-        self.assertEmailSent(to=self.user.email, subject="{0} server status is UNKNOWN".format(coal_config.TITLE))
+        self.assertEmailSent(to=self.user.email, subject="{0} server status is UNKNOWN".format(self.server.name))

@@ -22,6 +22,9 @@ import search
 from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin, authenticate_public
 
 
+RESULTS_PER_PAGE = 50
+
+
 class MainHandlerBase(UserHandler):
     def redirect_to_server(self, route_name):
         server_keys = Server.query_all().fetch(2, keys_only=True)
@@ -138,17 +141,17 @@ class ChatsHandler(PagingHandler):
             cursor = self.request.get('cursor', None)
             if cursor and cursor.startswith('PAGE_'):
                 page = int(cursor.strip()[5:])
-            offset = page*coal_config.RESULTS_PER_PAGE
-            results, number_found, _ = search.search_log_lines('chat:{0}'.format(query_string), server_key=server.key, limit=coal_config.RESULTS_PER_PAGE, offset=offset)
+            offset = page*RESULTS_PER_PAGE
+            results, number_found, _ = search.search_log_lines('chat:{0}'.format(query_string), server_key=server.key, limit=RESULTS_PER_PAGE, offset=offset)
             previous_cursor = next_cursor = None
             if page > 0:
                 previous_cursor = u'PAGE_{0}&q={1}'.format(page - 1 if page > 0 else 0, query_string)
-            if number_found > offset + coal_config.RESULTS_PER_PAGE:
+            if number_found > offset + RESULTS_PER_PAGE:
                 next_cursor = u'PAGE_{0}&q={1}'.format(page + 1, query_string)
         # Latest
         else:
             results, previous_cursor, next_cursor = self.get_results_with_cursors(
-                LogLine.query_latest_events(server.key), LogLine.query_oldest_events(server.key), coal_config.RESULTS_PER_PAGE
+                LogLine.query_latest_events(server.key), LogLine.query_oldest_events(server.key), RESULTS_PER_PAGE
             )
 
         context = {'chats': results, 'query_string': query_string or ''}
@@ -199,7 +202,7 @@ class PlayersHandler(PagingHandler):
     def get(self, server_key=None):
         server = self.get_server_by_key(server_key, 'players')
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            Player.query_all_reverse(server.key), Player.query_all(server.key), coal_config.RESULTS_PER_PAGE
+            Player.query_all_reverse(server.key), Player.query_all(server.key), RESULTS_PER_PAGE
         )
         context = {'players': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('players.html', context=context)
@@ -210,7 +213,7 @@ class PlaySessionsHandler(PagingHandler):
     def get(self, server_key=None):
         server = self.get_server_by_key(server_key, 'play_sessions')
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            PlaySession.query_latest(server.key), PlaySession.query_oldest(server.key), coal_config.RESULTS_PER_PAGE
+            PlaySession.query_latest(server.key), PlaySession.query_oldest(server.key), RESULTS_PER_PAGE
         )
         context = {'play_sessions': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('play_sessions.html', context=context)
@@ -286,7 +289,7 @@ class AdminHandler(PagingHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            User.query_all(), User.query_all_reverse(), coal_config.RESULTS_PER_PAGE
+            User.query_all(), User.query_all_reverse(), RESULTS_PER_PAGE
         )
         servers = []
         for server in Server.query():
@@ -353,7 +356,7 @@ class UsersHandler(PagingHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            User.query_all(), User.query_all_reverse(), coal_config.RESULTS_PER_PAGE
+            User.query_all(), User.query_all_reverse(), RESULTS_PER_PAGE
         )
         context = {'users': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('users.html', context=context)
@@ -474,7 +477,7 @@ class ServersHandler(PagingHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self):
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            Server.query_all(), Server.query_all_reverse(), coal_config.RESULTS_PER_PAGE
+            Server.query_all(), Server.query_all_reverse(), RESULTS_PER_PAGE
         )
         context = {'servers': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
         self.render_template('servers.html', context=context)

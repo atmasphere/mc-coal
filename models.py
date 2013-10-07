@@ -469,7 +469,7 @@ class Server(ndb.Model):
                     last_ping_utc_dt = pytz.utc.localize(self.last_ping)
                     last_ping_ts = last_ping_utc_dt.astimezone(pytz.timezone(coal_config.TIMEZONE)).strftime(tf)
                 body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
-                    coal_config.TITLE,
+                    self.name,
                     status,
                     now_ts,
                     last_ping_ts
@@ -480,7 +480,7 @@ class Server(ndb.Model):
                     mail.send_mail(
                         sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
                         to=admin_emails,
-                        subject="{0} server status is {1}".format(coal_config.TITLE, status),
+                        subject="{0} server status is {1}".format(self.name, status),
                         body=body
                     )
 
@@ -806,7 +806,7 @@ class LogLine(UsernameModel):
             query_string = u"{0} timestamp_sse >= {1}".format(query_string, seconds_since_epoch(since))
         if before is not None:
             query_string = u"{0} timestamp_sse < {1}".format(query_string, seconds_since_epoch(before))
-        results, _, next_cursor = search.search_log_lines(query_string, server_key=server_key, limit=size or coal_config.RESULTS_PER_PAGE, cursor=cursor)
+        results, _, next_cursor = search.search_log_lines(query_string, server_key=server_key, limit=size or 50, cursor=cursor)
         return results, next_cursor if next_cursor else None
 
 
