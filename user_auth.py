@@ -3,6 +3,7 @@ from functools import wraps
 import json
 import logging
 import os
+import time
 import urllib2
 import urlparse
 
@@ -189,6 +190,8 @@ class AuthHandler(UserHandler):
             user.admin = True
         user.last_login = datetime.datetime.now()
         user.put()
+        if ON_SERVER:
+            time.sleep(2)
         if not (user and user.active and next_url):
             next_url = webapp2.uri_for('main')
         self.redirect(next_url)
