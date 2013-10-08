@@ -2,6 +2,7 @@ import datetime
 from functools import wraps
 import json
 import logging
+import os
 import urllib2
 import urlparse
 
@@ -13,6 +14,8 @@ from webapp2_extras.routes import RedirectRoute
 
 from base_handler import JinjaHandler
 from models import User
+
+ON_SERVER = not os.environ.get('SERVER_SOFTWARE','').startswith('Development')
 
 
 def get_gae_callback_uri(handler, next_url=None):
@@ -57,9 +60,8 @@ def authentication_required(authenticate=None, request_property_name='user', req
         @wraps(request_method)
         def wrapped(self, *args, **kwargs):
             if require_https:
-                from agar.env import on_server
                 scheme, netloc, path, query, fragment = urlparse.urlsplit(self.request.url)
-                if on_server and scheme and scheme.lower() != 'https':
+                if ON_SERVER and scheme and scheme.lower() != 'https':
                     self.abort(403)
             setattr(self.request, request_property_name, authenticate(self))
             request_method(self, *args, **kwargs)

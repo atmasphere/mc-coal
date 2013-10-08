@@ -4,8 +4,8 @@ import json
 
 from google.appengine.api import channel as gae_channel
 
-from agar.test.base_test import BaseTest
-from agar.test.web_test import WebTest
+from base_test import BaseTest
+from web_test import WebTest
 
 import minimock
 

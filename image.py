@@ -179,7 +179,7 @@ class NdbImage(ndb.Model):
     def create_new_entity(cls, **kwargs):
         """
         Called to create a new entity. The default implementation simply creates the entity with the default constructor
-        and calls ``put()``. This method allows the class to be mixed-in with :py:class:`agar.models.NamedModel`.
+        and calls ``put()``.
 
         :param kwargs: Parameters to be passed to the constructor.
         """

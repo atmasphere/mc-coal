@@ -1,6 +1,6 @@
-import webapp2
+import os
 
-from agar.env import on_production_server
+import webapp2
 
 from models import Server
 
@@ -15,5 +15,5 @@ application = webapp2.WSGIApplication(
     [
         webapp2.Route('/cron/server/status', ServerStatusHandler, name='cron_server_status'),
     ],
-    debug=not on_production_server
+    debug=os.environ.get('SERVER_SOFTWARE','').startswith('Development')
 )

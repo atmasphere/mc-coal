@@ -16,7 +16,6 @@ class WebTest(unittest.TestCase):
 
     Example::
 
-        from agar.test import BaseTest, WebTest
         import my_app
         
         class TestMyApp(BaseTest, WebTest):

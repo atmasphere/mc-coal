@@ -18,11 +18,9 @@ class BaseTest(unittest.TestCase):
 
     To use, simply inherit from ``BaseTest``::
 
-        import agar
-
         from models import MyModel
 
-        class MyTestCase(agar.test.BaseTest):
+        class MyTestCase(BaseTest):
 
             def test_datastore(self):
                 model = MyModel(foo='foo')
@@ -78,8 +76,6 @@ class BaseTest(unittest.TestCase):
         For example::
 
             import unittest
-
-            from agar.test import BaseTest
 
             class MyTestCase(BaseTest):
                 def test_clear_datastore(self):

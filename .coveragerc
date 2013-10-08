@@ -1,6 +1,6 @@
 [run]
 include = api.py, base_handler.py, channel.py, cron.py, filters.py, image.py, main.py, models.py, oauth.py, search.py, user_auth.py, test_*
-omit = agar, docs, nbt, poster, pyoauth2, pytz, requests, restler, static, templates, webtest, wtforms, yaml, minimock.py, timezones.py
+omit = docs, nbt, poster, pyoauth2, pytz, requests, restler, static, templates, webtest, wtforms, yaml, minimock.py, timezones.py
 
 [report]
 exclude_lines =

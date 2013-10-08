@@ -7,8 +7,8 @@ from urllib import urlencode
 
 from google.appengine.ext import ndb
 
-from agar.test.base_test import BaseTest
-from agar.test.web_test import WebTest
+from base_test import BaseTest
+from web_test import WebTest
 
 from oauth import Client, Token, coal_config
 import main

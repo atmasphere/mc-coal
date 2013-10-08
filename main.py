@@ -1,4 +1,5 @@
 import logging
+import os
 
 from google.appengine.api import lib_config
 from google.appengine.ext import blobstore
@@ -13,8 +14,6 @@ import webapp2
 from webapp2_extras.routes import RedirectRoute
 
 from wtforms import form, fields, validators, widgets
-
-from agar.env import on_production_server
 
 from base_handler import uri_for_pagination
 from channel import ServerChannels
@@ -613,7 +612,7 @@ application = webapp2.WSGIApplication(
         },
         'webapp2_extras.auth': {'user_model': 'models.User', 'token_max_age': coal_config.COOKIE_MAX_AGE}
     },
-    debug=not on_production_server
+    debug=os.environ.get('SERVER_SOFTWARE','').startswith('Development')
 )
 
 from user_auth import routes as user_auth_routes

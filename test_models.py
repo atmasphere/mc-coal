@@ -8,7 +8,7 @@ from google.appengine.ext import blobstore, testbed, deferred
 
 import minimock
 
-from agar.test.base_test import BaseTest
+from base_test import BaseTest
 
 import channel
 import image

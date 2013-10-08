@@ -2,8 +2,8 @@ from testing_utils import fix_sys_path; fix_sys_path()
 
 import os
 
-from agar.test.base_test import BaseTest
-from agar.test.web_test import WebTest
+from base_test import BaseTest
+from web_test import WebTest
 
 from models import User, Server, Command
 import main
