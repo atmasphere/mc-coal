@@ -21,7 +21,7 @@ from channel import ServerChannels
 from config import coal_config
 from models import get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
 import search
-from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin, authenticate_public
+from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin
 
 
 RESULTS_PER_PAGE = 50

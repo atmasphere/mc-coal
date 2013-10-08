@@ -25,6 +25,7 @@ class ServerChannels(ndb.Model):
             int(time.time()),
             random.randrange(999)
         )
+
     @classmethod
     def get_server_key(cls, client_id):
         key_id = client_id[:client_id.find('.')]
@@ -33,6 +34,16 @@ class ServerChannels(ndb.Model):
         except ValueError:
             pass
         return ndb.Key('Server', key_id)
+
+    @classmethod
+    def get_user_key(cls, client_id):
+        i = client_id.find('.')
+        key_id = client_id[i+1:client_id.find('.', i+1)]
+        try:
+            key_id = int(key_id)
+        except ValueError:
+            pass
+        return ndb.Key('User', key_id)
 
     @classmethod
     def get_key(cls, server_key):
@@ -53,8 +64,8 @@ class ServerChannels(ndb.Model):
     def send_message(cls, log_line, event):
         message = {
             'event': event,
-            'date': datetime_filter(log_line.timestamp, '%b %d, %Y'),
-            'time': datetime_filter(log_line.timestamp, '%I:%M%p'),
+            'date': datetime_filter(log_line.timestamp, format='%b %d, %Y'),
+            'time': datetime_filter(log_line.timestamp, format='%I:%M%p'),
             'username': log_line.username,
             'chat': log_line.chat,
             'death_message': log_line.death_message
@@ -64,7 +75,12 @@ class ServerChannels(ndb.Model):
             message_json = json.dumps(message)
             for client_id in client_ids:
                 try:
-                    channel.send_message(client_id, message_json)
+                    user = cls.get_user_key(client_id).get()
+                    if user is not None:
+                        timezone = user.timezone
+                        message['date'] = datetime_filter(log_line.timestamp, format='%b %d, %Y', timezone=timezone)
+                        message['time'] = datetime_filter(log_line.timestamp, format='%I:%M%p', timezone=timezone)
+                        channel.send_message(client_id, message_json)
                 except:
                     pass
 
