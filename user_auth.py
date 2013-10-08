@@ -12,7 +12,7 @@ from webapp2_extras import auth, sessions
 from webapp2_extras.routes import RedirectRoute
 
 from base_handler import JinjaHandler
-from models import User, ScreenShot
+from models import User
 
 
 def get_gae_callback_uri(handler, next_url=None):
@@ -142,11 +142,6 @@ class UserHandler(JinjaHandler, UserBase):
         template_context['flashes'] = self.session.get_flashes()
         template_context['request'] = self.request
         template_context['user'] = self.user
-        server = template_context['server'] = template_context.get('server', None) or getattr(self.request, 'server', None)
-        if server is not None:
-            bg_img = ScreenShot.random(server.key)
-            if bg_img is not None:
-                template_context['bg_img'] = bg_img.blurred_image_serving_url
         return template_context
 
 

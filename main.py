@@ -29,6 +29,15 @@ TIMEZONE_CHOICES = [(tz, tz) for tz in pytz.common_timezones if tz.startswith('U
 
 
 class MainHandlerBase(UserHandler):
+    def get_template_context(self, context=None):
+        template_context = super(MainHandlerBase, self).get_template_context(context=context)
+        server = template_context['server'] = template_context.get('server', None) or getattr(self.request, 'server', None)
+        if server is not None:
+            bg_img = ScreenShot.random(server.key)
+            if bg_img is not None:
+                template_context['bg_img'] = bg_img.blurred_image_serving_url
+        return template_context
+
     def redirect_to_server(self, route_name):
         server_keys = Server.query_all().fetch(2, keys_only=True)
         if server_keys and len(server_keys) == 1:
@@ -364,7 +373,7 @@ class UsersHandler(PagingHandler):
         self.render_template('users.html', context=context)
 
 
-class UserEditHandler(UserHandler):
+class UserEditHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
         try:
@@ -400,7 +409,7 @@ class UserEditHandler(UserHandler):
         self.render_template('user.html', context=context)
 
 
-class UserRemoveHandler(UserHandler):
+class UserRemoveHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
         try:
@@ -443,7 +452,7 @@ class UsernameClaimForm(form.Form):
     username = fields.StringField(u'Username', validators=[validators.DataRequired(), UniqueUsername()])
 
 
-class UserProfileHandler(UserHandler):
+class UserProfileHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
     def get(self):
         next_url = self.request.params.get('next_url', webapp2.uri_for('main'))
@@ -469,7 +478,7 @@ class UserProfileHandler(UserHandler):
         self.render_template('user_profile.html', context=context)
 
 
-class UsernameClaimHandler(UserHandler):
+class UsernameClaimHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
     def post(self):
         next_url = self.request.params.get('next_url', webapp2.uri_for('user_profile'))
