@@ -160,10 +160,7 @@ class LogLineTest(BaseTest):
         minimock.mock('channel.ServerChannels.get_client_ids', returns=['client_id'], tracker=None)
         minimock.mock('channel.ServerChannels.send_message', tracker=tracker)
         log_line = models.LogLine.create(self.server, LOG_LINE, TIME_ZONE)
-        trace = tracker.dump()
-        self.assertTrue("""Called channel.ServerChannels.send_message(
-    LogLine(key={0}, chat=""".format(log_line.key) in trace)
-        self.assertTrue("line=u'{0}'".format(LOG_LINE) in trace)
+        minimock.assert_same_trace(tracker, """Called channel.ServerChannels.send_message({0}, u'chat')""".format(log_line))
 
 
 class ServerChannelsTest(BaseTest):

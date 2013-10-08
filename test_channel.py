@@ -55,13 +55,11 @@ class SendLogLineTest(BaseTest):
 
     def test_sends_interesting_log_lines(self):
         self.interesting_log_line.send_message()
-        trace = self.tracker.dump()
-        self.assertTrue('Called channel.ServerChannels.send_message' in trace)
+        minimock.assert_same_trace(self.tracker, "Called channel.ServerChannels.send_message({0}, u'chat')".format(self.interesting_log_line))
 
     def test_does_not_send_uninteresting_log_lines(self):
         self.uninteresting_log_line.send_message()
-        trace = self.tracker.dump()
-        self.assertFalse('Called channel.ServerChannels.send_message' in trace)
+        minimock.assert_same_trace(self.tracker, '')
 
     def test_sends_message_to_all_connected_clients(self):
         minimock.restore()
@@ -73,9 +71,10 @@ class SendLogLineTest(BaseTest):
         minimock.mock('channel.ServerChannels.get_client_ids', returns=[client_id, client_id2], tracker=None)
         minimock.mock('gae_channel.send_message', tracker=self.tracker)
         self.interesting_log_line.send_message()
-        trace = self.tracker.dump()
-        self.assertTrue(client_id in trace)
-        self.assertTrue(client_id2 in trace)
+        js = '{"username": "quazifene", "chat": "is there anybody in there?", "time": "12:01am", "date": "Mar 24, 2013", "event": "chat", "death_message": null}'
+        trace = "Called gae_channel.send_message(\n    '{0}',\n    '{1}')".format(client_id, js)
+        trace += "\nCalled gae_channel.send_message(\n    '{0}',\n    '{1}')".format(client_id, js)
+        minimock.assert_same_trace(self.tracker, trace)
 
     def test_sends_log_line_data_as_json(self):
         minimock.restore()
@@ -87,10 +86,7 @@ class SendLogLineTest(BaseTest):
         minimock.mock('gae_channel.send_message', tracker=self.tracker)
         js = '{"username": "quazifene", "chat": "is there anybody in there?", "time": "05:01pm", "date": "Mar 23, 2013", "event": "chat", "death_message": null}'
         self.interesting_log_line.send_message()
-        minimock.assert_same_trace(self.tracker, """Called gae_channel.send_message(
-    '{0}',
-    '{1}')""".format(client_id, js)
-        )
+        minimock.assert_same_trace(self.tracker, "Called gae_channel.send_message('{0}','{1}')".format(client_id, js))
         log_line = json.loads(js)
         self.assertEqual('chat', log_line['event'])
         self.assertEqual('Mar 23, 2013', log_line['date'])
@@ -117,9 +113,7 @@ class ConnectedHandlerTest(ChannelHandlerTest):
         tracker = minimock.TraceTracker()
         minimock.mock('channel.ServerChannels.add_client_id', tracker=tracker)
         self.post('/_ah/channel/connected/', params={'from': 'client-id'})
-        self.assertTrue(
-            tracker.check("Called channel.ServerChannels.add_client_id(u'client-id')")
-        )
+        minimock.assert_same_trace(tracker, "Called channel.ServerChannels.add_client_id(u'client-id')")
 
 
 class DisconnectedHandlerTest(ChannelHandlerTest):
@@ -131,6 +125,4 @@ class DisconnectedHandlerTest(ChannelHandlerTest):
         tracker = minimock.TraceTracker()
         minimock.mock('channel.ServerChannels.remove_client_id', tracker=tracker)
         self.post('/_ah/channel/disconnected/', params={'from': 'client-id-1'})
-        self.assertTrue(
-            tracker.check("Called channel.ServerChannels.remove_client_id(u'client-id-1')")
-        )
+        minimock.assert_same_trace(tracker, "Called channel.ServerChannels.remove_client_id(u'client-id-1')")
