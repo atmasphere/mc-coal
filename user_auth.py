@@ -1,8 +1,9 @@
 import datetime
+from functools import wraps
 import json
 import logging
 import urllib2
-from urlparse import urlparse
+import urlparse
 
 from google.appengine.api import users, urlfetch
 
@@ -43,6 +44,31 @@ def get_login_uri(handler, next_url=None):
     if next_url is not None:
         query_params['next_url'] = next_url
     return handler.uri_for('login', **query_params)
+
+
+def authenticate_abort_403(handler):
+    handler.abort(403)
+
+
+def authentication_required(authenticate=None, request_property_name='user', require_https=False):
+    if authenticate is None:
+        authenticate = authenticate_abort_403
+    def decorator(request_method):
+        @wraps(request_method)
+        def wrapped(self, *args, **kwargs):
+            if require_https:
+                from agar.env import on_server
+                scheme, netloc, path, query, fragment = urlparse.urlsplit(self.request.url)
+                if on_server and scheme and scheme.lower() != 'https':
+                    self.abort(403)
+            setattr(self.request, request_property_name, authenticate(self))
+            request_method(self, *args, **kwargs)
+        return wrapped
+    return decorator
+
+
+def https_authentication_required(authenticate=None):
+    return authentication_required(authenticate=authenticate, require_https=True)
 
 
 def authenticate(handler, required=True, admin=False):
@@ -195,7 +221,7 @@ class IndieAuthUserHandler(AuthHandler):
             raise Exception(message)
         me = auth_data.get('me', None)
         if me:
-            me = urlparse(me).netloc or me
+            me = urlparse.urlparse(me).netloc or me
         auth_id = User.get_indie_auth_id(me=me)
         self.login_auth_id(auth_id, nickname=me)
 

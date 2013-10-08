@@ -13,9 +13,7 @@ from webapp2_extras.routes import RedirectRoute
 from wtforms import fields
 from wtforms.ext.csrf.session import SessionSecureForm
 
-from agar.auth import authentication_required
-
-from user_auth import UserHandler, authenticate
+from user_auth import UserHandler, authentication_required, authenticate
 
 
 coal_config = lib_config.register(

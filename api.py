@@ -10,14 +10,13 @@ import webapp2
 
 from wtforms import form, fields, validators
 
-from agar.auth import authentication_required
-
 from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
 
 from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG
 from oauth import Client, authenticate_agent_oauth_required, authenticate_user_required
+from user_auth import authentication_required
 
 
 def validate_params(form_class):

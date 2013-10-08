@@ -14,14 +14,13 @@ from webapp2_extras.routes import RedirectRoute
 
 from wtforms import form, fields, validators, widgets
 
-from agar.auth import authentication_required
 from agar.env import on_production_server
 
 from base_handler import uri_for_pagination
 from channel import ServerChannels
 from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
 import search
-from user_auth import UserBase, UserHandler, authenticate, authenticate_admin
+from user_auth import UserBase, UserHandler, authentication_required, authenticate, authenticate_admin
 
 
 RESULTS_PER_PAGE = 50

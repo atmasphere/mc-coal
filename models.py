@@ -315,7 +315,7 @@ class User(auth_models.User):
 
     @classmethod
     def is_single_admin(cls):
-        return cls.query().filter(cls.admin==True).count(limit=2) < 2
+        return cls.query().filter(cls.admin==True).count(keys_only=True, limit=2) < 2
 
     @classmethod
     def query_all(cls):
@@ -997,7 +997,7 @@ class ScreenShot(NdbImage, ServerModel):
 
     @classmethod
     def random(cls, server_key):
-        count = ScreenShot.server_query(server_key).count(limit=101)
+        count = ScreenShot.server_query(server_key).count(keys_only=True, limit=101)
         if not count:
             return None
         # Small enough for offset?
