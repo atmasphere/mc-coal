@@ -79,11 +79,13 @@ class SendLogLineTest(BaseTest):
 
     def test_sends_log_line_data_as_json(self):
         minimock.restore()
+        self.user.timezone_name = 'US/Pacific'
+        self.user.put()
         self.tracker = minimock.TraceTracker()
         client_id = '{0}.{1}.1234.5678'.format(self.server.key.id(), self.user.key.id())
         minimock.mock('channel.ServerChannels.get_client_ids', returns=[client_id], tracker=None)
         minimock.mock('gae_channel.send_message', tracker=self.tracker)
-        js = '{"username": "quazifene", "chat": "is there anybody in there?", "time": "12:01am", "date": "Mar 24, 2013", "event": "chat", "death_message": null}'
+        js = '{"username": "quazifene", "chat": "is there anybody in there?", "time": "05:01pm", "date": "Mar 23, 2013", "event": "chat", "death_message": null}'
         self.interesting_log_line.send_message()
         minimock.assert_same_trace(self.tracker, """Called gae_channel.send_message(
     '{0}',
@@ -91,8 +93,8 @@ class SendLogLineTest(BaseTest):
         )
         log_line = json.loads(js)
         self.assertEqual('chat', log_line['event'])
-        self.assertEqual('Mar 24, 2013', log_line['date'])
-        self.assertEqual('12:01am', log_line['time'])
+        self.assertEqual('Mar 23, 2013', log_line['date'])
+        self.assertEqual('05:01pm', log_line['time'])
         self.assertEqual('quazifene', log_line['username'])
         self.assertEqual('is there anybody in there?', log_line['chat'])
         self.assertEqual(None, log_line['death_message'])

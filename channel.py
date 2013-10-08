@@ -72,7 +72,6 @@ class ServerChannels(ndb.Model):
         }
         client_ids = cls.get_client_ids(log_line.server_key)
         if client_ids:
-            message_json = json.dumps(message)
             for client_id in client_ids:
                 try:
                     user = cls.get_user_key(client_id).get()
@@ -80,6 +79,7 @@ class ServerChannels(ndb.Model):
                         timezone = user.timezone
                         message['date'] = datetime_filter(log_line.timestamp, format='%b %d, %Y', timezone=timezone)
                         message['time'] = datetime_filter(log_line.timestamp, format='%I:%M%p', timezone=timezone)
+                        message_json = json.dumps(message)
                         channel.send_message(client_id, message_json)
                 except:
                     pass
