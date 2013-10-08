@@ -12,7 +12,7 @@ from webapp2_extras.routes import RedirectRoute
 
 from base_handler import JinjaHandler
 from config import coal_config
-from models import get_whitelist_user, User, ScreenShot
+from models import User, ScreenShot
 
 
 def get_gae_callback_uri(handler, next_url=None):
@@ -51,17 +51,6 @@ def authenticate(handler, required=True, admin=False):
     user = handler.user
     if user is not None:
         update = False
-        wlu = get_whitelist_user(user.email)
-        if wlu:
-            if not user.active:
-                user.active = True
-                update = True
-            if user.admin != wlu['admin']:
-                user.admin = wlu['admin']
-                update = True
-            if user.username != wlu['username']:
-                user.username = wlu['username']
-                update = True
         if admin and not user.admin and User.query().filter(User.admin == True).count(keys_only=True, limit=1) == 0:
             user.admin = True
             user.active = True

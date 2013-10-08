@@ -19,7 +19,7 @@
 
         <div class="box">
             <form action="{{ uri_for('user', key=edit_user.key.urlsafe()) }}" method="post">
-                <label>Username</label>
+                <label>Usernames</label>
                 {{ macros.with_errors(form.usernames, class="span3") }}
 
                 <label>Active</label>
@@ -34,10 +34,12 @@
                 </div>
             </form>
         </div>
-        <div class="box">
-            <form action="{{ uri_for('user_remove', key=edit_user.key.urlsafe()) }}" method="POST">
-                <input type="submit" name="submit" value="Remove">
-            </form>
-        </div>
+        {% if not edit_user.admin %}
+            <div class="box">
+                <form action="{{ uri_for('user_remove', key=edit_user.key.urlsafe()) }}" method="POST">
+                    <input type="submit" name="submit" value="Remove">
+                </form>
+            </div>
+        {% endif %}
     </div>
 {% endblock %}

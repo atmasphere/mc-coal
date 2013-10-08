@@ -183,13 +183,6 @@ def name_to_timezone(name):
     return timezone
 
 
-def get_whitelist_user(email):
-    for wlu in coal_config.USER_WHITELIST:
-        if email == wlu['email']:
-            return wlu
-    return None
-
-
 @ae_ndb_serializer
 class User(auth_models.User):
     active = ndb.BooleanProperty(default=False)
@@ -203,10 +196,6 @@ class User(auth_models.User):
     last_chat_view = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
-
-    @property
-    def white_list(self):
-        return get_whitelist_user(self.email)
 
     @property
     def name(self):
@@ -324,6 +313,10 @@ class User(auth_models.User):
                 query = query.filter(ndb.StringProperty('usernames') == username)
             return query.get()
         return None
+
+    @classmethod
+    def is_single_admin(cls):
+        return cls.query().filter(cls.admin==True).count(limit=2) < 2
 
     @classmethod
     def query_all(cls):
@@ -1032,3 +1025,7 @@ class ScreenShot(NdbImage, ServerModel):
     @classmethod
     def query_oldest(cls, server_key):
         return cls.server_query(server_key).order(cls.created)
+
+    @classmethod
+    def query_by_user_key(cls, user_key):
+        return cls.query().order(cls.created)

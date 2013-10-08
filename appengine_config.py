@@ -1,7 +1,5 @@
 # Default COAL Configuration
 
-COAL_USER_WHITELIST = []
-
 COAL_SECRET_KEY = 'a_secret_string'
 
 COAL_COOKIE_MAX_AGE = 2592000  # 30 days

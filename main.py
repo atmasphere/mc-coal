@@ -19,7 +19,7 @@ from agar.env import on_production_server
 from base_handler import uri_for_pagination
 from channel import ServerChannels
 from config import coal_config
-from models import get_whitelist_user, User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
+from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
 import search
 from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin
 
@@ -70,35 +70,28 @@ class HomeHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
     def get(self, server_key=None):
         server = self.get_server_by_key(server_key, 'home')
-        user = self.request.user
-        if user and user.active:
-            open_sessions_query = PlaySession.query_latest_open(server.key)
-            # Get open sessions
-            playing_usernames = []
-            open_sessions = []
-            for open_session in open_sessions_query:
-                if open_session.username and open_session.username not in playing_usernames:
-                    playing_usernames.append(open_session.username)
-                    open_sessions.append(open_session)
-            # Get new chats
-            new_chats_query = LogLine.query_latest_events(server.key)
-            last_chat_view = self.request.user.last_chat_view
-            if last_chat_view is not None:
-                new_chats_query = new_chats_query.filter(LogLine.timestamp > last_chat_view)
-            new_chats, chats_cursor, more = new_chats_query.fetch_page(20)
-            if new_chats:
-                self.request.user.record_chat_view(new_chats[0].timestamp)
-            # Render with context
-            context = {
-                'open_sessions': open_sessions,
-                'new_chats': new_chats,
-                'chats_cursor': chats_cursor,
-                'logout_url': webapp2.uri_for('logout')
-            }
-        elif user:  # Logged in, but not on white-list and active
-            context = {'logout_url': webapp2.uri_for('logout')}
-        else:  # Not logged in
-            context = {'login_url': get_login_uri(self)}
+        open_sessions_query = PlaySession.query_latest_open(server.key)
+        # Get open sessions
+        playing_usernames = []
+        open_sessions = []
+        for open_session in open_sessions_query:
+            if open_session.username and open_session.username not in playing_usernames:
+                playing_usernames.append(open_session.username)
+                open_sessions.append(open_session)
+        # Get new chats
+        new_chats_query = LogLine.query_latest_events(server.key)
+        last_chat_view = self.request.user.last_chat_view
+        if last_chat_view is not None:
+            new_chats_query = new_chats_query.filter(LogLine.timestamp > last_chat_view)
+        new_chats, chats_cursor, more = new_chats_query.fetch_page(20)
+        if new_chats:
+            self.request.user.record_chat_view(new_chats[0].timestamp)
+        # Render with context
+        context = {
+            'open_sessions': open_sessions,
+            'new_chats': new_chats,
+            'chats_cursor': chats_cursor
+        }
         self.render_template('home.html', context=context)
 
 
@@ -346,9 +339,15 @@ class UniqueUsernames(object):
                     raise validators.ValidationError("Username '{0}' is already assigned to a user".format(username))
 
 
+class AtLeastOneAdmin(object):
+    def __call__(self, form, field):
+        if not field.data and form.user.admin and User.is_single_admin():
+            raise validators.ValidationError("Can't demote this user. There must always be at least one admin user.")
+
+
 class UserForm(form.Form):
     active = fields.BooleanField(u'Active', [validators.Optional()])
-    admin = fields.BooleanField(u'Admin', [validators.Optional()])
+    admin = fields.BooleanField(u'Admin', [AtLeastOneAdmin()])
     usernames = StringListField(u'Usernames', validators=[validators.Optional(), UniqueUsernames()])
 
     def __init__(self, user=None, *args, **kwargs):
@@ -372,7 +371,7 @@ class UserEditHandler(UserHandler):
         try:
             user_key = ndb.Key(urlsafe=key)
             user = user_key.get()
-            if user is None or get_whitelist_user(user.email) is not None:
+            if user is None:
                 self.abort(404)
             form = UserForm(user=user, obj=user)
         except Exception, e:
@@ -388,14 +387,11 @@ class UserEditHandler(UserHandler):
             user = user_key.get()
             if user is None:
                 self.abort(404)
-            if user.white_list is not None:
-                self.abort(405)  # Method Not Allowed
             form = UserForm(user=user, formdata=self.request.POST, obj=user)
             if form.validate():
                 user.active = form.active.data
                 user.admin = form.admin.data
                 user.set_usernames(form.usernames.data)
-                user.usernames = form.usernames.data
                 user.put()
                 self.redirect(webapp2.uri_for('users'))
         except Exception, e:
@@ -413,7 +409,7 @@ class UserRemoveHandler(UserHandler):
             user = user_key.get()
             if user is None:
                 self.abort(404)
-            if user.white_list is not None:
+            if user.admin:
                 self.abort(405)  # Method Not Allowed
             user.key.delete()
         except Exception, e:
