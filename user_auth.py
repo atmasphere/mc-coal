@@ -11,7 +11,6 @@ from webapp2_extras import auth, sessions
 from webapp2_extras.routes import RedirectRoute
 
 from base_handler import JinjaHandler
-from config import coal_config
 from models import User, ScreenShot
 
 
@@ -117,7 +116,6 @@ class UserHandler(JinjaHandler, UserBase):
         template_context['flashes'] = self.session.get_flashes()
         template_context['request'] = self.request
         template_context['user'] = self.user
-        template_context['config'] = coal_config
         server = template_context['server'] = template_context.get('server', None) or getattr(self.request, 'server', None)
         if server is not None:
             bg_img = ScreenShot.random(server.key)

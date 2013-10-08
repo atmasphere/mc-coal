@@ -5,7 +5,6 @@ import datetime
 from agar.test.base_test import BaseTest
 from agar.test.web_test import WebTest
 
-from config import coal_config
 import cron
 import models
 

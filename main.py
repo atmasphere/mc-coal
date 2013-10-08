@@ -1,5 +1,6 @@
 import logging
 
+from google.appengine.api import lib_config
 from google.appengine.ext import blobstore
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import Cursor
@@ -18,10 +19,9 @@ from agar.env import on_production_server
 
 from base_handler import uri_for_pagination
 from channel import ServerChannels
-from config import coal_config
 from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
 import search
-from user_auth import get_login_uri, UserBase, UserHandler, authenticate, authenticate_admin
+from user_auth import UserBase, UserHandler, authenticate, authenticate_admin
 
 
 RESULTS_PER_PAGE = 50
@@ -564,6 +564,13 @@ class ServerDeactivateHandler(UserHandler):
             logging.error(u"Error deactivating server: {0}".format(e))
         self.redirect(webapp2.uri_for('servers'))
 
+coal_config = lib_config.register(
+    'COAL', {
+                'SECRET_KEY': 'a_secret_string',
+                'COOKIE_MAX_AGE': 2592000,
+                'OAUTH_TOKEN_EXPIRES_IN': 3600
+            }
+)
 
 application = webapp2.WSGIApplication(
     [

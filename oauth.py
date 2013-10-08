@@ -4,6 +4,7 @@ import logging
 from pyoauth2.provider import AuthorizationProvider, ResourceAuthorization, ResourceProvider
 from pyoauth2.utils import url_query_params, random_ascii_string
 
+from google.appengine.api import lib_config
 from google.appengine.ext import ndb
 
 import webapp2
@@ -14,8 +15,16 @@ from wtforms.ext.csrf.session import SessionSecureForm
 
 from agar.auth import authentication_required
 
-from config import coal_config
 from user_auth import UserHandler, authenticate
+
+
+coal_config = lib_config.register(
+    'COAL', {
+                'SECRET_KEY': 'a_secret_string',
+                'COOKIE_MAX_AGE': 2592000,
+                'OAUTH_TOKEN_EXPIRES_IN': 3600
+            }
+)
 
 
 class Client(ndb.Model):

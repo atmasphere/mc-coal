@@ -18,7 +18,6 @@ from restler.decorators import ae_ndb_serializer
 
 from channel import ServerChannels
 
-from config import coal_config
 from image import NdbImage
 import search
 
