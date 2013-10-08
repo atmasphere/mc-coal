@@ -5,7 +5,7 @@ import os
 from agar.test.base_test import BaseTest
 from agar.test.web_test import WebTest
 
-from models import User, Server
+from models import User, Server, Command
 import main
 
 TEST_USER_EMAIL = 'test@example.com'
@@ -348,6 +348,12 @@ class ChatsTest(ServerAuthTest):
         self.log_in_user()
         response = self.get()
         self.assertEqual('text/html', response.content_type)
+
+    def test_post(self):
+        self.log_in_user()
+        response = self.post(params={'chat': 'test'})
+        self.assertCreated(response)
+        self.assertEqual(1, Command.query().count())
 
 
 class NakedTest(AuthTest):
