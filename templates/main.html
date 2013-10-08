@@ -5,64 +5,48 @@
 {% block page_name %}Home{% endblock %}
 
 {% block content %}
-    {% if user and user.active %}
-        {% for server in servers %}
-        <div class="title box wrap">
-            <div class="left">
-                <h1><a href="{{ uri_for('home', server_key=server.key.urlsafe()) }}">{{ server.name }}</a></h1>
-                <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
-                {% if server.is_raining != None %}
-                    {% if server.is_raining %}
-                        / Raining
-                        {% if server.is_thundering %}
-                            & Thundering
-                        {% endif %}
-                    {% else %}
-                        / Clear
+    {% for server in servers %}
+    <div class="title box wrap">
+        <div class="left">
+            <h1><a href="{{ uri_for('home', server_key=server.key.urlsafe()) }}">{{ server.name }}</a></h1>
+            <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
+            {% if server.is_raining != None %}
+                {% if server.is_raining %}
+                    / Raining
+                    {% if server.is_thundering %}
+                        & Thundering
                     {% endif %}
+                {% else %}
+                    / Clear
                 {% endif %}
-                </h4>
-                {% if user.admin %}
-                    <div><strong>AGENT CLIENT ID:</strong> {{ server.agent.client_id }}</div>
-                    <div><strong>AGENT SECRET:</strong> {{ server.agent.secret }}</div>
-                    <h3><a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a></h3>
-                {% endif %}
-            </div>
-            <div class="status wrap {% if server.is_running == True %}up{% elif server.is_running == False %}down{% else %}unknown{% endif %}">
-                <i class="sprite"></i>
-                <div class="right">
-                    <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% endif %})</h4>
-                    <strong>
-                        {% if server.is_running == True %}
-                            Running
-                        {% elif server.is_running == False %}
-                            Down
-                        {% else %}
-                            Unknown
-                        {% endif %}
-                        (v{{ server.version }})
-                    </strong>
+            {% endif %}
+            </h4>
+            {% if user.admin %}
+                <div><strong>AGENT CLIENT ID:</strong> {{ server.agent.client_id }}</div>
+                <div><strong>AGENT SECRET:</strong> {{ server.agent.secret }}</div>
+                <h3><a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a></h3>
+            {% endif %}
+        </div>
+        <div class="status wrap {% if server.is_running == True %}up{% elif server.is_running == False %}down{% else %}unknown{% endif %}">
+            <i class="sprite"></i>
+            <div class="right">
+                <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% endif %})</h4>
+                <strong>
                     {% if server.is_running == True %}
-                        <br/>(Problems?&nbsp;Check&nbsp;<strong><a href="http://xpaw.ru/mcstatus/">Minecraft's&nbsp;Status</a></strong>)
+                        Running
+                    {% elif server.is_running == False %}
+                        Down
+                    {% else %}
+                        Unknown
                     {% endif %}
-                </div>
+                    (v{{ server.version }})
+                </strong>
+                {% if server.is_running == True %}
+                    <br/>(Problems?&nbsp;Check&nbsp;<strong><a href="http://xpaw.ru/mcstatus/">Minecraft's&nbsp;Status</a></strong>)
+                {% endif %}
             </div>
         </div>
-        <br/>
-        {% endfor %}
-    {% elif user %}
-        <div class="box">
-            <div class="pad">
-                <p>You don't have permission to see this site.</p>
-                <p><a href="{{ logout_url }}">Log Out</a></p>
-            </div>
-        </div>
-    {% else %}
-        <div class="box">
-            <div class="pad">
-                <p>You aren't logged in.</p>
-                <p><a href="{{ login_url }}">Log In</a></p>
-            </div>
-        </div>
-    {% endif %}
+    </div>
+    <br/>
+    {% endfor %}
 {% endblock %}

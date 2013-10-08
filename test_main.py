@@ -220,14 +220,12 @@ class MainTest(AuthTest):
 
     def test_get_no_auth(self):
         response = self.get()
-        self.assertOK(response)
-        self.assertIn('Log In', response.body)
+        self.assertRedirects(response)
 
     def test_get_inactive_user(self):
         self.log_in_user(email='hacker@example.com', is_active=False)
         response = self.get()
-        self.assertOK(response)
-        self.assertIn('Log Out', response.body)
+        self.assertRedirects(response)
 
     def test_get_logout(self):
         self.log_in_user()
@@ -236,8 +234,7 @@ class MainTest(AuthTest):
         self.assertLoggedIn(response)
         self.log_out_user()
         response = self.get()
-        self.assertOK(response)
-        self.assertIn('Log In', response.body)
+        self.assertRedirects(response)
 
     def test_get_login_again(self):
         self.log_in_user()
@@ -246,8 +243,7 @@ class MainTest(AuthTest):
         self.assertLoggedIn(response)
         self.log_out_user()
         response = self.get()
-        self.assertOK(response)
-        self.assertIn('Log In', response.body)
+        self.assertRedirects(response)
         self.log_in_user()
         response = self.get()
         self.assertRedirects(response)

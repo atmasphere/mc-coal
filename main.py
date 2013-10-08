@@ -54,7 +54,7 @@ class MainHandlerBase(UserHandler):
 
 
 class MainHandler(MainHandlerBase):
-    @authentication_required(authenticate=authenticate_public)
+    @authentication_required(authenticate=authenticate)
     def get(self):
         servers = Server.query_all().fetch(100)
         if self.request.user and self.request.user.active:

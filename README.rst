@@ -21,9 +21,11 @@ COAL Server
 -----------
 1. `Create an App Engine application <https://appengine.google.com/>`_ for your new COAL installation. Take note of the application id you select. Set up `repository push-to-deploy <https://developers.google.com/appengine/docs/push-to-deploy>`_.
 2. Fork this repository.
-3. Change ``mc-coal`` in the first line of `app.yaml <app.yaml>`_ to the application id you registered above. Commit. Push. Push-Deploy. `[Git instructions to go here]`
-4. Browse to ``https://[my-app-id].appspot.com/admin`` where `[my-app-id]` is your application id from step 1. For bootstrapping purposes, the first user to request this page is made an administrator, so make sure to do this right away.
-5. Create a server. Note the `Agent Client ID` and `Agent Secret` for that server.
+3. Change the application name (i.e. ``mc-coal``) in the first line of `app.yaml <app.yaml>`_ to the application id you registered above.
+4. Change the ``COAL_SECRET_KEY`` value in `appengine_config.py <appengine_config.py>`_ to a unique random value. You can use this `random.org link <http://www.random.org/strings/?num=1&len=20&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new>`_ to generate a unique string value.
+5. Commit. Push. Push-Deploy. `[Git instructions to go here]`
+6. Browse to ``https://[my-app-id].appspot.com/admin`` where `[my-app-id]` is your application id from step 1. For bootstrapping purposes, the first user to request this page is made an administrator, so make sure to do this right away.
+7. Create a server. Note the `Agent Client ID` and `Agent Secret` for that server.
 
 ----------
 COAL Agent
