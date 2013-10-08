@@ -16,7 +16,8 @@ from webapp2_extras.routes import RedirectRoute
 from base_handler import JinjaHandler
 from models import User
 
-ON_SERVER = not os.environ.get('SERVER_SOFTWARE','').startswith('Development')
+
+ON_SERVER = not os.environ.get('SERVER_SOFTWARE', 'Development').startswith('Development')
 
 
 def get_gae_callback_uri(handler, next_url=None):

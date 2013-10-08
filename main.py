@@ -22,6 +22,7 @@ import search
 from user_auth import UserBase, UserHandler, authentication_required, authenticate, authenticate_admin
 
 
+ON_SERVER = not os.environ.get('SERVER_SOFTWARE', 'Development').startswith('Development')
 RESULTS_PER_PAGE = 50
 TIMEZONE_CHOICES = [(tz, tz) for tz in pytz.common_timezones if tz.startswith('U')] + \
 [(tz, tz) for tz in pytz.common_timezones if not tz.startswith('U')]
@@ -571,13 +572,13 @@ class ServerDeactivateHandler(UserHandler):
             logging.error(u"Error deactivating server: {0}".format(e))
         self.redirect(webapp2.uri_for('servers'))
 
-coal_config = lib_config.register(
-    'COAL', {
-                'SECRET_KEY': 'a_secret_string',
-                'COOKIE_MAX_AGE': 2592000,
-                'OAUTH_TOKEN_EXPIRES_IN': 3600
-            }
-)
+
+coal_config = lib_config.register('COAL', {
+    'SECRET_KEY': 'a_secret_string',
+    'COOKIE_MAX_AGE': 2592000,
+    'OAUTH_TOKEN_EXPIRES_IN': 3600
+})
+
 
 application = webapp2.WSGIApplication(
     [
@@ -612,7 +613,7 @@ application = webapp2.WSGIApplication(
         },
         'webapp2_extras.auth': {'user_model': 'models.User', 'token_max_age': coal_config.COOKIE_MAX_AGE}
     },
-    debug=os.environ.get('SERVER_SOFTWARE','').startswith('Development')
+    debug=not ON_SERVER
 )
 
 from user_auth import routes as user_auth_routes

@@ -16,13 +16,11 @@ from wtforms.ext.csrf.session import SessionSecureForm
 from user_auth import UserHandler, authentication_required, authenticate
 
 
-coal_config = lib_config.register(
-    'COAL', {
-                'SECRET_KEY': 'a_secret_string',
-                'COOKIE_MAX_AGE': 2592000,
-                'OAUTH_TOKEN_EXPIRES_IN': 3600
-            }
-)
+coal_config = lib_config.register('COAL', {
+    'SECRET_KEY': 'a_secret_string',
+    'COOKIE_MAX_AGE': 2592000,
+    'OAUTH_TOKEN_EXPIRES_IN': 3600
+})
 
 
 class Client(ndb.Model):
