@@ -18,6 +18,7 @@ from restler.decorators import ae_ndb_serializer
 
 from channel import ServerChannels
 
+from filters import datetime_filter
 from image import NdbImage
 import search
 
@@ -325,6 +326,10 @@ class User(auth_models.User):
     def query_all_reverse(cls):
         return cls.query().order(-cls.created)
 
+    @classmethod
+    def query_admin(cls):
+        return cls.query().filter(User.admin == True)
+
 
 @ae_ndb_serializer
 class UsernameClaim(ndb.Model):
@@ -458,28 +463,20 @@ class Server(ndb.Model):
                     status = 'DOWN'
                 else:
                     status = 'UNKNOWN'
-                tf = '%A, %B %d, %Y %I:%M:%S %p'
-                now_utc_dt = pytz.utc.localize(datetime.datetime.now())
-                now_ts = now_utc_dt.strftime(tf)
-                last_ping_ts = "NEVER"
-                if self.last_ping:
-                    last_ping_utc_dt = pytz.utc.localize(self.last_ping)
-                    last_ping_ts = last_ping_utc_dt.strftime(tf)
-                body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
-                    self.name,
-                    status,
-                    now_ts,
-                    last_ping_ts
-                )
-                admin_emails = []
-                admin_emails = [user.email for user in User.query().filter(User.admin == True) if user.email]
-                if admin_emails:
-                    mail.send_mail(
-                        sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
-                        to=admin_emails,
-                        subject="{0} server status is {1}".format(self.name, status),
-                        body=body
-                    )
+                for admin in User.query_admin():
+                    if admin.email:
+                        body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
+                            self.name,
+                            status,
+                            datetime_filter(datetime.datetime.now(), timezone=admin.timezone),
+                            datetime_filter(self.last_ping, timezone=admin.timezone) if self.last_ping else 'NEVER'
+                        )
+                        mail.send_mail(
+                            sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
+                            to=admin.email,
+                            subject="{0} server status is {1}".format(self.name, status),
+                            body=body
+                        )
 
     @classmethod
     def create(cls, **kwargs):
