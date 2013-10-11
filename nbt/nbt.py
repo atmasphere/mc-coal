@@ -221,7 +221,7 @@ class TAG_Int_Array(TAG, MutableSequence):
 	def __setitem__(self, key, value):
 		self.value[key] = value
 
-	def __delitem__(self, key, value):
+	def __delitem__(self, key):
 		del(self.value[key])
 
 	def insert(self, key, value):
@@ -420,6 +420,7 @@ class TAG_Compound(TAG, MutableMapping):
 			raise TypeError("key needs to be either name of tag, or index of tag, not a %s" % type(key).__name__)
 
 	def __setitem__(self, key, value):
+		assert isinstance(value, TAG), "value must be an nbt.TAG"
 		if isinstance(key, int):
 			# Just try it. The proper error will be raised if it doesn't work.
 			self.tags[key] = value
@@ -472,20 +473,32 @@ class NBTFile(TAG_Compound):
 		super(NBTFile, self).__init__()
 		self.filename = filename
 		self.type = TAG_Byte(self.id)
+		closefile = True
 		#make a file object
 		if filename:
 			self.file = GzipFile(filename, 'rb')
 		elif buffer:
+			if hasattr(buffer, 'name'):
+				self.filename = buffer.name
 			self.file = buffer
+			closefile = False
 		elif fileobj:
+			if hasattr(fileobj, 'name'):
+				self.filename = fileobj.name
 			self.file = GzipFile(fileobj=fileobj)
 		else:
 			self.file = None
-		#parse the file given intitially
+			closefile = False
+		#parse the file given initially
 		if self.file:
 			self.parse_file()
-			if self.filename and 'close' in dir(self.file):
-				self.file.close()
+			if closefile:
+				# Note: GzipFile().close() does NOT close the fileobj, 
+				# So the caller is still responsible for closing that.
+				try:
+					self.file.close()
+				except (AttributeError, IOError):
+					pass
 			self.file = None
 
 	def parse_file(self, filename=None, buffer=None, fileobj=None):
@@ -493,8 +506,12 @@ class NBTFile(TAG_Compound):
 		if filename:
 			self.file = GzipFile(filename, 'rb')
 		elif buffer:
+			if hasattr(buffer, 'name'):
+				self.filename = buffer.name
 			self.file = buffer
 		elif fileobj:
+			if hasattr(fileobj, 'name'):
+				self.filename = fileobj.name
 			self.file = GzipFile(fileobj=fileobj)
 		if self.file:
 			try:
@@ -508,13 +525,16 @@ class NBTFile(TAG_Compound):
 					raise MalformedFileError("First record is not a Compound Tag")
 			except StructError as e:
 				raise MalformedFileError("Partial File Parse: file possibly truncated.")
-		else: ValueError("need a file!")
+		else:
+			raise ValueError("NBTFile.parse_file(): Need to specify either a filename or a file object")
 
 	def write_file(self, filename=None, buffer=None, fileobj=None):
 		"""Write this NBT file to a file."""
+		closefile = True
 		if buffer:
 			self.filename = None
 			self.file = buffer
+			closefile = False
 		elif filename:
 			self.filename = filename
 			self.file = GzipFile(filename, "wb")
@@ -524,16 +544,21 @@ class NBTFile(TAG_Compound):
 		elif self.filename:
 			self.file = GzipFile(self.filename, "wb")
 		elif not self.file:
-			raise ValueError("Need to specify either a filename or a file")
+			raise ValueError("NBTFile.write_file(): Need to specify either a filename or a file object")
 		#Render tree to file
 		TAG_Byte(self.id)._render_buffer(self.file)
 		TAG_String(self.name)._render_buffer(self.file)
 		self._render_buffer(self.file)
 		#make sure the file is complete
-		if 'flush' in dir(self.file):
+		try:
 			self.file.flush()
-		if self.filename and 'close' in dir(self.file):
-			self.file.close()
+		except (AttributeError, IOError):
+			pass
+		if closefile:
+			try:
+				self.file.close()
+			except (AttributeError, IOError):
+				pass
 
 	def __repr__(self):
 		"""

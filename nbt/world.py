@@ -5,22 +5,20 @@ Handles a Minecraft world save using either the Anvil or McRegion format.
 import os, glob, re
 from . import region
 from . import chunk
-
+from .region import InconceivedChunk
 
 class UnknownWorldFormat(Exception):
 	"""Unknown or invalid world folder."""
-	def __init__(self, msg):
+	def __init__(self, msg=""):
 		self.msg = msg
 
-class InconceivedChunk(LookupError):
-	"""Specified chunk has not yet been generated"""
 
 
 class _BaseWorldFolder(object):
 	"""
 	Abstract class, representing either a McRegion or Anvil world folder.
 	This class will use either Anvil or McRegion, with Anvil the preferred format.
-	Simply calling world_folder will do this automattically, without user interaction
+	Simply calling WorldFolder() will do this automatically.
 	"""
 	type = "Generic"
 
@@ -106,7 +104,7 @@ class _BaseWorldFolder(object):
 		# TODO: Implement BoundingBox
 		# TODO: Implement sort order
 		for c in self.iter_nbt():
-			yield chunk.Chunk(c)
+			yield self.chunkclass(c)
 
 	def get_nbt(self,x,z):
 		"""
