@@ -11,12 +11,13 @@ import collections
 import logging
 import datetime
 
-from io import BytesIO
+from io import BytesIO, UnsupportedOperation
 from .hooks import default_hooks
 from .structures import CaseInsensitiveDict
 
 from .auth import HTTPBasicAuth
 from .cookies import cookiejar_from_dict, get_cookie_header
+from .packages.urllib3.fields import RequestField
 from .packages.urllib3.filepost import encode_multipart_formdata
 from .packages.urllib3.util import parse_url
 from .exceptions import (
@@ -25,7 +26,7 @@ from .exceptions import (
 from .utils import (
     guess_filename, get_auth_from_url, requote_uri,
     stream_decode_response_unicode, to_key_val_list, parse_header_links,
-    iter_slices, guess_json_utf, super_len)
+    iter_slices, guess_json_utf, super_len, to_native_string)
 from .compat import (
     cookielib, urlunparse, urlsplit, urlencode, str, bytes, StringIO,
     is_py2, chardet, json, builtin_str, basestring, IncompleteRead)
@@ -94,8 +95,10 @@ class RequestEncodingMixin(object):
         if parameters are supplied as a dict.
 
         """
-        if (not files) or isinstance(data, str):
-            return None
+        if (not files):
+            raise ValueError("Files must be provided.")
+        elif isinstance(data, basestring):
+            raise ValueError("Data must not be a string.")
 
         new_fields = []
         fields = to_key_val_list(data or {})
@@ -106,6 +109,10 @@ class RequestEncodingMixin(object):
                 val = [val]
             for v in val:
                 if v is not None:
+                    # Don't call str() on bytestrings: in Py3 it all goes wrong.
+                    if not isinstance(v, bytes):
+                        v = str(v)
+
                     new_fields.append(
                         (field.decode('utf-8') if isinstance(field, bytes) else field,
                          v.encode('utf-8') if isinstance(v, str) else v))
@@ -113,11 +120,14 @@ class RequestEncodingMixin(object):
         for (k, v) in files:
             # support for explicit filename
             ft = None
+            fh = None
             if isinstance(v, (tuple, list)):
                 if len(v) == 2:
                     fn, fp = v
-                else:
+                elif len(v) == 3:
                     fn, fp, ft = v
+                else:
+                    fn, fp, ft, fh = v
             else:
                 fn = guess_filename(v) or k
                 fp = v
@@ -126,11 +136,10 @@ class RequestEncodingMixin(object):
             if isinstance(fp, bytes):
                 fp = BytesIO(fp)
 
-            if ft:
-                new_v = (fn, fp.read(), ft)
-            else:
-                new_v = (fn, fp.read())
-            new_fields.append((k, new_v))
+            rf = RequestField(name=k, data=fp.read(), 
+                              filename=fn, headers=fh)
+            rf.make_multipart(content_type=ft)
+            new_fields.append(rf)
 
         body, content_type = encode_multipart_formdata(new_fields)
 
@@ -140,6 +149,9 @@ class RequestEncodingMixin(object):
 class RequestHooksMixin(object):
     def register_hook(self, event, hook):
         """Properly register a hook."""
+
+        if event not in self.hooks:
+            raise ValueError('Unsupported event specified, with event name "%s"' % (event))
 
         if isinstance(hook, collections.Callable):
             self.hooks[event].append(hook)
@@ -186,8 +198,8 @@ class Request(RequestHooksMixin):
         url=None,
         headers=None,
         files=None,
-        data=dict(),
-        params=dict(),
+        data=None,
+        params=None,
         auth=None,
         cookies=None,
         hooks=None):
@@ -286,7 +298,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         p = PreparedRequest()
         p.method = self.method
         p.url = self.url
-        p.headers = self.headers
+        p.headers = self.headers.copy()
         p.body = self.body
         p.hooks = self.hooks
         return p
@@ -361,8 +373,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         """Prepares the given HTTP headers."""
 
         if headers:
-            headers = dict((name.encode('ascii'), value) for name, value in headers.items())
-            self.headers = CaseInsensitiveDict(headers)
+            self.headers = CaseInsensitiveDict((to_native_string(name), value) for name, value in headers.items())
         else:
             self.headers = CaseInsensitiveDict()
 
@@ -386,7 +397,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
 
         try:
             length = super_len(data)
-        except (TypeError, AttributeError):
+        except (TypeError, AttributeError, UnsupportedOperation):
             length = None
 
         if is_stream:
@@ -567,7 +578,7 @@ class Response(object):
                     raise ChunkedEncodingError(e)
             except AttributeError:
                 # Standard file-like object.
-                while 1:
+                while True:
                     chunk = self.raw.read(chunk_size)
                     if not chunk:
                         break
