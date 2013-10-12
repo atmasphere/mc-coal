@@ -381,17 +381,10 @@ class UsernameClaim(ndb.Model):
         return claim_query
 
 
-# @ae_ndb_serializer
-# class Invite(ndb.Model):
-#     user_key = ndb.KeyProperty()
-#     redeemed = ndb.DateTimeProperty(auto_now_add=True)
-#     created = ndb.DateTimeProperty(auto_now_add=True)
-#     updated = ndb.DateTimeProperty(auto_now=True)
-
-
 @ae_ndb_serializer
 class Server(ndb.Model):
     name = ndb.StringProperty()
+    address = ndb.StringProperty()
     active = ndb.BooleanProperty(default=True)
     version = ndb.StringProperty()
     is_running = ndb.BooleanProperty()
@@ -477,6 +470,12 @@ class Server(ndb.Model):
                             subject="{0} server status is {1}".format(self.name, status),
                             body=body
                         )
+
+    @classmethod
+    def _pre_delete_hook(cls, key):
+        instance = key.get()
+        if instance.agent_key is not None:
+            instance.agent_key.delete()
 
     @classmethod
     def create(cls, **kwargs):

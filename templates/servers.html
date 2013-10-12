@@ -14,6 +14,7 @@
         {% for s in servers %}
             <div class="player wrap">
                 <h1 class="data">{{ s.name }} <a href="{{ uri_for('server', key=s.key.urlsafe()) }}">Edit</a></h1>
+                <h3 class="data">Address:</h3> {{ s.address }}
                 <h3 class="data">Agent Client ID:</h3> {{ s.agent.client_id }}
                 <h3 class="data">Agent Secret:</h3> {{ s.agent.secret }}
             </div>

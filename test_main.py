@@ -7,6 +7,8 @@ from web_test import WebTest
 
 from models import User, Server, Command
 import main
+from oauth import Client
+
 
 TEST_USER_EMAIL = 'test@example.com'
 
@@ -591,3 +593,38 @@ class UsersTest(AdminAuthTest):
 
 class ServersTest(AdminAuthTest):
     URL = '/admin/servers'
+
+
+class ServerCreateTest(AdminAuthTest):
+    URL = '/admin/server_create'
+
+    def test_post(self):
+        self.server.key.delete()
+        self.log_in_admin()
+        self.assertEqual(0, Server.query().count())
+        self.assertEqual(0, Client.query().count())
+        response = self.post(params={'name': 'new server', 'address': '12.34.56.78'})
+        self.assertRedirects(response, ServersTest.URL)
+        self.assertEqual(1, Server.query().count())
+        self.assertEqual(1, Client.query().count())
+        server = Server.query().get()
+        self.assertEqual('new server', server.name)
+        self.assertEqual('12.34.56.78', server.address)
+
+
+class ServerKeyTest(AdminAuthTest):
+    URL = '/admin/servers/{0}'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe())
+
+    def test_post(self):
+        self.log_in_admin()
+        response = self.post(params={'name': 'new name', 'address': '87.65.43.21'})
+        self.assertRedirects(response, ServersTest.URL)
+        self.assertEqual(1, Server.query().count())
+        self.assertEqual(1, Client.query().count())
+        server = self.server.key.get()
+        self.assertEqual('new name', server.name)
+        self.assertEqual('87.65.43.21', server.address)
