@@ -547,7 +547,7 @@ class Player(ServerModel):
 
     def is_user(self, user):
         if user is not None:
-            return user.username == self.username
+            return user.is_username(self.username)
         return False
 
     def _post_put_hook(self, future):
