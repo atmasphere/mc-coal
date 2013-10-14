@@ -134,9 +134,7 @@ class PingHandler(JsonHandler):
             is_thundering=is_thundering,
             timestamp=timestamp
         )
-        last_log_line = LogLine.get_last_line_with_timestamp(server.key)
         response = {
-            'last_line': last_log_line.line if last_log_line is not None else None,
             'commands': Command.pop_all(server.key)
         }
         self.json_response(response, status_code=200)
@@ -164,6 +162,20 @@ class LogLineHandler(JsonHandler):
             if log_line is not None:
                 status_code = 201
         self.json_response({}, status_code=status_code)
+
+
+class LastLineHandler(JsonHandler):
+    @authentication_required(authenticate=authenticate_agent_oauth_required, request_property_name='authentication')
+    def get(self):
+        client = Client.get_by_client_id(self.request.authentication.client_id)
+        server = client.server
+        if not server.active:
+            self.abort(404)
+        last_log_line = LogLine.get_last_line_with_timestamp(server.key)
+        response = {
+            'lastline': last_log_line.line if last_log_line is not None else None,
+        }
+        self.json_response(response, status_code=200)
 
 
 def api_datetime(dt, zone=None, dt_format=u"%Y-%m-%d %H:%M:%S", tz_format=u"%Z%z"):
@@ -659,6 +671,7 @@ class ScreenShotKeyHandler(ServerModelHandler):
 routes = [
     webapp2.Route('/api/v1/agents/ping', 'api.PingHandler', name='api_agents_ping'),
     webapp2.Route('/api/v1/agents/logline', 'api.LogLineHandler', name='api_agents_logline'),
+    webapp2.Route('/api/v1/agents/lastline', 'api.LastLineHandler', name='api_agents_lastline'),
 
     webapp2.Route('/api/v1/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
     webapp2.Route('/api/v1/users', 'api.UsersHandler', name='api_data_users'),
