@@ -92,6 +92,15 @@ class AgentClient(object):
             self.refresh_token = None
             raise
 
+    def get(self, url, params):
+        url = "{0}://{1}{2}".format(self.scheme, self.host, url)
+        response = requests.get(url, data=params, headers=self.headers)
+        if response.status_code == 401:
+            self.request_tokens()
+            response = requests.post(url, data=params, headers=self.headers)
+        response.raise_for_status()
+        return response
+
     def post(self, url, params):
         url = "{0}://{1}{2}".format(self.scheme, self.host, url)
         response = requests.post(url, data=params, headers=self.headers)
