@@ -230,3 +230,21 @@ class RemoveServerChannelTest(BaseTest):
         client_id2 = channel.ServerChannels.get_client_id(self.server.key, user2)
         channel.ServerChannels.remove_client_id(client_id2)
         self.assertEqual([client_id], channel.ServerChannels.get_client_ids(self.server.key))
+
+
+class PlayerTest(BaseTest):
+    def setUp(self):
+        super(PlayerTest, self).setUp()
+        self.server = models.Server.create()
+        models.User.create_user('1234', email='bill@example.com')
+        self.user = models.User.lookup(email='bill@example.com')
+        models.User.create_user('1235', email='ted@example.com')
+        self.user2 = models.User.lookup(email='ted@example.com')
+        self.player = models.Player.get_or_create(self.server.key, 'bill')
+        self.player.put()
+        self.user.usernames = [self.player.username]
+        self.user.put()
+
+    def test_is_user(self):
+        self.assertTrue(self.player.is_user(self.user))
+        self.assertFalse(self.player.is_user(self.user2))
