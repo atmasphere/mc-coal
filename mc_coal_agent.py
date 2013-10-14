@@ -92,12 +92,12 @@ class AgentClient(object):
             self.refresh_token = None
             raise
 
-    def get(self, url, params):
+    def get(self, url, params=None):
         url = "{0}://{1}{2}".format(self.scheme, self.host, url)
         response = requests.get(url, data=params, headers=self.headers)
         if response.status_code == 401:
             self.request_tokens()
-            response = requests.post(url, data=params, headers=self.headers)
+            response = requests.get(url, data=params, headers=self.headers)
         response.raise_for_status()
         return response
 
@@ -194,11 +194,9 @@ def ping_host(client, running, server_day, server_time, raining, thundering, com
         params['is_thundering'] = thundering
         response_json = client.post("/api/v1/agents/ping", params=params).json()
         commands = response_json['commands']
-        last_line = response_json['last_line']
-        logger.debug(u"PING: {0}, {1}".format(commands, last_line))
+        logger.debug(u"PING: {0}".format(commands))
         if commands:
             execute_commands(commandfifo, commands)
-        return last_line
     except requests.exceptions.RequestException as e:
         logger.error(u"UNEXPECTED RESPONSE {0}".format(e))
 
