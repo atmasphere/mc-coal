@@ -528,9 +528,7 @@ class Player(ServerModel):
 
     @property
     def user(self):
-        if self.username:
-            return User.query().filter(User.usernames == self.username).get()
-        return None
+        return User.lookup(username=self.username)
 
     @property
     def is_playing(self):
@@ -546,9 +544,7 @@ class Player(ServerModel):
         return seconds_since_epoch(self.last_login_timestamp)
 
     def is_user(self, user):
-        if user is not None:
-            return user.is_username(self.username)
-        return False
+        return user.is_username(self.username) if user is not None else False
 
     def _post_put_hook(self, future):
         search.add_player(self)
@@ -606,7 +602,7 @@ class UsernameModel(ServerModel):
         return Player.lookup(self.server_key, self.username)
 
     def is_user(self, user):
-        return self.username in user.usernames if self.username and user else False
+        return user.is_username(self.username) if user is not None else False
 
 
 @ae_ndb_serializer

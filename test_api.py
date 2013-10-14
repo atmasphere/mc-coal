@@ -270,8 +270,7 @@ class PingTest(AgentApiTest):
         response = self.post(params=params)
         self.assertOK(response)
         body = json.loads(response.body)
-        self.assertLength(2, body)
-        self.assertIsNone(body['last_line'])
+        self.assertLength(1, body)
         self.assertEmpty(body['commands'])
         self.assertIsNone(models.Server.query().get().is_running)
 
@@ -287,8 +286,7 @@ class PingTest(AgentApiTest):
         response = self.post(params=params)
         self.assertOK(response)
         body = json.loads(response.body)
-        self.assertLength(2, body)
-        self.assertIsNone(body['last_line'])
+        self.assertLength(1, body)
         self.assertEmpty(body['commands'])
         self.assertTrue(models.Server.query().get().is_running)
 
@@ -297,22 +295,9 @@ class PingTest(AgentApiTest):
         response = self.post(params=params)
         self.assertOK(response)
         body = json.loads(response.body)
-        self.assertLength(2, body)
-        self.assertIsNone(body['last_line'])
+        self.assertLength(1, body)
         self.assertEmpty(body['commands'])
         self.assertFalse(models.Server.query().get().is_running)
-
-    def test_post_last_line(self):
-        params = {'line': TIME_STAMP_LOG_LINE, 'zone': TIME_ZONE}
-        response = self.post(url=LogLineTest.URL, params=params)
-        self.assertCreated(response)
-        params = {'server_name': 'test'}
-        response = self.post(params=params)
-        self.assertOK(response)
-        body = json.loads(response.body)
-        self.assertLength(2, body)
-        self.assertEqual(TIME_STAMP_LOG_LINE, body['last_line'])
-        self.assertEmpty(body['commands'])
 
     def post_level_data(self, now=None, timestamp=None, server_day=None, server_time=None):
         now = now or datetime.datetime.now()
@@ -327,8 +312,7 @@ class PingTest(AgentApiTest):
         response = self.post(params=params)
         self.assertOK(response)
         body = json.loads(response.body)
-        self.assertLength(2, body)
-        self.assertIsNone(body['last_line'])
+        self.assertLength(1, body)
         self.assertEmpty(body['commands'])
         return body
 
@@ -373,8 +357,7 @@ class PingTest(AgentApiTest):
         response = self.post(params=params)
         self.assertOK(response)
         body = json.loads(response.body)
-        self.assertLength(2, body)
-        self.assertEqual(TIME_STAMP_LOG_LINE, body['last_line'])
+        self.assertLength(1, body)
         self.assertEqual(body['commands'], commands)
 
 
@@ -710,6 +693,27 @@ class DeathLogLineTest(AgentApiTest):
             player = models.Player.lookup(self.server.key, log_line.username)
             self.assertIsNotNone(player)
             log_line.key.delete()
+
+
+class LastLineTest(AgentApiTest):
+    URL = '/api/v1/agents/lastline'
+    ALLOWED = ['GET']
+
+    def setUp(self):
+        super(LastLineTest, self).setUp()
+        self.line = TIME_STAMP_LOG_LINE
+        params = {'line': self.line, 'zone': TIME_ZONE}
+        response = self.post(url=LogLineTest.URL, params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.LogLine.query().count())
+
+    def test_get(self):
+        response = self.get()
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        lastline = body['lastline']
+        self.assertEqual(self.line, lastline)
 
 
 class MultiPageApiTest(ApiTest):

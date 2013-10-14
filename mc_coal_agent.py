@@ -46,6 +46,7 @@ class NoSecretException(AgentException):
 class NoPingException(AgentException):
     pass
 
+
 class AgentClient(object):
     def __init__(self, host, client_id, secret, access_token=None, refresh_token=None, *args, **kwargs):
         self.host = host
@@ -171,7 +172,7 @@ def execute_commands(commandfifo, commands):
                 command_fifo.write(c.encode('ISO-8859-2', errors='ignore'))
 
 
-def ping_host(client, running, server_day, server_time, raining, thundering, commandfifo, fail=True):
+def ping_host(client, running, server_day, server_time, raining, thundering, commandfifo):
     logger = logging.getLogger('ping')
     try:
         params = {'server_name': client.host}
@@ -191,8 +192,6 @@ def ping_host(client, running, server_day, server_time, raining, thundering, com
         return last_line
     except requests.exceptions.RequestException as e:
         logger.error(u"UNEXPECTED RESPONSE {0}".format(e))
-        if fail:
-            raise NoPingException()
 
 
 def is_moved_wrongly_warning(line):
@@ -233,13 +232,25 @@ def post_line(client, line, zone, skip_chat):
         time.sleep(timeout)
 
 
+def get_lastline(client):
+    logger = logging.getLogger('log_line')
+    try:
+        response_json = client.get("/api/v1/agents/lastline").json()
+        lastline = response_json['lastline']
+        logger.debug(u"LASTLINE: {0}".format(lastline))
+        return lastline
+    except requests.exceptions.RequestException as e:
+        logger.error(u"UNEXPECTED RESPONSE {0}".format(e))
+        raise NoPingException()
+
+
 def line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo):
     while True:
         if datetime.datetime.now() > last_ping + datetime.timedelta(seconds=5):
             running = is_server_running(pidfile)
             server_day, server_time, raining, thundering = read_level(levelfile)
             last_time = datetime.datetime.now()
-            ping_host(client, running, server_day, server_time, raining, thundering, commandfifo, fail=False)
+            ping_host(client, running, server_day, server_time, raining, thundering, commandfifo)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()
@@ -422,7 +433,7 @@ def main(argv):
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
         client = AgentClient(coal_host, agent_client_id, agent_secret)
-        last_line = ping_host(client, None, None, None, None, None, mc_commandfile)
+        last_line = get_lastline(client)
         parse_all = args.parse_all
         if parse_all:
             last_line = None
@@ -459,6 +470,7 @@ def main(argv):
     except Exception, e:
         logger.error(u"Unexpected {0}: {1}".format(type(e).__name__, e))
     logger.info(u"Shutting down... Goodbye.")
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
