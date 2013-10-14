@@ -1,6 +1,6 @@
 # COAL Configuration
 
-COAL_SECRET_KEY = 'a_secret_string'
+COAL_SECRET_KEY = 'LI9AJRIs3kE8sll6JP6Q'
 
 COAL_COOKIE_MAX_AGE = 2592000  # == 30 days
 
