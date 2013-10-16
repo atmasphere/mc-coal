@@ -1,5 +1,6 @@
 from testing_utils import fix_sys_path; fix_sys_path()
 
+import logging
 import os
 
 from base_test import BaseTest
@@ -578,6 +579,10 @@ class AdminAuthTest(AuthTest):
 class AdminTest(AdminAuthTest):
     URL = '/admin'
 
+    def setUp(self):
+        super(AdminTest, self).setUp()
+        logging.disable(logging.ERROR)
+
     def test_get_first_user(self):
         self.log_in_user()
         self.assertFalse(self.current_user.admin)
@@ -585,6 +590,9 @@ class AdminTest(AdminAuthTest):
         self.assertOK(response)
         self.assertLoggedIn(response)
         self.assertTrue(self.current_user.admin)
+
+    def tearDown(self):
+        logging.disable(logging.NOTSET)
 
 
 class UsersTest(AdminAuthTest):
