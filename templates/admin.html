@@ -10,4 +10,15 @@
     <div class="title box wrap">
         <h2 class="box"><a href="{{ uri_for('servers') }}">Servers</a></h2>
     </div>
+    {% if instances %}
+        <div class="title box wrap">
+            {% for i in instances %}
+                <div class="player wrap">
+                    <h1 class="data">{{ i }}</h1>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        No instances
+    {% endif %}
 {% endblock %}

@@ -17,6 +17,7 @@ from wtforms import form, fields, validators, widgets
 
 from base_handler import uri_for_pagination
 from channel import ServerChannels
+from mc_server import get_instances
 from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
 import search
 from user_auth import UserBase, UserHandler, authentication_required, authenticate, authenticate_admin
@@ -309,7 +310,8 @@ class AdminHandler(PagingHandler):
         servers = []
         for server in Server.query():
             servers.append(server)
-        context = {'servers': servers}
+        instances = get_instances()
+        context = {'servers': servers, 'instances': instances}
         self.render_template('admin.html', context=context)
 
 

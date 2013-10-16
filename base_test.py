@@ -52,6 +52,7 @@ class BaseTest(unittest.TestCase):
         self.testbed.init_blobstore_stub()
         self.testbed.init_files_stub()
         self.testbed.init_channel_stub()
+        self.testbed.init_app_identity_stub()
 
         stub = SearchServiceStub()
         self.testbed._register_stub('search', stub)
