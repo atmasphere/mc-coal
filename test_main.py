@@ -592,6 +592,7 @@ class AdminTest(AdminAuthTest):
         self.assertTrue(self.current_user.admin)
 
     def tearDown(self):
+        super(AdminTest, self).tearDown()
         logging.disable(logging.NOTSET)
 
 
