@@ -16,7 +16,6 @@ libraries:
 
 builtins:
 - remote_api: on
-- deferred: on
 
 inbound_services:
 - warmup
@@ -56,6 +55,10 @@ handlers:
   script: main.application
 
 - url: /_bscs/.*
+  script: main.application
+  login: admin
+
+- url: '/screenshots/.*/create_blur'
   script: main.application
   login: admin
 
