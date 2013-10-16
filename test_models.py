@@ -1,48 +1,60 @@
 from testing_utils import fix_sys_path; fix_sys_path()
 
-import base64
 import datetime
 import os
+import random
+import string
 
-from google.appengine.ext import blobstore, testbed, deferred
+from google.appengine.ext import blobstore, testbed, ndb
 
 import minimock
 
 from base_test import BaseTest
+from web_test import WebTest
 
 import channel
 import image
 import main
 import models
-import string
-import random
+
 
 IMAGE_PATH = 'static/img/coal_sprite.png'
 TIME_ZONE = 'America/Chicago'
 LOG_LINE = '2013-03-23 19:01:19 [INFO] <quazifene> is there anybody in there?'
 
-def create_blob_info(path, image_data=None):
-    if not image_data:
-        image_data = open(path, 'rb').read()
-    path = os.path.basename(path)
-    ScreenShotTest.TESTBED.get_stub('blobstore').CreateBlob(path, image_data)
-    return blobstore.BlobInfo(blobstore.BlobKey(path))
+
+class ScreenShotTestBase(object):
+    def mock_post_data(self, data, filename=None, mime_type=None):
+        if not filename:
+            filename = ''.join([random.choice(string.ascii_uppercase) for x in xrange(50)])
+        blob_info = self.create_blob_info(filename, image_data=data)
+        return blob_info.key()
+
+    def create_blob_info(self, path, image_data=None):
+        if not image_data:
+            image_data = open(path, 'rb').read()
+        path = os.path.basename(path)
+        self.testbed.get_stub('blobstore').CreateBlob(path, image_data)
+        return blobstore.BlobInfo(blobstore.BlobKey(path))
+
+    def execute_tasks(self, expected_tasks=1):
+        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
+        tasks = taskqueue_stub.GetTasks('default')
+        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
+        taskqueue_stub.FlushQueue("default")
+        for task in tasks:
+            url = task['url']
+            key_string = url[13:url.find('/', 13)]
+            screenshot = ndb.Key(urlsafe=key_string).get()
+            screenshot.create_blurred()
 
 
-def mock_post_data(data, filename=None, mime_type=None):
-    if not filename:
-        filename = ''.join([random.choice(string.ascii_uppercase) for x in xrange(50)])
-    blob_info = create_blob_info(filename, image_data=data)
-    return blob_info.key()
-
-
-class ScreenShotTest(BaseTest):
+class ScreenShotTest(BaseTest, ScreenShotTestBase):
     APPLICATION = main.application
 
     def setUp(self):
         super(ScreenShotTest, self).setUp()
-        ScreenShotTest.TESTBED = self.testbed
-        minimock.mock('image.NdbImage.post_data', returns_func=mock_post_data, tracker=None)
+        minimock.mock('image.NdbImage.post_data', returns_func=self.mock_post_data, tracker=None)
         self.server = models.Server.create()
         self.image_data = None
         self.screenshots = []
@@ -57,19 +69,11 @@ class ScreenShotTest(BaseTest):
 
     def tearDown(self):
         super(ScreenShotTest, self).tearDown()
-        ScreenShotTest.TESTBED = None
         minimock.restore()
 
     @property
     def blobs(self):
         return self.testbed.get_stub('blobstore').storage._blobs
-
-    def run_deferred(self, expected_tasks=1):
-        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
-        tasks = taskqueue_stub.GetTasks('default')
-        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
-        for task in tasks:
-            deferred.run(base64.b64decode(task['body']))
 
     def create_blob_info(self, path, image_data=None):
         if not image_data:
@@ -91,7 +95,7 @@ class ScreenShotTest(BaseTest):
         self.assertEqual(self.image_data, screenshot.image_data)
         self.assertEqual(1, len(self.blobs))
         # Create the blurred version
-        self.run_deferred()
+        self.execute_tasks()
         self.assertIsNotNone(screenshot.blurred_image_serving_url)
         self.assertEqual(2, len(self.blobs))
 
@@ -104,7 +108,7 @@ class ScreenShotTest(BaseTest):
         self.assertEqual(image_data, screenshot.image_data)
         self.assertEqual(1, len(self.blobs))
         # Create the blurred version
-        self.run_deferred()
+        self.execute_tasks()
         self.assertIsNotNone(screenshot.blurred_image_serving_url)
         self.assertEqual(2, len(self.blobs))
 
@@ -112,7 +116,7 @@ class ScreenShotTest(BaseTest):
         blob_info = self.create_blob_info(IMAGE_PATH)
         screenshot = models.ScreenShot.create(self.server.key, None, blob_info=blob_info)
         # Create the blurred version
-        self.run_deferred()
+        self.execute_tasks()
         self.assertIsNotNone(screenshot)
         self.assertIsNotNone(screenshot.blurred_image_serving_url)
         self.assertEqual(6, models.ScreenShot.query().count())
@@ -124,6 +128,27 @@ class ScreenShotTest(BaseTest):
         self.assertEqual(5, models.ScreenShot.query().count())
         self.assertEqual(0, models.NdbImage.query().count())
         self.assertEqual(0, len(self.blobs))
+
+
+class ScreenShotBlurredTaskTest(WebTest, BaseTest, ScreenShotTestBase):
+    APPLICATION = main.application
+
+    def setUp(self):
+        super(ScreenShotBlurredTaskTest, self).setUp()
+        minimock.mock('image.NdbImage.post_data', returns_func=self.mock_post_data, tracker=None)
+        self.server = models.Server.create()
+        self.image_data = None
+        blob_info = self.create_blob_info(IMAGE_PATH)
+        self.screenshot = models.ScreenShot.create(self.server.key, None, blob_info=blob_info)
+        self.assertEqual(1, models.ScreenShot.query().count())
+
+    def tearDown(self):
+        super(ScreenShotBlurredTaskTest, self).tearDown()
+        minimock.restore()
+
+    def test_post(self):
+        response = self.post("/screenshots/{0}/create_blur".format(self.screenshot.key.urlsafe()))
+        self.assertOK(response)
 
 
 class ServerTest(BaseTest):

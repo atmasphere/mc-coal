@@ -5,12 +5,18 @@ import datetime
 import json
 import logging
 import os
+import random
+import string
 
-from google.appengine.ext import blobstore, testbed, deferred
+from google.appengine.ext import blobstore, testbed, ndb
 
+import minimock
+
+import image
 import main
 import models
 from test_oauth import OauthTest
+from web_test import WebTest
 
 
 TIME_ZONE = 'America/Chicago'
@@ -1971,7 +1977,33 @@ class LogLineKeyTest(KeyApiTest, ServerModelTestBase):
         self.assertEqual(self.log_line.username, log_line['username'])
 
 
-class ScreenShotTest(MultiPageApiTest):
+class ScreenShotTestBase(object):
+    def mock_post_data(self, data, filename=None, mime_type=None):
+        if not filename:
+            filename = ''.join([random.choice(string.ascii_uppercase) for x in xrange(50)])
+        blob_info = self.create_blob_info(filename, image_data=data)
+        return blob_info.key()
+
+    def create_blob_info(self, path, image_data=None):
+        if not image_data:
+            image_data = open(path, 'rb').read()
+        path = os.path.basename(path)
+        self.testbed.get_stub('blobstore').CreateBlob(path, image_data)
+        return blobstore.BlobInfo(blobstore.BlobKey(path))
+
+    def execute_tasks(self, expected_tasks=1):
+        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
+        tasks = taskqueue_stub.GetTasks('default')
+        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
+        taskqueue_stub.FlushQueue("default")
+        for task in tasks:
+            url = task['url']
+            key_string = url[13:url.find('/', 13)]
+            screenshot = ndb.Key(urlsafe=key_string).get()
+            screenshot.create_blurred()
+
+
+class ScreenShotTest(MultiPageApiTest, ScreenShotTestBase):
     URL = ServerModelTestBase.URL + 'screenshots'
     ALLOWED = ['GET']
 
@@ -1981,6 +2013,7 @@ class ScreenShotTest(MultiPageApiTest):
 
     def setUp(self):
         super(ScreenShotTest, self).setUp()
+        minimock.mock('image.NdbImage.post_data', returns_func=self.mock_post_data, tracker=None)
         self.user.usernames = ['gumptionthomas']
         self.user.put()
         self.now = datetime.datetime.now()
@@ -1997,32 +2030,20 @@ class ScreenShotTest(MultiPageApiTest):
         taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         taskqueue_stub.FlushQueue('default')
 
+    def tearDown(self):
+        super(ScreenShotTest, self).tearDown()
+        minimock.restore()
+
     @property
     def blobs(self):
         return self.testbed.get_stub('blobstore').storage._blobs
-
-    def run_deferred(self, expected_tasks=1):
-        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
-        tasks = taskqueue_stub.GetTasks('default')
-        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
-        logging.disable(logging.ERROR)
-        for task in tasks:
-            deferred.run(base64.b64decode(task['body']))
-        logging.disable(logging.NOTSET)
-
-    def create_blob_info(self, path, image_data=None):
-        if not image_data:
-            image_data = open(path, 'rb').read()
-        path = os.path.basename(path)
-        self.testbed.get_stub('blobstore').CreateBlob(path, image_data)
-        return blobstore.BlobInfo(blobstore.BlobKey(path))
 
     def test_get(self):
         for i in range(5):
             screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
             self.screenshots.append(screenshot)
         self.assertEqual(10, models.ScreenShot.query().count())
-        self.run_deferred(5)
+        self.execute_tasks(expected_tasks=5)
         response = self.get(url='{0}?size={1}'.format(self.url, 50))
         self.assertOK(response)
         body = json.loads(response.body)
@@ -2088,7 +2109,7 @@ class ScreenShotUserTest(ScreenShotTest):
         return self.URL.format(self.server.key.urlsafe(), self.user.key.urlsafe())
 
 
-class ScreenShotKeyTest(KeyApiTest):
+class ScreenShotKeyTest(KeyApiTest, ScreenShotTestBase):
     URL = ServerModelTestBase.URL + 'screenshots/{1}'
     ALLOWED = ['GET']
 
@@ -2098,33 +2119,22 @@ class ScreenShotKeyTest(KeyApiTest):
 
     def setUp(self):
         super(ScreenShotKeyTest, self).setUp()
+        minimock.mock('image.NdbImage.post_data', returns_func=self.mock_post_data, tracker=None)
         self.user.usernames = ['gumptionthomas']
         self.user.put()
         self.now = datetime.datetime.now()
         self.blob_info = self.create_blob_info(IMAGE_PATH)
         self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
         self.screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
-        self.run_deferred()
+        self.execute_tasks()
+
+    def tearDown(self):
+        super(ScreenShotKeyTest, self).tearDown()
+        minimock.restore()
 
     @property
     def blobs(self):
         return self.testbed.get_stub('blobstore').storage._blobs
-
-    def run_deferred(self, expected_tasks=1):
-        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
-        tasks = taskqueue_stub.GetTasks('default')
-        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
-        logging.disable(logging.ERROR)
-        for task in tasks:
-            deferred.run(base64.b64decode(task['body']))
-        logging.disable(logging.NOTSET)
-
-    def create_blob_info(self, path, image_data=None):
-        if not image_data:
-            image_data = open(path, 'rb').read()
-        path = os.path.basename(path)
-        self.testbed.get_stub('blobstore').CreateBlob(path, image_data)
-        return blobstore.BlobInfo(blobstore.BlobKey(path))
 
     def test_get(self):
         response = self.get()

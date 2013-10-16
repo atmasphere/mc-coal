@@ -274,6 +274,16 @@ class ScreenShotsHandler(PagingHandler):
         self.render_template('screen_shots.html', context=context)
 
 
+class ScreenShotBlurHandler(MainHandlerBase):
+    def post(self, key=None):
+        try:
+            screenshot = ndb.Key(urlsafe=key).get()
+            if screenshot is not None:
+                screenshot.create_blurred()
+        except Exception, e:
+            logging.error(u"Error creating blurred screen shot: {0}".format(e))
+
+
 class ScreenShotRemoveHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
     def post(self, server_key, key):
@@ -590,6 +600,7 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/players', handler=PlayersHandler, strict_slash=True, name="naked_players"),
         RedirectRoute('/sessions', handler=PlaySessionsHandler, strict_slash=True, name="naked_play_sessions"),
         RedirectRoute('/screenshots', handler=ScreenShotsHandler, strict_slash=True, name="naked_screenshots_lol"),
+        RedirectRoute('/screenshots/<key>/create_blur', handler=ScreenShotBlurHandler, strict_slash=True, name="naked_screenshots_blur"),
         RedirectRoute('/servers/<server_key>', handler=HomeHandler, name="home"),
         RedirectRoute('/servers/<server_key>/chats', handler=ChatsHandler, strict_slash=True, name="chats"),
         RedirectRoute('/servers/<server_key>/players', handler=PlayersHandler, strict_slash=True, name="players"),

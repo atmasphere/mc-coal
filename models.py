@@ -5,8 +5,8 @@ import re
 import random
 import string
 
-from google.appengine.ext import blobstore, ndb, deferred
-from google.appengine.api import users, mail, app_identity
+from google.appengine.ext import blobstore, ndb
+from google.appengine.api import users, mail, app_identity, taskqueue
 
 import webapp2_extras.appengine.auth.models as auth_models
 
@@ -925,11 +925,6 @@ class GaussianBlurFilter(ImageFilter.Filter):
         return image.gaussian_blur(self.radius)
 
 
-def blur(screenshot_key):
-    screenshot = ndb.Key(urlsafe=screenshot_key).get()
-    screenshot.create_blurred()
-
-
 @ae_ndb_serializer
 class ScreenShot(NdbImage, ServerModel):
     user_key = ndb.KeyProperty()
@@ -974,6 +969,8 @@ class ScreenShot(NdbImage, ServerModel):
 
     def create_blurred(self):
         blurred_image = NdbImage.create(parent=self.key, data=self.generate_blurred_image_data(), mime_type='image/png')
+        if self.blurred_image_key:
+            self.blurred_image_key.delete()
         self.blurred_image_key = blurred_image.key
         self.put()
 
@@ -984,7 +981,7 @@ class ScreenShot(NdbImage, ServerModel):
         instance.username = user.get_server_username(server_key) if user else None
         instance.random_id = random.random()
         instance.put()
-        deferred.defer(blur, instance.key.urlsafe())
+        taskqueue.add(url='/screenshots/{0}/create_blur'.format(instance.key.urlsafe()))
         return instance
 
     @classmethod
