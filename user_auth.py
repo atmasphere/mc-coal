@@ -103,12 +103,8 @@ def authenticate_admin(handler):
 
 class UserBase(object):
     @webapp2.cached_property
-    def session_store(self):
-        return sessions.get_store(request=self.request)
-
-    @webapp2.cached_property
     def session(self):
-        return self.session_store.get_session(backend="datastore")
+        return self.session_store.get_session()
 
     @webapp2.cached_property
     def auth(self):
@@ -120,7 +116,9 @@ class UserBase(object):
 
     @webapp2.cached_property
     def user(self):
-        return self.auth.store.user_model.get_by_id(self.user_info['user_id']) if self.user_info else None
+        user_info = self.user_info
+        user_id = self.user_info['user_id'] if user_info else None
+        return self.auth.store.user_model.get_by_id(user_id) if user_id else None
 
 
 class UserHandler(JinjaHandler, UserBase):
@@ -134,6 +132,7 @@ class UserHandler(JinjaHandler, UserBase):
         self.redirect(redirect_url)
 
     def dispatch(self):
+        self.session_store = sessions.get_store(request=self.request)
         try:
             super(UserHandler, self).dispatch()
         finally:
