@@ -17,7 +17,7 @@ from wtforms import form, fields, validators, widgets
 
 from base_handler import uri_for_pagination
 from channel import ServerChannels
-from mc_server import get_instances
+import gce
 from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
 import search
 from user_auth import UserBase, UserHandler, authentication_required, authenticate, authenticate_admin
@@ -310,8 +310,9 @@ class AdminHandler(PagingHandler):
         servers = []
         for server in Server.query():
             servers.append(server)
-        instances = get_instances()
-        context = {'servers': servers, 'instances': instances}
+        instance = gce.Instance.query().get()
+        zones = gce.get_zones()
+        context = {'servers': servers, 'instance': instance, 'zones': zones}
         self.render_template('admin.html', context=context)
 
 
@@ -587,6 +588,33 @@ class ServerDeactivateHandler(UserHandler):
         self.redirect(webapp2.uri_for('servers'))
 
 
+class InstanceForm(form.Form):
+    name = fields.StringField(u'Name', validators=[validators.DataRequired()])
+    zone = fields.SelectField(u'Zone', validators=[validators.DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        super(InstanceForm, self).__init__(*args, **kwargs)
+        self.zone.choices = [(z, z) for z in gce.get_zones()]
+
+
+class InstanceConfigureHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self):
+        form = InstanceForm()
+        context = {'form': form}
+        self.render_template('instance_configure.html', context=context)
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self):
+        form = InstanceForm(self.request.POST)
+        if form.validate():
+            instance = gce.Instance(name=form.name.data, zone=form.zone.data)
+            instance.put()
+            self.redirect(webapp2.uri_for('admin'))
+        context = {'form': form}
+        self.render_template('instance_configure.html', context=context)
+
+
 coal_config = lib_config.register('COAL', {
     'SECRET_KEY': 'a_secret_string',
     'COOKIE_MAX_AGE': 2592000,
@@ -619,7 +647,8 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/admin/server_create', handler=ServerCreateHandler, strict_slash=True, name="server_create"),
         RedirectRoute('/admin/servers', handler=ServersHandler, strict_slash=True, name="servers"),
         RedirectRoute('/admin/servers/<key>', handler=ServerEditHandler, strict_slash=True, name="server"),
-        RedirectRoute('/admin/users/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
+        RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
+        RedirectRoute('/admin/instance_configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure")
     ],
     config={
         'webapp2_extras.sessions': {

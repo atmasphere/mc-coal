@@ -10,15 +10,16 @@
     <div class="title box wrap">
         <h2 class="box"><a href="{{ uri_for('servers') }}">Servers</a></h2>
     </div>
-    {% if instances %}
-        <div class="title box wrap">
-            {% for i in instances %}
-                <div class="player wrap">
-                    <h1 class="data">{{ i }}</h1>
-                </div>
-            {% endfor %}
+    <div class="title box wrap">
+    {% if instance %}
+        <div class="player wrap">
+            <h1 class="data">{{ instance.name }}</h1>
+            <h1 class="data">{{ instance.zone }}</h1>
         </div>
+    {% elif zones %}
+        <h2 class="box"><a href="{{ uri_for('instance_configure') }}">Configure Instance</a></h2>
     {% else %}
-        No instances
+        <h2 class="box">GCE Not Configured</h2>
     {% endif %}
+    </div>
 {% endblock %}

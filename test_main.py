@@ -3,9 +3,12 @@ from testing_utils import fix_sys_path; fix_sys_path()
 import logging
 import os
 
+import minimock
+
 from base_test import BaseTest
 from web_test import WebTest
 
+import gce
 from models import User, Server, Command
 import main
 from oauth import Client
@@ -637,3 +640,26 @@ class ServerKeyTest(AdminAuthTest):
         server = self.server.key.get()
         self.assertEqual('new name', server.name)
         self.assertEqual('87.65.43.21', server.address)
+
+
+class InstanceConfigureTest(AdminAuthTest):
+    URL = '/admin/instance_configure'
+
+    def setUp(self):
+        super(InstanceConfigureTest, self).setUp()
+        minimock.mock('gce.get_zones', returns=['us-central1-a', 'us-central1-b'], tracker=None)
+
+    def tearDown(self):
+        super(InstanceConfigureTest, self).tearDown()
+        minimock.restore()
+
+    def test_post(self):
+        self.log_in_admin()
+        self.assertEqual(0, gce.Instance.query().count())
+        zones = gce.get_zones()
+        response = self.post(params={'name': 'new instance', 'zone': zones[0]})
+        self.assertRedirects(response, AdminTest.URL)
+        self.assertEqual(1, gce.Instance.query().count())
+        instance = gce.Instance.query().get()
+        self.assertEqual('new instance', instance.name)
+        self.assertEqual(zones[0], instance.zone)
