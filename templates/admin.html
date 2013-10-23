@@ -11,15 +11,15 @@
         <h2 class="box"><a href="{{ uri_for('servers') }}">Servers</a></h2>
     </div>
     <div class="title box wrap">
-    {% if instance %}
-        <div class="player wrap">
-            <h1 class="data">{{ instance.name }}</h1>
-            <h1 class="data">{{ instance.zone }}</h1>
-        </div>
-    {% elif zones %}
-        <h2 class="box"><a href="{{ uri_for('instance_configure') }}">Configure Instance</a></h2>
-    {% else %}
-        <h2 class="box">GCE Not Configured</h2>
-    {% endif %}
+        {% if instance != None %}
+            <h2 class="box">GCE Instance</a></h2>
+            <div class="player wrap">
+                <h1 class="data">{{ instance.name }} in {{ instance.zone }}</h1>
+                <h1 class="data">{{ instance.status_message() }}</h1>
+            </div>
+            <h2 class="box"><a href="{{ uri_for('instance_configure') }}">Configure</a></h2>
+        {% else %}
+            <h2 class="box">GCE Not Set Up</a></h2>
+        {% endif %}
     </div>
 {% endblock %}
