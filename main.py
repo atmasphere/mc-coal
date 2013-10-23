@@ -310,9 +310,10 @@ class AdminHandler(PagingHandler):
         servers = []
         for server in Server.query():
             servers.append(server)
-        instance = gce.Instance.query().get()
-        zones = gce.get_zones()
-        context = {'servers': servers, 'instance': instance, 'zones': zones}
+        instance = None
+        if gce.is_setup():
+            instance = gce.Instance.singleton()
+        context = {'servers': servers, 'instance': instance}
         self.render_template('admin.html', context=context)
 
 
@@ -594,21 +595,24 @@ class InstanceForm(form.Form):
 
     def __init__(self, *args, **kwargs):
         super(InstanceForm, self).__init__(*args, **kwargs)
-        self.zone.choices = [(z, z) for z in gce.get_zones()]
+        self.zone.choices = [(z, z) for z in gce.get_zones() or []]
 
 
 class InstanceConfigureHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self):
-        form = InstanceForm()
-        context = {'form': form}
+        instance = gce.Instance.singleton()
+        form = InstanceForm(obj=instance)
+        context = {'form': form, 'instance': instance}
         self.render_template('instance_configure.html', context=context)
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self):
         form = InstanceForm(self.request.POST)
         if form.validate():
-            instance = gce.Instance(name=form.name.data, zone=form.zone.data)
+            instance = gce.Instance.singleton()
+            instance.name=form.name.data
+            instance.zone=form.zone.data
             instance.put()
             self.redirect(webapp2.uri_for('admin'))
         context = {'form': form}
