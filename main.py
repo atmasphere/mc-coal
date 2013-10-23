@@ -590,7 +590,6 @@ class ServerDeactivateHandler(UserHandler):
 
 
 class InstanceForm(form.Form):
-    name = fields.StringField(u'Name', validators=[validators.DataRequired()])
     zone = fields.SelectField(u'Zone', validators=[validators.DataRequired()])
 
     def __init__(self, *args, **kwargs):
@@ -611,7 +610,6 @@ class InstanceConfigureHandler(UserHandler):
         form = InstanceForm(self.request.POST)
         if form.validate():
             instance = gce.Instance.singleton()
-            instance.name=form.name.data
             instance.zone=form.zone.data
             instance.put()
             self.redirect(webapp2.uri_for('admin'))

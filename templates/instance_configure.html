@@ -8,8 +8,6 @@
     <div class="player_list players">
         <div class="box">
             <form action="{{ uri_for('instance_configure') }}" method="post">
-                <label>Name</label>
-                {{ macros.with_errors(form.name, class="span3") }}
                 <label>Zone</label>
                 {{ macros.with_errors(form.zone, class="span3") }}
                 <div class="form-actions">
