@@ -50,10 +50,16 @@ class Instance(ndb.Model):
                 'scopes': SCOPES
             }],
             'metadata': [{
-                'items': [{
-                    'key': 'startup-script',
-                    'value': open('gce-instance-startup.sh', 'r').read()
-                  }],
+                'items': [
+                    {
+                        'key': 'startup-script',
+                        'value': open('gce-instance-startup.sh', 'r').read()
+                    },
+                    {
+                        'key': 'controller-script',
+                        'value': open('mc_coal_controller.py', 'r').read()
+                    }
+                ],
             }]
         }
         gce_service = get_gce_service()
