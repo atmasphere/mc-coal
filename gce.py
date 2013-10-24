@@ -64,27 +64,28 @@ class Instance(ndb.Model):
         gce_service = get_gce_service()
         execute_request(gce_service.instances().delete(instance=self.name, project=get_project_id(), zone=self.zone))
 
-    def is_running(self):
-        return self.status() == 'RUNNING'
+    def is_setup(self):
+        return self.status() is not None
 
     def is_unprovisioned(self):
         return self.status() == 'UNPROVISIONED'
 
-    def status(self):
-        gce_instance = self.get_gce_instance()
-        if gce_instance is None:
-            return 'UNPROVISIONED'
-        return gce_instance['status']
+    def is_running(self):
+        return self.status() == 'RUNNING'
 
-    def get_gce_instance(self):
-        instance = None
+    def status(self):
+        status = None
         try:
             gce_service = get_gce_service()
             instance = execute_request(gce_service.instances().get(instance=self.name, project=get_project_id(), zone=self.zone))
+            if instance is not None:
+                status = instance['status']
         except HttpError as e:
             if e.resp.status != 404 and e.resp.status != 401:
                 raise
-        return instance
+            if e.resp.status == 404:
+                status = 'UNPROVISIONED'
+        return status
 
     def verify_minecraft_firewall(self, port='25565'):
         try:
