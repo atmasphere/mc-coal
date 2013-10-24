@@ -76,12 +76,6 @@ class Instance(ndb.Model):
             return 'UNPROVISIONED'
         return gce_instance['status']
 
-    def status_message(self):
-        gce_instance = self.get_gce_instance()
-        if gce_instance is None:
-            return 'Unprovisioned'
-        return gce_instance['statusMessage']
-
     def get_gce_instance(self):
         instance = None
         try:
