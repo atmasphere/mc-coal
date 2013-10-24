@@ -643,7 +643,7 @@ class ServerKeyTest(AdminAuthTest):
 
 
 class InstanceConfigureTest(AdminAuthTest):
-    URL = '/admin/instance_configure'
+    URL = '/admin/instance/configure'
 
     def setUp(self):
         super(InstanceConfigureTest, self).setUp()

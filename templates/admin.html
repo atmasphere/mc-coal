@@ -17,6 +17,20 @@
                 <h1 class="data">{{ instance.status_message() }} in {{ instance.zone }}</h1>
             </div>
             <h2 class="box"><a href="{{ uri_for('instance_configure') }}">Configure</a></h2>
+            {% if instance.is_unprovisioned() %}
+                <form action="{{ uri_for('instance_start') }}" method="post">
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Start</button>
+                    </div>
+                </form>
+            {% endif %}
+            {% if instance.is_running() %}
+                <form action="{{ uri_for('instance_stop') }}" method="post">
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Stop</button>
+                    </div>
+                </form>
+            {% endif %}
         {% else %}
             <h2 class="box">GCE Not Set Up</h2>
         {% endif %}
