@@ -310,9 +310,7 @@ class AdminHandler(PagingHandler):
         servers = []
         for server in Server.query():
             servers.append(server)
-        instance = None
-        if gce.is_setup():
-            instance = gce.Instance.singleton()
+        instance = gce.Instance.singleton()
         context = {'servers': servers, 'instance': instance}
         self.render_template('admin.html', context=context)
 
@@ -620,18 +618,16 @@ class InstanceConfigureHandler(UserHandler):
 class InstanceStartHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def post(self):
-        if gce.is_setup():
-            instance = gce.Instance.singleton()
-            instance.start()
+        instance = gce.Instance.singleton()
+        instance.start()
         self.redirect(webapp2.uri_for('admin'))
 
 
 class InstanceStopHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def post(self):
-        if gce.is_setup():
-            instance = gce.Instance.singleton()
-            instance.stop()
+        instance = gce.Instance.singleton()
+        instance.stop()
         self.redirect(webapp2.uri_for('admin'))
 
 
