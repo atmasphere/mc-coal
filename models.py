@@ -968,7 +968,9 @@ class ScreenShot(NdbImage, ServerModel):
         return pil_image_data
 
     def create_blurred(self):
-        blurred_image = NdbImage.create(parent=self.key, data=self.generate_blurred_image_data(), mime_type='image/png')
+        f = self.filename
+        filename = "{0}_blur.png".format(f[:f.rfind('.') if f.rfind('.') != -1 else len(f)])
+        blurred_image = NdbImage.create(parent=self.key, data=self.generate_blurred_image_data(), filename=filename, mime_type='image/png')
         if self.blurred_image_key:
             self.blurred_image_key.delete()
         self.blurred_image_key = blurred_image.key

@@ -45,6 +45,11 @@ class NdbImage(ndb.Model):
         self.blob_key = blob_info.key()
 
     @property
+    def filename(self):
+        blob_info = self.blob_info
+        return getattr(blob_info, 'filename', self.key_as_string) if blob_info is not None else None
+
+    @property
     def image(self):
         """
         The Google `Image`_ entity for the image.
@@ -142,8 +147,9 @@ class NdbImage(ndb.Model):
         return serving_url
 
     def post_data(self, data, filename=None, mime_type=None):
-        filename = filename or self.key_as_string
-        mime_type = mime_type or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+        mime_type = mime_type or mimetypes.guess_type(filename)[0] if filename else None
+        mime_type = mime_type or 'application/octet-stream'
+        filename = filename or "{0}{1}".format(self.key_as_string, mimetypes.guess_extension(mime_type))
         url = blobstore.create_upload_url('/_bscs/data')
         params = []
         params.append(MultipartParam("file", filename=filename, filetype=mime_type, value=data))
@@ -233,13 +239,14 @@ class NdbImage(ndb.Model):
         if data is None:
             raise images.BadImageError("No image data")
         image = cls.create_new_entity(source_url=url, **kwargs)
-        filename = filename or image.key_as_string
-        mime_type = mime_type or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+        mime_type = mime_type or mimetypes.guess_type(filename)[0] if filename else None
+        mime_type = mime_type or 'application/octet-stream'
         if mime_type not in ['image/jpeg', 'image/png', 'image/gif']:
             message = "The image mime type (%s) isn't valid" % mime_type
             logging.warning(message)
             image.key.delete()
             raise images.BadImageError(message)
+        filename = filename or "{0}{1}".format(image.key_as_string, mimetypes.guess_extension(mime_type))
         gae_image = images.Image(data)
         format = gae_image.format
         new_format = None
