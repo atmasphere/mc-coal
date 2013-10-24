@@ -10,5 +10,5 @@ CONTROLLER_SCRIPT=$(curl http://metadata/computeMetadata/v1beta1/instance/attrib
 cd ..
 mkdir coal
 cd coal
-printf $CONTROLLER_SCRIPT > mc_coal_controller.py
+printf "$CONTROLLER_SCRIPT" > mc_coal_controller.py
 chmod a+x mc_coal_controller.py
