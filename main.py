@@ -617,6 +617,24 @@ class InstanceConfigureHandler(UserHandler):
         self.render_template('instance_configure.html', context=context)
 
 
+class InstanceStartHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self):
+        if gce.is_setup():
+            instance = gce.Instance.singleton()
+            instance.start()
+        self.redirect(webapp2.uri_for('admin'))
+
+
+class InstanceStopHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self):
+        if gce.is_setup():
+            instance = gce.Instance.singleton()
+            instance.stop()
+        self.redirect(webapp2.uri_for('admin'))
+
+
 coal_config = lib_config.register('COAL', {
     'SECRET_KEY': 'a_secret_string',
     'COOKIE_MAX_AGE': 2592000,
@@ -650,7 +668,9 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/admin/servers', handler=ServersHandler, strict_slash=True, name="servers"),
         RedirectRoute('/admin/servers/<key>', handler=ServerEditHandler, strict_slash=True, name="server"),
         RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
-        RedirectRoute('/admin/instance_configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure")
+        RedirectRoute('/admin/instance/configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure"),
+        RedirectRoute('/admin/instance/start', handler=InstanceStartHandler, strict_slash=True, name="instance_start"),
+        RedirectRoute('/admin/instance/stop', handler=InstanceStopHandler, strict_slash=True, name="instance_stop"),
     ],
     config={
         'webapp2_extras.sessions': {
