@@ -1,6 +1,5 @@
 from testing_utils import fix_sys_path; fix_sys_path()
 
-import base64
 import datetime
 import json
 import logging
@@ -16,7 +15,6 @@ import image
 import main
 import models
 from test_oauth import OauthTest
-from web_test import WebTest
 
 
 TIME_ZONE = 'America/Chicago'
