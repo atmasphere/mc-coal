@@ -127,7 +127,7 @@ class PingHandler(JsonHandler):
             self.abort(404)
         server.update_is_running(
             is_server_running,
-            last_ping=datetime.datetime.now(),
+            last_ping=datetime.datetime.utcnow(),
             server_day=server_day,
             server_time=server_time,
             is_raining=is_raining,

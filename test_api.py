@@ -304,7 +304,7 @@ class PingTest(AgentApiTest):
         self.assertFalse(models.Server.query().get().is_running)
 
     def post_level_data(self, now=None, timestamp=None, server_day=None, server_time=None):
-        now = now or datetime.datetime.now()
+        now = now or datetime.datetime.utcnow()
         timestamp = timestamp or now
         params = {
             'server_name': 'test',
@@ -330,7 +330,7 @@ class PingTest(AgentApiTest):
         self.assertLess(abs(server.server_time - server.last_server_time), 100) #Within 5 seconds
 
     def test_post_level_data_past(self):
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         self.post_level_data(now=now, timestamp=now - datetime.timedelta(seconds=20))
         server = models.Server.query().get()
         self.assertTrue(server.is_running)
@@ -340,7 +340,7 @@ class PingTest(AgentApiTest):
         self.assertGreaterEqual(server.server_time, 1400)
 
     def test_post_level_data_day_past(self):
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         self.post_level_data(now=now, timestamp=now - datetime.timedelta(seconds=1220)) #One game day + 400 ticks
         server = models.Server.query().get()
         self.assertTrue(server.is_running)
@@ -799,7 +799,7 @@ class UserKeyTest(KeyApiTest):
     def setUp(self):
         super(UserKeyTest, self).setUp()
         self.user = self.log_in_user("user@test.com")
-        self.user.last_login = datetime.datetime.now()
+        self.user.last_login = datetime.datetime.utcnow()
         self.user.put()
         self.log_out_user()
 
@@ -906,7 +906,7 @@ class PlayersTest(MultiPageApiTest, ServerModelTestBase):
         self.players = []
         for i in range(10):
             self.players.append(models.Player.get_or_create(self.server.key, "Player_{0}".format(i)))
-            self.players[i].last_login_timestamp = datetime.datetime.now()
+            self.players[i].last_login_timestamp = datetime.datetime.utcnow()
 
     @property
     def url(self):
@@ -941,7 +941,7 @@ class PlayerKeyTest(KeyApiTest, ServerModelTestBase):
     def setUp(self):
         super(PlayerKeyTest, self).setUp()
         self.player = models.Player.get_or_create(self.server.key, "Test_Player")
-        self.player.last_login_timestamp = datetime.datetime.now()
+        self.player.last_login_timestamp = datetime.datetime.utcnow()
 
     def test_get(self):
         response = self.get()
@@ -965,7 +965,7 @@ class PlayerUsernameTest(KeyApiTest, ServerModelTestBase):
     def setUp(self):
         super(PlayerUsernameTest, self).setUp()
         self.player = models.Player.get_or_create(self.server.key, "Test_Player")
-        self.player.last_login_timestamp = datetime.datetime.now()
+        self.player.last_login_timestamp = datetime.datetime.utcnow()
 
     def test_get(self):
         response = self.get()
@@ -988,11 +988,11 @@ class PlaySessionsTest(MultiPageApiTest, ServerModelTestBase):
 
     def setUp(self):
         super(PlaySessionsTest, self).setUp()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.players = []
         for i in range(2):
             self.players.append(models.Player.get_or_create(self.server.key, "Player_{0}".format(i)))
-            self.players[i].last_login_timestamp = datetime.datetime.now()
+            self.players[i].last_login_timestamp = datetime.datetime.utcnow()
         self.play_sessions = []
         for i in range(10):
             player = self.players[i % 2]
@@ -1098,8 +1098,8 @@ class PlaySessionKeyTest(KeyApiTest, ServerModelTestBase):
     def setUp(self):
         super(PlaySessionKeyTest, self).setUp()
         self.player = models.Player.get_or_create(self.server.key, "Test_Player")
-        self.player.last_login_timestamp = datetime.datetime.now()
-        self.play_session = models.PlaySession.create(self.server.key, self.player.username, datetime.datetime.now(), TIME_ZONE, None)
+        self.player.last_login_timestamp = datetime.datetime.utcnow()
+        self.play_session = models.PlaySession.create(self.server.key, self.player.username, datetime.datetime.utcnow(), TIME_ZONE, None)
 
     def test_get(self):
         response = self.get()
@@ -1122,7 +1122,7 @@ class ChatsTest(MultiPageApiTest, ServerModelTestBase):
 
     def setUp(self):
         super(ChatsTest, self).setUp()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.players = []
         self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
         self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
@@ -1276,7 +1276,7 @@ class ChatsPlayerTest(ChatsTest):
 class ChatsQueryTest(ChatsTest):
     def setUp(self):
         super(ChatsQueryTest, self).setUp()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.log_lines = []
         for i in range(25):
             dt = self.now - datetime.timedelta(minutes=i)
@@ -1377,7 +1377,7 @@ class ChatsQueryPlayerTest(ChatsTest):
 
     def setUp(self):
         super(ChatsQueryPlayerTest, self).setUp()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         new_log_lines = []
         i = 7
         for log_line in self.log_lines:
@@ -1522,7 +1522,7 @@ class DeathsTest(MultiPageApiTest, ServerModelTestBase):
 
     def setUp(self):
         super(DeathsTest, self).setUp()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.players = []
         self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
         self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
@@ -1609,7 +1609,7 @@ class DeathsPlayerTest(DeathsTest):
 class DeathsQueryTest(DeathsTest):
     def setUp(self):
         super(DeathsQueryTest, self).setUp()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.log_lines = []
         for i in range(25):
             dt = self.now - datetime.timedelta(minutes=i)
@@ -1735,7 +1735,7 @@ class LogLinesTest(MultiPageApiTest, ServerModelTestBase):
 
     def setUp(self):
         super(LogLinesTest, self).setUp()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.players = []
         self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
         self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
@@ -1833,7 +1833,7 @@ class LogLinesPlayerTest(LogLinesTest):
 class LogLinesQueryTest(LogLinesTest):
     def setUp(self):
         super(LogLinesQueryTest, self).setUp()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.log_lines = []
         for i in range(25):
             dt = self.now - datetime.timedelta(minutes=i)
@@ -2014,7 +2014,7 @@ class ScreenShotTest(MultiPageApiTest, ScreenShotTestBase):
         minimock.mock('image.NdbImage.post_data', returns_func=self.mock_post_data, tracker=None)
         self.user.usernames = ['gumptionthomas']
         self.user.put()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.players = []
         self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
         self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
@@ -2120,7 +2120,7 @@ class ScreenShotKeyTest(KeyApiTest, ScreenShotTestBase):
         minimock.mock('image.NdbImage.post_data', returns_func=self.mock_post_data, tracker=None)
         self.user.usernames = ['gumptionthomas']
         self.user.put()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.blob_info = self.create_blob_info(IMAGE_PATH)
         self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
         self.screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))

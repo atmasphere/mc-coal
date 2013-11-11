@@ -250,7 +250,7 @@ class AuthorizationProvider(Provider):
         """
         secret_expires_at = 0
         if self.secret_expires_in:
-            secret_expires = datetime.datetime.now() + datetime.timedelta(seconds=self.secret_expires_in)
+            secret_expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=self.secret_expires_in)
             expires_in = secret_expires - datetime.datetime(year=1970, month=1, day=1)
             secret_expires_at = expires_in.seconds
         return secret_expires_at

@@ -155,7 +155,7 @@ class ServerTest(BaseTest):
     def setUp(self):
         super(ServerTest, self).setUp()
         self.server = models.Server.create()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
 
     def test_update_is_running(self):
         self.server.update_is_running(True, self.now)

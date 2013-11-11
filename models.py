@@ -241,7 +241,7 @@ class User(auth_models.User):
 
     def record_chat_view(self, dt=None):
         if dt is None:
-            dt = datetime.datetime.now()
+            dt = datetime.datetime.utcnow()
         self.last_chat_view = dt
         self.put()
 
@@ -354,7 +354,7 @@ class UsernameClaim(ndb.Model):
         if claim is not None:
             user = claim.user_key.get()
             if user is not None:
-                claim.authenticated = datetime.datetime.now()
+                claim.authenticated = datetime.datetime.utcnow()
                 claim.put()
                 user.add_username(username)
                 user.put()
@@ -406,7 +406,7 @@ class Server(ndb.Model):
     def server_time(self):
         st = self.last_server_time
         if self.is_running and self.timestamp is not None and st is not None:
-            d = datetime.datetime.now() - self.timestamp
+            d = datetime.datetime.utcnow() - self.timestamp
             st += d.seconds * TICKS_PER_PLAY_SECOND
             if st >= 24000:
                 st %= 24000
@@ -417,7 +417,7 @@ class Server(ndb.Model):
         return self.agent_key.get() if self.agent_key is not None else None
 
     def check_is_running(self):
-        if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=2):
+        if self.last_ping is None or self.last_ping < datetime.datetime.utcnow() - datetime.timedelta(minutes=2):
             logging.info("Haven't heard from the agent since {0}. Setting server status is UNKNOWN.".format(self.last_ping))
             self.update_is_running(None)
 
@@ -431,7 +431,7 @@ class Server(ndb.Model):
         was_running = self.is_running
         record_ping = False
         if (server_day is not None and server_day != self.last_server_day) or (server_time is not None and server_time != self.last_server_time):
-            self.timestamp = timestamp or datetime.datetime.now()
+            self.timestamp = timestamp or datetime.datetime.utcnow()
             if server_day is not None:
                 self.last_server_day = server_day
             if server_time is not None:
@@ -461,7 +461,7 @@ class Server(ndb.Model):
                         body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
                             self.name,
                             status,
-                            datetime_filter(datetime.datetime.now(), timezone=admin.timezone),
+                            datetime_filter(datetime.datetime.utcnow(), timezone=admin.timezone),
                             datetime_filter(self.last_ping, timezone=admin.timezone) if self.last_ping else 'NEVER'
                         )
                         mail.send_mail(
@@ -840,8 +840,8 @@ class PlaySession(UsernameModel):
 
     @property
     def duration(self):
-        login_timestamp = self.login_timestamp or datetime.datetime.now()
-        logout_timestamp = self.logout_timestamp or datetime.datetime.now()
+        login_timestamp = self.login_timestamp or datetime.datetime.utcnow()
+        logout_timestamp = self.logout_timestamp or datetime.datetime.utcnow()
         return logout_timestamp - login_timestamp
 
     def close(self, timestamp, logout_log_line_key):

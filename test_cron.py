@@ -14,7 +14,7 @@ class StatusCheckTest(BaseTest, WebTest):
 
     def setUp(self):
         super(StatusCheckTest, self).setUp()
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
         self.server = models.Server.create()
         self.user = models.User(email="admin@example.com", admin=True)
         self.user.put()

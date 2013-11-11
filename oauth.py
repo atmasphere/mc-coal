@@ -42,7 +42,7 @@ class Client(ndb.Model):
     @property
     def is_secret_expired(self):
         secret_expires = self.secret_expires
-        return datetime.datetime.now() > secret_expires if secret_expires is not None else False
+        return datetime.datetime.utcnow() > secret_expires if secret_expires is not None else False
 
     @property
     def server(self):
@@ -93,7 +93,7 @@ class AuthorizationCode(ndb.Model):
 
     @property
     def is_expired(self):
-        return datetime.datetime.now() > self.expires if self.expires is not None else False
+        return datetime.datetime.utcnow() > self.expires if self.expires is not None else False
 
     @classmethod
     def get_key_name(cls, client_id, code):
@@ -118,7 +118,7 @@ class Token(ndb.Model):
 
     @property
     def is_expired(self):
-        return datetime.datetime.now() > self.expires if self.expires is not None else False
+        return datetime.datetime.utcnow() > self.expires if self.expires is not None else False
 
     def validate_scope(self, scope):
         if scope is None:
@@ -380,7 +380,7 @@ class COALResourceProvider(ResourceProvider):
             authorization.client_id = token.client_id
             authorization.user_key = token.user_key
             if token.expires is not None:
-                d = datetime.datetime.now() - token.expires
+                d = datetime.datetime.utcnow() - token.expires
                 authorization.expires_in = d.seconds
 
 resource_provider = COALResourceProvider()
