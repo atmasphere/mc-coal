@@ -38,6 +38,7 @@ OVERLOADED_TAG = 'overloaded'
 STOPPING_TAG = 'stopping'
 STARTING_TAG = 'starting'
 DEATH_TAG = 'death'
+ACHIEVEMENT_TAG = 'achievement'
 CLAIM_TAG = 'claim'
 COAL_TAG = 'coal'
 LOGIN_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGIN_TAG]
@@ -47,10 +48,11 @@ OVERLOADED_TAGS = [TIMESTAMP_TAG, SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG]
 STOPPING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STOPPING_TAG]
 STARTING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STARTING_TAG]
 DEATH_TAGS = [TIMESTAMP_TAG, DEATH_TAG]
+ACHIEVEMENT_TAGS = [TIMESTAMP_TAG, ACHIEVEMENT_TAG]
 CLAIM_TAGS = [TIMESTAMP_TAG, CLAIM_TAG]
 COAL_TAGS = [TIMESTAMP_TAG, COAL_TAG]
 TIMESTAMP_TAGS = [TIMESTAMP_TAG, UNKNOWN_TAG]
-CHANNEL_TAGS_SET = set(['login', 'logout', 'chat', 'death'])
+CHANNEL_TAGS_SET = set(['login', 'logout', 'chat', 'death', 'achievement'])
 REGEX_TAGS = [
     (
         [
@@ -146,6 +148,12 @@ REGEX_TAGS = [
             ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) withered away",
         ],
         DEATH_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) has just earned the achievement \[(?P<achievement>.+)\]",
+        ],
+        ACHIEVEMENT_TAGS
     ),
     (
         [
@@ -620,6 +628,8 @@ class LogLine(UsernameModel):
     username_mob = ndb.StringProperty()
     weapon = ndb.StringProperty()
     code = ndb.StringProperty()
+    achievement = ndb.StringProperty()
+    achievement_message = ndb.StringProperty()
     tags = ndb.StringProperty(repeated=True)
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
@@ -685,6 +695,10 @@ class LogLine(UsernameModel):
                         username = kwargs['username']
                         i = line.find(username) + len(username) + 1
                         kwargs['death_message'] = line[i:]
+                    if ACHIEVEMENT_TAG in tags:
+                        username = kwargs['username']
+                        i = line.find(username) + len(username) + 1
+                        kwargs['achievement_message'] = line[i:]
                     break
             if match:
                 break
@@ -762,11 +776,11 @@ class LogLine(UsernameModel):
 
     @classmethod
     def query_latest_events(cls, server_key):
-        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(-cls.timestamp, cls.key)
+        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG, ACHIEVEMENT_TAG])).order(-cls.timestamp, cls.key)
 
     @classmethod
     def query_oldest_events(cls, server_key):
-        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(cls.timestamp, cls.key)
+        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG, ACHIEVEMENT_TAG])).order(cls.timestamp, cls.key)
 
     @classmethod
     def query_api(cls, server_key, username=None, tag=None, since=None, before=None):

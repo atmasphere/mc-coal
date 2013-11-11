@@ -92,6 +92,7 @@ VOID_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas was knocked i
 VOID_DEATH_LOG_LINE_4 = '2013-04-03 10:27:55 [INFO] gumptionthomas was knocked into the void by vesicular'
 WITHER_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas withered away'
 DEATH_LOG_LINES_CRON = [ANVIL_DEATH_LOG_LINE, PRICKED_DEATH_LOG_LINE, CACTUS_DEATH_LOG_LINE]
+ACHIEVEMENT_LOG_LINE = '2013-11-10 17:19:04 [INFO] gumptionthomas has just earned the achievement [Getting an Upgrade]'
 
 DEATH_LOG_LINES = [
     (ANVIL_DEATH_LOG_LINE, "was squashed by a falling anvil", None, None),
@@ -697,6 +698,30 @@ class DeathLogLineTest(AgentApiTest):
             player = models.Player.lookup(self.server.key, log_line.username)
             self.assertIsNotNone(player)
             log_line.key.delete()
+
+
+class AchievementLogLineTest(AgentApiTest):
+    URL = '/api/v1/agents/logline'
+    ALLOWED = ['POST']
+
+    def test_achievement(self):
+        line = ACHIEVEMENT_LOG_LINE
+        params = {'line': line, 'zone': TIME_ZONE}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(line, log_line.line)
+        self.assertEqual(TIME_ZONE, log_line.zone)
+        self.assertEqual(datetime.datetime(2013, 11, 10, 23, 19, 4), log_line.timestamp)
+        self.assertEqual('INFO', log_line.log_level)
+        self.assertEqual('gumptionthomas', log_line.username, msg="Incorrect achievement username: '{0}' [{1}]".format(log_line.username, log_line.line))
+        self.assertEqual('Getting an Upgrade', log_line.achievement, msg="Incorrect achievement: '{0}' [{1}]".format(log_line.achievement, log_line.line))
+        self.assertEqual('has just earned the achievement [Getting an Upgrade]', log_line.achievement_message, msg="Incorrect achievement message: '{0}' [{1}]".format(log_line.achievement, log_line.line))
+        self.assertEqual(models.ACHIEVEMENT_TAGS, log_line.tags)
+        self.assertEqual(1, models.Player.query().count())
+        player = models.Player.lookup(self.server.key, log_line.username)
+        self.assertIsNotNone(player)
 
 
 class LastLineTest(AgentApiTest):
