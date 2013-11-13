@@ -17,5 +17,6 @@ The API v1 web services allow read and limited write access to various resources
    session_api
    chat_api
    death_api
+   achievement_api
    loglines_api
    screenshot_api

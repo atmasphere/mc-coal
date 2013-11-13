@@ -14,7 +14,7 @@ from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
 
 from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
-from models import CHAT_TAG, DEATH_TAG
+from models import CHAT_TAG, DEATH_TAG, ACHIEVEMENT_TAG
 from oauth import Client, authenticate_agent_oauth_required, authenticate_user_required
 from user_auth import authentication_required
 
@@ -556,6 +556,64 @@ class DeathKeyHandler(ServerModelHandler):
         self.json_response(log_line, DEATH_STRATEGY)
 
 
+ACHIEVEMENT_FIELDS = ['username', 'line']
+ACHIEVEMENT_FIELD_FUNCTIONS = {
+    'key': lambda o: o.key.urlsafe(),
+    'server_key': lambda o: o.server_key.urlsafe(),
+    'name': lambda o: o.achievement,
+    'message': lambda o: o.achievement_message,
+    'player_key': lambda o: o.player.key.urlsafe() if o.player is not None else None,
+    'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
+    'timestamp': lambda o: api_datetime(o.timestamp),
+    'created': lambda o: api_datetime(o.created),
+    'updated': lambda o: api_datetime(o.updated)
+}
+ACHIEVEMENT_STRATEGY = ModelStrategy(LogLine).include(*ACHIEVEMENT_FIELDS).include(**ACHIEVEMENT_FIELD_FUNCTIONS)
+
+
+class AchievementForm(MultiPageForm):
+    q = fields.StringField(validators=[validators.Optional()])
+    since = fields.DateTimeField(validators=[validators.Optional()])
+    before = fields.DateTimeField(validators=[validators.Optional()])
+
+
+class AchievementHandler(MultiPageServerModelHandler):
+    @authentication_required(authenticate=authenticate_user_required)
+    @validate_params(form_class=AchievementForm)
+    def get(self, server_key, key_username=None):
+        server_key = self.get_server(server_key).key
+        username = None
+        if key_username:
+            player = self.get_player_by_key_or_username(server_key, key_username)
+            username = player.username
+        since = self.request.form.since.data or None
+        before = self.request.form.before.data or None
+        q = self.request.form.q.data or None
+        if q:
+            query_string = u"achievement:{0}".format(q)
+            cursor = self.request.form.cursor.data or None
+            results, next_cursor = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=ACHIEVEMENT_TAG, since=since, before=before, cursor=cursor)
+            response = {'achievements': results}
+            if next_cursor is not None:
+                results, _ = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=ACHIEVEMENT_TAG, since=since, before=before, cursor=next_cursor)
+                if results:
+                    response['cursor'] = next_cursor
+            self.json_response(response, ACHIEVEMENT_STRATEGY)
+        else:
+            query = LogLine.query_api(server_key, username=username, tag=ACHIEVEMENT_TAG, since=since, before=before)
+            self.json_response(self.fetch_page(query, results_name='achievements'), ACHIEVEMENT_STRATEGY)
+
+
+class AchievementKeyHandler(ServerModelHandler):
+    @authentication_required(authenticate=authenticate_user_required)
+    def get(self, server_key, key):
+        server_key = self.get_server(server_key).key
+        log_line = self.get_server_model_by_key(server_key, key)
+        if ACHIEVEMENT_TAG not in log_line.tags:
+            self.abort(404)
+        self.json_response(log_line, ACHIEVEMENT_STRATEGY)
+
+
 LOG_LINE_FIELDS = ['username', 'line', 'log_level', 'ip', 'port', 'location', 'chat', 'tags']
 LOG_LINE_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
@@ -679,6 +737,7 @@ routes = [
     webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
     webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
     webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/achievements', 'api.AchievementHandler', name='api_data_player_achievements'),
     webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
     webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
     webapp2.Route('/api/v1/servers/<server_key>/players', 'api.PlayersHandler', name='api_data_players'),
@@ -692,6 +751,9 @@ routes = [
     webapp2.Route('/api/v1/servers/<server_key>/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
     webapp2.Route('/api/v1/servers/<server_key>/deaths', 'api.DeathHandler', name='api_data_deaths'),
     
+    webapp2.Route('/api/v1/servers/<server_key>/achievements/<key>', 'api.AchievementKeyHandler', name='api_data_achievement_key'),
+    webapp2.Route('/api/v1/servers/<server_key>/achievements', 'api.AchievementHandler', name='api_data_achievements'),
+
     webapp2.Route('/api/v1/servers/<server_key>/loglines/<key>', 'api.LogLineKeyHandler', name='api_data_logline_key'),
     webapp2.Route('/api/v1/servers/<server_key>/loglines', 'api.LogLinesHandler', name='api_data_loglines'),
     

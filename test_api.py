@@ -150,6 +150,9 @@ DEATH_LOG_LINES = [
     (VOID_DEATH_LOG_LINE_4, "was knocked into the void by vesicular", "vesicular", None),
     (WITHER_DEATH_LOG_LINE, "withered away", None, None),
 ]
+
+ACHIEVEMENT_LOG_LINES = [ACHIEVEMENT_LOG_LINE]
+
 TEST_USER_EMAIL = 'admin@example.com'
 
 NUM_PLAYER_FIELDS = 7
@@ -158,6 +161,7 @@ NUM_SERVER_FIELDS =11
 NUM_PLAY_SESSION_FIELDS = 12
 NUM_CHAT_FIELDS = 10
 NUM_DEATH_FIELDS = 10
+NUM_ACHIEVEMENT_FIELDS = 11
 NUM_LOG_LINE_FIELDS = 15
 NUM_SCREENSHOT_FIELDS = 8
 
@@ -1747,6 +1751,228 @@ class DeathKeyTest(KeyApiTest, ServerModelTestBase):
         log_line = json.loads(response.body)
         self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
         self.assertEqual(self.log_line.key.urlsafe(), log_line['key'])
+        self.assertEqual(self.log_line.username, log_line['username'])
+
+
+class AchievementsTest(MultiPageApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'achievements'
+    ALLOWED = ['GET']
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe())
+
+    def setUp(self):
+        super(AchievementsTest, self).setUp()
+        self.now = datetime.datetime.utcnow()
+        self.players = []
+        self.players.append(models.Player.get_or_create(self.server.key, "gumptionthomas"))
+        self.players.append(models.Player.get_or_create(self.server.key, "vesicular"))
+        self.log_lines = []
+        for i in range(5):
+            dt = self.now - datetime.timedelta(minutes=i+1)
+            achievement_log_line = '{0} [INFO] gumptionthomas has just earned the achievement [Getting an Upgrade]'.format(dt.strftime("%Y-%m-%d %H:%M:%S"))
+            log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
+            self.log_lines.append(log_line)
+        log_line = models.LogLine.create(self.server, TIME_STAMP_LOG_LINE, TIME_ZONE)
+        achievement_log_line = '{0} [INFO] vesicular has just earned the achievement [Getting an Upgrade]'.format(self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
+        self.log_lines.insert(0, log_line)
+
+    def test_get(self):
+        response = self.get(url='{0}?size={1}'.format(self.url, 50))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(len(self.log_lines), log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+            self.assertEqual(self.log_lines[i].achievement, log_line['name'])
+            self.assertEqual(self.log_lines[i].achievement_message, log_line['message'])
+            self.assertEqual(self.log_lines[i].username, log_line['username'])
+            self.assertIsNotNone(log_line['timestamp'])
+
+    def test_get_since_before(self):
+        url = "{0}?since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+        url = "{0}?before={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(len(self.log_lines)-1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+        url = "{0}?since={1}&before={2}".format(self.url, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(2, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(0, log_lines)
+
+    def test_get_wrong_server(self):
+        pass
+
+
+class AchievementsPlayerTest(AchievementsTest):
+    URL = ServerModelTestBase.URL + 'players/{1}/achievements'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.players[0].key.urlsafe())
+
+    def setUp(self):
+        super(AchievementsPlayerTest, self).setUp()
+        self.log_lines.pop(0)
+        achievement_log_line = '{0} [INFO] gumptionthomas has just earned the achievement [Getting an Upgrade]'.format(self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
+        self.log_lines.insert(0, log_line)
+
+    def test_get_since_before(self):
+        pass
+
+
+class AchievementsQueryTest(AchievementsTest):
+    def setUp(self):
+        super(AchievementsQueryTest, self).setUp()
+        self.now = datetime.datetime.utcnow()
+        self.log_lines = []
+        for i in range(25):
+            dt = self.now - datetime.timedelta(minutes=i)
+            achievement_log_line = '{0} [INFO] gumptionthomas has just earned the achievement [Taking Inventory]'.format(dt.strftime("%Y-%m-%d %H:%M:%S"))
+            log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
+            self.log_lines.append(log_line)
+        dt = self.now - datetime.timedelta(minutes=25)
+        achievement_log_line = '{0} [INFO] gumptionthomas has just earned the achievement [The Lie]'.format(dt.strftime("%Y-%m-%d %H:%M:%S"))
+        log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
+        self.log_lines.append(log_line)
+
+    def test_get(self):
+        response = self.get(url='{0}?q={1}'.format(self.url, 'Lie'))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+            self.assertIn('Lie', log_line['line'])
+            self.assertIsNotNone(log_line['timestamp'])
+
+    def test_get_multi(self):
+        response = self.get(url='{0}?q={1}'.format(self.url, 'Inventory'))
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        next_cursor = body['cursor']
+        log_lines = body['achievements']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.url, 'Inventory', next_cursor))
+        body = json.loads(response.body)
+        self.assertLength(2, body)
+        next_cursor = body['cursor']
+        log_lines = body['achievements']
+        self.assertLength(10, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+        response = self.get(url='{0}?q={1}&cursor={2}'.format(self.url, 'Inventory', next_cursor))
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(5, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+            self.assertEqual('gumptionthomas', log_line['username'])
+
+    def test_get_since_before(self):
+        url = "{0}?q=Inventory&since={1}".format(self.url, self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(1, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+        url = "{0}?q=Inventory&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(len(self.log_lines)-3, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+        url = "{0}?q=Inventory&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(3, log_lines)
+        for i, log_line in enumerate(log_lines):
+            self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+        url = "{0}?q=Inventory&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        response = self.get(url=url)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        log_lines = body['achievements']
+        self.assertLength(0, log_lines)
+
+
+class AchievementsQueryPlayerTest(AchievementsQueryTest):
+    URL = ServerModelTestBase.URL + 'players/{1}/achievements'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.players[0].key.urlsafe())
+
+
+class AchievementKeyTest(KeyApiTest, ServerModelTestBase):
+    URL = ServerModelTestBase.URL + 'achievements/{1}'
+    ALLOWED = ['GET']
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe(), self.log_line.key.urlsafe())
+
+    def setUp(self):
+        super(AchievementKeyTest, self).setUp()
+        self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
+        self.log_line = models.LogLine.create(self.server, ACHIEVEMENT_LOG_LINE, TIME_ZONE)
+
+    def test_get(self):
+        response = self.get()
+        self.assertOK(response)
+        log_line = json.loads(response.body)
+        self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
+        self.assertEqual(self.log_line.key.urlsafe(), log_line['key'])
+        self.assertEqual(self.log_line.achievement, log_line['name'])
+        self.assertEqual(self.log_line.achievement_message, log_line['message'])
         self.assertEqual(self.log_line.username, log_line['username'])
 
 
