@@ -56,8 +56,32 @@ class Instance(ndb.Model):
                         'value': open('gce-instance-startup.sh', 'r').read()
                     },
                     {
+                        'key': 'minecraft-url',
+                        'value': 'https://s3.amazonaws.com/Minecraft.Download/versions/1.6.4/minecraft_server.1.6.4.jar'
+                    },
+                    {
                         'key': 'controller-script',
                         'value': open('mc_coal_controller.py', 'r').read()
+                    },
+                    {
+                        'key': 'agent-script',
+                        'value': open('mc_coal_agent.py', 'r').read()
+                    },
+                                        {
+                        'key': 'log4j2',
+                        'value': open('log4j2.xml', 'r').read()
+                    },
+                    {
+                        'key': 'start-script',
+                        'value': open('mc-start.sh', 'r').read()
+                    },
+                    {
+                        'key': 'stop-script',
+                        'value': open('mc-stop.sh', 'r').read()
+                    },
+                    {
+                        'key': 'timezones',
+                        'value': open('timezones.py', 'r').read()
                     }
                 ],
             }]
