@@ -48,6 +48,9 @@ var chats = {
             case 'death':
                 chatDiv.text(data.death_message);
                 break;
+            case 'achievement':
+                chatDiv.text(data.achievement_message);
+                break;
         }
 
         eventDiv.prependTo('#live_events').slideDown('fast');
@@ -73,6 +76,7 @@ var chats = {
         logout: new buzz.sound('/sounds/chestclosed', { formats: [ 'ogg', 'mp3' ] }),
         chat: new buzz.sound('/sounds/bass', { formats: [ 'ogg', 'mp3' ] }),
         death: new buzz.sound('/sounds/hurt', { formats: [ 'ogg', 'mp3' ] }),
+        achievement: new buzz.sound('/sounds/levelup', { formats: [ 'ogg', 'mp3' ] }),
         soundOn: new buzz.sound('/sounds/click', { formats: [ 'ogg', 'mp3' ] }),
         brokenSocket: new buzz.sound('/sounds/break', { formats: [ 'ogg', 'mp3' ] })
     },

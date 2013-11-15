@@ -71,7 +71,7 @@ class SendLogLineTest(BaseTest):
         minimock.mock('channel.ServerChannels.get_client_ids', returns=[client_id, client_id2], tracker=None)
         minimock.mock('gae_channel.send_message', tracker=self.tracker)
         self.interesting_log_line.send_message()
-        js = '{"username": "quazifene", "chat": "is there anybody in there?", "time": "12:01am", "date": "Mar 24, 2013", "event": "chat", "death_message": null}'
+        js = '{"username": "quazifene", "achievement_message": null, "chat": "is there anybody in there?", "time": "12:01am", "date": "Mar 24, 2013", "event": "chat", "death_message": null}'
         trace = "Called gae_channel.send_message(\n    '{0}',\n    '{1}')".format(client_id, js)
         trace += "\nCalled gae_channel.send_message(\n    '{0}',\n    '{1}')".format(client_id, js)
         minimock.assert_same_trace(self.tracker, trace)
@@ -84,7 +84,7 @@ class SendLogLineTest(BaseTest):
         client_id = '{0}.{1}.1234.5678'.format(self.server.key.id(), self.user.key.id())
         minimock.mock('channel.ServerChannels.get_client_ids', returns=[client_id], tracker=None)
         minimock.mock('gae_channel.send_message', tracker=self.tracker)
-        js = '{"username": "quazifene", "chat": "is there anybody in there?", "time": "05:01pm", "date": "Mar 23, 2013", "event": "chat", "death_message": null}'
+        js = '{"username": "quazifene", "achievement_message": null, "chat": "is there anybody in there?", "time": "05:01pm", "date": "Mar 23, 2013", "event": "chat", "death_message": null}'
         self.interesting_log_line.send_message()
         minimock.assert_same_trace(self.tracker, "Called gae_channel.send_message('{0}','{1}')".format(client_id, js))
         log_line = json.loads(js)

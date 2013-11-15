@@ -306,6 +306,13 @@ header nav li.user:hover {
     background-color: rgba(144,14,87,0.2);
 }
 
+.player.achievement_event {
+    background-color: rgba(87,87,0,0.5);
+}
+.player.you.achievement_event {
+    background-color: rgba(144,144,14,0.2);
+}
+
 .activity {
     position: absolute;
     top: 0;

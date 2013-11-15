@@ -51,6 +51,8 @@ def add_log_lines(log_lines):
             fields.append(search.TextField(name='chat', value=log_line.chat))
         if log_line.death_message:
             fields.append(search.TextField(name='death_message', value=log_line.death_message))
+        if log_line.achievement:
+            fields.append(search.TextField(name='achievement', value=log_line.achievement))
         if log_line.tags:
             fields.append(search.TextField(name='tags', value=' '.join(log_line.tags) if log_line.tags else ''))
         data.append((log_line.key, fields))

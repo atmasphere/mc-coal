@@ -1,3 +1,4 @@
+from apiclient import discovery
 from oauth2client import gce
 import httplib2
 

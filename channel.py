@@ -68,7 +68,8 @@ class ServerChannels(ndb.Model):
             'time': datetime_filter(log_line.timestamp, format='%I:%M%p'),
             'username': log_line.username,
             'chat': log_line.chat,
-            'death_message': log_line.death_message
+            'death_message': log_line.death_message,
+            'achievement_message': log_line.achievement_message
         }
         client_ids = cls.get_client_ids(log_line.server_key)
         if client_ids:

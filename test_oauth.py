@@ -772,5 +772,5 @@ class TestHandlerTest(OauthTest):
         coal_config.OAUTH_TOKEN_EXPIRES_IN = 0
         access_token, refresh_token = self.get_tokens()
         response = self.get(self.url, bearer_token=access_token)
-        self.assertUnauthorized(response)
         coal_config._update_configs()
+        self.assertUnauthorized(response)

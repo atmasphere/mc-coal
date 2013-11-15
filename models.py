@@ -38,6 +38,7 @@ OVERLOADED_TAG = 'overloaded'
 STOPPING_TAG = 'stopping'
 STARTING_TAG = 'starting'
 DEATH_TAG = 'death'
+ACHIEVEMENT_TAG = 'achievement'
 CLAIM_TAG = 'claim'
 COAL_TAG = 'coal'
 LOGIN_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGIN_TAG]
@@ -47,10 +48,11 @@ OVERLOADED_TAGS = [TIMESTAMP_TAG, SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG]
 STOPPING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STOPPING_TAG]
 STARTING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STARTING_TAG]
 DEATH_TAGS = [TIMESTAMP_TAG, DEATH_TAG]
+ACHIEVEMENT_TAGS = [TIMESTAMP_TAG, ACHIEVEMENT_TAG]
 CLAIM_TAGS = [TIMESTAMP_TAG, CLAIM_TAG]
 COAL_TAGS = [TIMESTAMP_TAG, COAL_TAG]
 TIMESTAMP_TAGS = [TIMESTAMP_TAG, UNKNOWN_TAG]
-CHANNEL_TAGS_SET = set(['login', 'logout', 'chat', 'death'])
+CHANNEL_TAGS_SET = set(['login', 'logout', 'chat', 'death', 'achievement'])
 REGEX_TAGS = [
     (
         [
@@ -60,7 +62,7 @@ REGEX_TAGS = [
     ),
     (
         [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) lost connection: disconnect.+"
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) left the game"
         ],
         LOGOUT_TAGS
     ),
@@ -146,6 +148,12 @@ REGEX_TAGS = [
             ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) withered away",
         ],
         DEATH_TAGS
+    ),
+    (
+        [
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) has just earned the achievement \[(?P<achievement>.+)\]",
+        ],
+        ACHIEVEMENT_TAGS
     ),
     (
         [
@@ -241,7 +249,7 @@ class User(auth_models.User):
 
     def record_chat_view(self, dt=None):
         if dt is None:
-            dt = datetime.datetime.now()
+            dt = datetime.datetime.utcnow()
         self.last_chat_view = dt
         self.put()
 
@@ -354,7 +362,7 @@ class UsernameClaim(ndb.Model):
         if claim is not None:
             user = claim.user_key.get()
             if user is not None:
-                claim.authenticated = datetime.datetime.now()
+                claim.authenticated = datetime.datetime.utcnow()
                 claim.put()
                 user.add_username(username)
                 user.put()
@@ -406,7 +414,7 @@ class Server(ndb.Model):
     def server_time(self):
         st = self.last_server_time
         if self.is_running and self.timestamp is not None and st is not None:
-            d = datetime.datetime.now() - self.timestamp
+            d = datetime.datetime.utcnow() - self.timestamp
             st += d.seconds * TICKS_PER_PLAY_SECOND
             if st >= 24000:
                 st %= 24000
@@ -417,7 +425,7 @@ class Server(ndb.Model):
         return self.agent_key.get() if self.agent_key is not None else None
 
     def check_is_running(self):
-        if self.last_ping is None or self.last_ping < datetime.datetime.now() - datetime.timedelta(minutes=2):
+        if self.last_ping is None or self.last_ping < datetime.datetime.utcnow() - datetime.timedelta(minutes=2):
             logging.info("Haven't heard from the agent since {0}. Setting server status is UNKNOWN.".format(self.last_ping))
             self.update_is_running(None)
 
@@ -431,7 +439,7 @@ class Server(ndb.Model):
         was_running = self.is_running
         record_ping = False
         if (server_day is not None and server_day != self.last_server_day) or (server_time is not None and server_time != self.last_server_time):
-            self.timestamp = timestamp or datetime.datetime.now()
+            self.timestamp = timestamp or datetime.datetime.utcnow()
             if server_day is not None:
                 self.last_server_day = server_day
             if server_time is not None:
@@ -461,7 +469,7 @@ class Server(ndb.Model):
                         body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
                             self.name,
                             status,
-                            datetime_filter(datetime.datetime.now(), timezone=admin.timezone),
+                            datetime_filter(datetime.datetime.utcnow(), timezone=admin.timezone),
                             datetime_filter(self.last_ping, timezone=admin.timezone) if self.last_ping else 'NEVER'
                         )
                         mail.send_mail(
@@ -620,6 +628,8 @@ class LogLine(UsernameModel):
     username_mob = ndb.StringProperty()
     weapon = ndb.StringProperty()
     code = ndb.StringProperty()
+    achievement = ndb.StringProperty()
+    achievement_message = ndb.StringProperty()
     tags = ndb.StringProperty(repeated=True)
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
@@ -685,6 +695,10 @@ class LogLine(UsernameModel):
                         username = kwargs['username']
                         i = line.find(username) + len(username) + 1
                         kwargs['death_message'] = line[i:]
+                    if ACHIEVEMENT_TAG in tags:
+                        username = kwargs['username']
+                        i = line.find(username) + len(username) + 1
+                        kwargs['achievement_message'] = line[i:]
                     break
             if match:
                 break
@@ -762,11 +776,11 @@ class LogLine(UsernameModel):
 
     @classmethod
     def query_latest_events(cls, server_key):
-        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(-cls.timestamp, cls.key)
+        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG, ACHIEVEMENT_TAG])).order(-cls.timestamp, cls.key)
 
     @classmethod
     def query_oldest_events(cls, server_key):
-        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG])).order(cls.timestamp, cls.key)
+        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG, ACHIEVEMENT_TAG])).order(cls.timestamp, cls.key)
 
     @classmethod
     def query_api(cls, server_key, username=None, tag=None, since=None, before=None):
@@ -840,8 +854,8 @@ class PlaySession(UsernameModel):
 
     @property
     def duration(self):
-        login_timestamp = self.login_timestamp or datetime.datetime.now()
-        logout_timestamp = self.logout_timestamp or datetime.datetime.now()
+        login_timestamp = self.login_timestamp or datetime.datetime.utcnow()
+        logout_timestamp = self.logout_timestamp or datetime.datetime.utcnow()
         return logout_timestamp - login_timestamp
 
     def close(self, timestamp, logout_log_line_key):
