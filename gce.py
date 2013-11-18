@@ -45,10 +45,16 @@ class Instance(ndb.Model):
                 }],
                 'network': network_url
             }],
-            'serviceAccounts': [{
-                'email': 'default',
-                'scopes': SCOPES
-            }],
+            'serviceAccounts': [
+                {
+                    'email': 'default',
+                    'scopes': SCOPES
+                },
+                {
+                    'email': '514648469338@project.gserviceaccount.com',
+                    'scopes': SCOPES
+                }
+            ],
             'metadata': [{
                 'items': [
                     {
