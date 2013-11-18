@@ -5,4 +5,4 @@ queue:
 - name: controller
   mode: pull
   acl:
-  - user_email: 514648469338@project.googleusercontent.com      # The Compute Engine service account email
+  - writer_email: 514648469338@project.googleusercontent.com
