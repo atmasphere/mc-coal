@@ -60,6 +60,10 @@ class Instance(ndb.Model):
                         'value': 'https://s3.amazonaws.com/Minecraft.Download/versions/1.6.4/minecraft_server.1.6.4.jar'
                     },
                     {
+                        'key': 'project-id',
+                        'value': project_id
+                    },
+                    {
                         'key': 'controller-script',
                         'value': open('mc_coal_controller.py', 'r').read()
                     },

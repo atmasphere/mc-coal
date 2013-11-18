@@ -33,17 +33,17 @@ COAL Agent
   2013-10-01 23:55:42,970 : main     INFO   Monitoring '../server.log' and reporting to '[my-app-id].appspot.com'...
 
 3. Copy the `mc-start.sh <mc-start.sh>`_ script into the minecraft server directory. Edit the java configuration parameters within as desired.
-4. Start the minecraft server with the start script:
+4. For Minecraft 1.7.2 and later -- Copy the `log4j2.xml <log4j2.xml>`_ configuration file into the minecraft server directory.
+5. Start the minecraft server with the start script:
 
 ::
 
   [~/minecraft-server] $ ./mc-start.sh
-  2013-10-01 23:57:18 [INFO] Starting minecraft server version 1.6.4
-  2013-10-01 23:57:18 [INFO] Loading properties
-  2013-10-01 23:57:18 [INFO] Default game type: SURVIVAL
-  2013-10-01 23:57:18 [INFO] Generating keypair
-  2013-10-01 23:57:19 [INFO] Starting Minecraft server on *:25565
-  2013-10-01 23:57:19 [INFO] Preparing level "world"
-  2013-10-01 23:57:19 [INFO] Preparing start region for level 0
-  2013-10-01 23:57:20 [INFO] Preparing spawn area: 49%
-  2013-10-01 23:57:21 [INFO] Done (2.052s)! For help, type "help" or "?"
+  2013-11-11 14:52:22 [INFO] Starting minecraft server version 1.7.2
+  2013-11-11 14:52:22 [INFO] Loading properties
+  2013-11-11 14:52:22 [INFO] Default game type: SURVIVAL
+  2013-11-11 14:52:22 [INFO] Generating keypair
+  2013-11-11 14:52:23 [INFO] Starting Minecraft server on *:25565
+  2013-11-11 14:52:23 [INFO] Preparing level "world"
+  2013-11-11 14:52:23 [INFO] Preparing start region for level 0
+  2013-11-11 14:52:24 [INFO] Done (0.942s)! For help, type "help" or "?"

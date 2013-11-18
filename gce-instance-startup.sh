@@ -17,6 +17,9 @@ cd ..
 mkdir coal
 cd coal
 
+PROJECT_ID=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/project-id)
+printf "$PROJECT_ID" > project_id
+
 CONTROLLER_SCRIPT=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/controller-script)
 printf "$CONTROLLER_SCRIPT" > mc_coal_controller.py
 chmod a+x mc_coal_controller.py
