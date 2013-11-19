@@ -5,4 +5,4 @@ queue:
 - name: controller
   mode: pull
   acl:
-  - writer_email: 514648469338@project.googleusercontent.com
+  - writer_email: 514648469338@project.gserviceaccount.com
