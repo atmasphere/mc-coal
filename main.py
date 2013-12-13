@@ -61,6 +61,10 @@ class MainHandlerBase(UserHandler):
         self.request.server = server
         return self.request.server
 
+    def head(self):
+        self.get()
+        self.response.clear()
+
 
 class MainHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)

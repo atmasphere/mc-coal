@@ -153,6 +153,10 @@ class UserHandler(JinjaHandler, UserBase):
         template_context['user'] = self.user
         return template_context
 
+    def head(self):
+        self.get()
+        self.response.clear()
+
 
 class LoginHandler(UserHandler):
     def get(self):
