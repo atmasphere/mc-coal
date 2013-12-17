@@ -116,9 +116,10 @@ class UserBase(object):
 
     @webapp2.cached_property
     def user(self):
-        user_info = self.user_info
-        user_id = self.user_info['user_id'] if user_info else None
-        return self.auth.store.user_model.get_by_id(user_id) if user_id else None
+        user_model = None
+        if self.user_info:
+            user_model = self.auth.store.user_model.get_by_id(self.user_info['user_id'])
+        return user_model
 
 
 class UserHandler(JinjaHandler, UserBase):
@@ -146,6 +147,10 @@ class UserHandler(JinjaHandler, UserBase):
         template_context['request'] = self.request
         template_context['user'] = self.user
         return template_context
+
+    def head(self):
+        self.get()
+        self.response.clear()
 
 
 class LoginHandler(UserHandler):

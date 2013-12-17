@@ -42,9 +42,9 @@ class MainHandlerBase(UserHandler):
     def redirect_to_server(self, route_name):
         server_keys = Server.query_all().fetch(2, keys_only=True)
         if server_keys and len(server_keys) == 1:
-            self.redirect(webapp2.uri_for(route_name, server_key=server_keys[0].urlsafe()), abort=True)
+            self.redirect(webapp2.uri_for(route_name, server_key=server_keys[0].urlsafe()))
         else:
-            self.redirect(webapp2.uri_for('main'), abort=True)
+            self.redirect(webapp2.uri_for('main'))
 
     def get_server_by_key(self, key, route_name, abort=True):
         if key is None:
@@ -61,6 +61,10 @@ class MainHandlerBase(UserHandler):
         self.request.server = server
         return self.request.server
 
+    def head(self):
+        self.get()
+        self.response.clear()
+
 
 class MainHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
@@ -68,7 +72,8 @@ class MainHandler(MainHandlerBase):
         servers = Server.query_all().fetch(100)
         if self.request.user and self.request.user.active:
             if servers and len(servers) == 1:
-                self.redirect(webapp2.uri_for('home', server_key=servers[0].key.urlsafe()), abort=True)
+                self.redirect(webapp2.uri_for('home', server_key=servers[0].key.urlsafe()))
+                return
         context = {
             'servers': servers
         }
@@ -239,9 +244,9 @@ class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserB
     def redirect_to_server(self, route_name):
         server_keys = Server.query_all().fetch(2, keys_only=True)
         if server_keys and len(server_keys) == 1:
-            self.redirect(webapp2.uri_for(route_name, server_key=server_keys[0].urlsafe()), abort=True)
+            self.redirect(webapp2.uri_for(route_name, server_key=server_keys[0].urlsafe()))
         else:
-            self.redirect(webapp2.uri_for('main'), abort=True)
+            self.redirect(webapp2.uri_for('main'))
 
     def get_server_by_key(self, key, route_name, abort=True):
         if key is None:
