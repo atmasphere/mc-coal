@@ -46,9 +46,7 @@ class MainHandlerBase(UserHandler):
         else:
             self.redirect(webapp2.uri_for('main'))
 
-    def get_server_by_key(self, key, route_name, abort=True):
-        if key is None:
-            self.redirect_to_server(route_name)
+    def get_server_by_key(self, key, abort=True):
         try:
             server_key = ndb.Key(urlsafe=key)
             server = server_key.get()
@@ -83,7 +81,10 @@ class MainHandler(MainHandlerBase):
 class HomeHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
     def get(self, server_key=None):
-        server = self.get_server_by_key(server_key, 'home')
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('home')
+            return
         open_sessions_query = PlaySession.query_latest_open(server.key)
         # Get open sessions
         playing_usernames = []
@@ -143,7 +144,10 @@ class ChatForm(form.Form):
 class ChatsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self, server_key=None):
-        server = self.get_server_by_key(server_key, 'chats')
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('chats')
+            return
         self.request.user.record_chat_view()
         query_string = self.request.get('q', None)
         # Search
@@ -193,7 +197,10 @@ class ChatsHandler(PagingHandler):
 
     @authentication_required(authenticate=authenticate)
     def post(self, server_key=None):
-        server = self.get_server_by_key(server_key, 'chats')
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('chats')
+            return
         try:
             user = self.request.user
             if not (user and user.active):
@@ -211,7 +218,10 @@ class ChatsHandler(PagingHandler):
 class PlayersHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self, server_key=None):
-        server = self.get_server_by_key(server_key, 'players')
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('players')
+            return
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
             Player.query_all_reverse(server.key), Player.query_all(server.key), RESULTS_PER_PAGE
         )
@@ -222,7 +232,10 @@ class PlayersHandler(PagingHandler):
 class PlaySessionsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self, server_key=None):
-        server = self.get_server_by_key(server_key, 'play_sessions')
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('play_sessions')
+            return
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
             PlaySession.query_latest(server.key), PlaySession.query_oldest(server.key), RESULTS_PER_PAGE
         )
@@ -233,7 +246,10 @@ class PlaySessionsHandler(PagingHandler):
 class ScreenShotUploadHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
     def get(self, server_key):
-        server = self.get_server_by_key(server_key, 'home')
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('home')
+            return
         url = webapp2.uri_for('screenshot_uploaded', server_key=server.key.urlsafe())
         upload_url = blobstore.create_upload_url(url)
         context = {'upload_url': upload_url}
@@ -248,9 +264,7 @@ class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserB
         else:
             self.redirect(webapp2.uri_for('main'))
 
-    def get_server_by_key(self, key, route_name, abort=True):
-        if key is None:
-            self.redirect_to_server(route_name)
+    def get_server_by_key(self, key, abort=True):
         try:
             server_key = ndb.Key(urlsafe=key)
             server = server_key.get()
@@ -263,7 +277,10 @@ class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserB
 
     @authentication_required(authenticate=authenticate)
     def post(self, server_key):
-        server = self.get_server_by_key(server_key, 'home')
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('home')
+            return
         blob_info = self.get_uploads('file')[0]
         ScreenShot.create(server.key, self.request.user, blob_info=blob_info)
         self.redirect(webapp2.uri_for('screenshots', server_key=server.key.urlsafe()))
@@ -272,7 +289,10 @@ class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserB
 class ScreenShotsHandler(PagingHandler):
     @authentication_required(authenticate=authenticate)
     def get(self, server_key=None):
-        server = self.get_server_by_key(server_key, 'screenshots')
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('screenshots')
+            return
         results, previous_cursor, next_cursor = self.get_results_with_cursors(
             ScreenShot.query_latest(server.key), ScreenShot.query_oldest(server.key), 5
         )
@@ -293,7 +313,10 @@ class ScreenShotBlurHandler(MainHandlerBase):
 class ScreenShotRemoveHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
     def post(self, server_key, key):
-        server = self.get_server_by_key(server_key, 'screenshots')
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('screenshots')
+            return
         try:
             screenshot_key = ndb.Key(urlsafe=key)
             if screenshot_key.parent() != server.key:
