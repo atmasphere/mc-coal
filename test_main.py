@@ -208,7 +208,7 @@ class ServerAuthTest(AuthTest):
             self.server.put()
             response = self.get()
             if 'GET' in self.ALLOWED:
-                self.assertNotFound(response)
+                self.assertRedirects(response)
             else:
                 self.assertMethodNotAllowed(response)
 
