@@ -57,7 +57,7 @@ class Instance(ndb.Model):
                     },
                     {
                         'key': 'minecraft-url',
-                        'value': 'https://s3.amazonaws.com/Minecraft.Download/versions/1.6.4/minecraft_server.1.6.4.jar'
+                        'value': 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
                     },
                     {
                         'key': 'project-id',
@@ -71,7 +71,7 @@ class Instance(ndb.Model):
                         'key': 'agent-script',
                         'value': open('mc_coal_agent.py', 'r').read()
                     },
-                                        {
+                    {
                         'key': 'log4j2',
                         'value': open('log4j2.xml', 'r').read()
                     },
@@ -122,7 +122,7 @@ class Instance(ndb.Model):
                 status = 'UNPROVISIONED'
         return status
 
-    def verify_minecraft_firewall(self, port='25565'):
+    def verify_minecraft_firewall(self, port=25565):
         try:
             name = 'minecraft-{0}'.format(port)
             gce_service = get_gce_service()
@@ -131,7 +131,7 @@ class Instance(ndb.Model):
             if e.resp.status == 404:
                 self.create_minecraft_firewall(port=port)
 
-    def create_minecraft_firewall(self, port='25565'):
+    def create_minecraft_firewall(self, port=25565):
         project_id = get_project_id()
         firewall = {
             'name': 'minecraft-{0}'.format(port),
