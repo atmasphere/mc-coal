@@ -45,10 +45,12 @@ class Instance(ndb.Model):
                 }],
                 'network': network_url
             }],
-            'serviceAccounts': [{
-                'email': 'default',
-                'scopes': SCOPES
-            }],
+            'serviceAccounts': [
+                {
+                    'email': 'default',
+                    'scopes': SCOPES
+                },
+            ],
             'metadata': [{
                 'items': [
                     {

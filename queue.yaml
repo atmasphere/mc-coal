@@ -1,7 +1,6 @@
 queue:
 - name: default
 
-queue:
 - name: controller
   mode: pull
   # acl:
