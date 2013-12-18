@@ -20,7 +20,7 @@ Servers
     :Response Data: - **key** -- The server key.
                     - **name** -- The server name.
                     - **version** -- The minecraft server version.
-                    - **status** -- A string indicating the status of the minecraft server. Possible values are ``RUNNING``, ``STOPPED``, ``QUEUED``, or ``UNKNOWN`.
+                    - **status** -- A string indicating the status of the minecraft server. Possible values are ``RUNNING``, ``STOPPED``, ``QUEUED``, or ``UNKNOWN``.
                     - **last_ping** -- The timestamp of the last agent ping.
                     - **server_day** -- An integer indicating the number of game days since the start of the level.
                     - **server_time** -- An integer indicating the game time of day. 0 is sunrise, 6000 is mid day, 12000 is sunset, 18000 is mid night, 24000 is the next day's 0.
