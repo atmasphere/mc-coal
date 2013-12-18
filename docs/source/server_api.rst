@@ -20,7 +20,7 @@ Servers
     :Response Data: - **key** -- The server key.
                     - **name** -- The server name.
                     - **version** -- The minecraft server version.
-                    - **is_running** -- A boolean indicating whether the minecraft server is running. If this value is ``null`` the status is unknown.
+                    - **status** -- A string indicating the status of the minecraft server. Possible values are ``RUNNING``, ``STOPPED``, ``QUEUED``, or ``UNKNOWN`.
                     - **last_ping** -- The timestamp of the last agent ping.
                     - **server_day** -- An integer indicating the number of game days since the start of the level.
                     - **server_time** -- An integer indicating the game time of day. 0 is sunrise, 6000 is mid day, 12000 is sunset, 18000 is mid night, 24000 is the next day's 0.
@@ -52,7 +52,7 @@ Servers
           "last_ping": "2013-04-14 19:55:22 CDT-0500",
           "version": "1.5.1",
           "updated": "2013-04-14 19:55:22 CDT-0500",
-          "is_running": true,
+          "status": "RUNNING",
           "created": "2013-03-04 15:05:53 CST-0600"
           "server_day": 15744
           "server_time": 19767
@@ -65,7 +65,7 @@ Servers
           "last_ping": "2013-04-14 19:55:43 CDT-0500",
           "version": "1.5.1",
           "updated": "2013-04-14 19:55:43 CDT-0500",
-          "is_running": true,
+          "status": "STOPPED",
           "created": "2013-03-04 15:07:00 CST-0600"
           "server_day": 15223
           "server_time": 14141
@@ -107,7 +107,7 @@ Servers
       "last_ping": "2013-04-14 19:55:22 CDT-0500",
       "version": "1.5.1",
       "updated": "2013-04-14 19:55:22 CDT-0500",
-      "is_running": true,
+      "status": "RUNNING",
       "created": "2013-03-04 15:05:53 CST-0600"
       "server_day": 15744
       "server_time": 19767

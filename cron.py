@@ -11,7 +11,7 @@ ON_SERVER = not os.environ.get('SERVER_SOFTWARE', 'Development').startswith('Dev
 class ServerStatusHandler(webapp2.RequestHandler):
     def get(self):
         for server in Server.query():
-            server.check_is_running()
+            server.update_status()
 
 
 application = webapp2.WSGIApplication(

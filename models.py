@@ -26,6 +26,10 @@ import search
 UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
 AGENT_CLIENT_ID = 'mc-coal-agent'
 TICKS_PER_PLAY_SECOND = 20
+SERVER_UNKNOWN = 'UNKNOWN'
+SERVER_QUEUED = 'QUEUED'
+SERVER_RUNNING = 'RUNNING'
+SERVER_STOPPED = 'STOPPED'
 UNKNOWN_TAG = 'unknown'
 TIMESTAMP_TAG = 'timestamp'
 CONNECTION_TAG = 'connection'
@@ -395,7 +399,10 @@ class Server(ndb.Model):
     address = ndb.StringProperty()
     active = ndb.BooleanProperty(default=True)
     version = ndb.StringProperty()
-    is_running = ndb.BooleanProperty()
+    status = ndb.StringProperty(default=SERVER_UNKNOWN)
+    is_running = ndb.ComputedProperty(lambda self: self.status == SERVER_RUNNING)
+    is_stopped = ndb.ComputedProperty(lambda self: self.status == SERVER_STOPPED)
+    is_queued = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED)
     last_ping = ndb.DateTimeProperty()
     last_server_day = ndb.IntegerProperty()
     last_server_time = ndb.IntegerProperty()
@@ -424,10 +431,6 @@ class Server(ndb.Model):
     def agent(self):
         return self.agent_key.get() if self.agent_key is not None else None
 
-    def check_is_running(self):
-        if self.last_ping is None or self.last_ping < datetime.datetime.utcnow() - datetime.timedelta(minutes=2):
-            logging.info("Haven't heard from the agent since {0}. Setting server status is UNKNOWN.".format(self.last_ping))
-            self.update_is_running(None)
 
     def update_version(self, server_version):
         if server_version is not None:
@@ -435,8 +438,13 @@ class Server(ndb.Model):
                 self.version = server_version
                 self.put()
 
-    def update_is_running(self, is_running, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None, timestamp=None):
-        was_running = self.is_running
+    def update_status(self, status=None, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None, timestamp=None):
+        previous_status = self.status
+        if status is None:
+            if self.last_ping is None or self.last_ping < datetime.datetime.utcnow() - datetime.timedelta(minutes=5):
+                status = SERVER_UNKNOWN
+            else:
+                status = previous_status
         record_ping = False
         if (server_day is not None and server_day != self.last_server_day) or (server_time is not None and server_time != self.last_server_time):
             self.timestamp = timestamp or datetime.datetime.utcnow()
@@ -452,18 +460,12 @@ class Server(ndb.Model):
         if last_ping is not None:
             if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):
                 record_ping = True
-        if record_ping or (was_running != is_running):
-            self.is_running = is_running
+        if record_ping or (previous_status != status):
+            self.status = status
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
-            if was_running != is_running:
-                if is_running == True:
-                    status = 'RUNNING'
-                elif is_running == False:
-                    status = 'DOWN'
-                else:
-                    status = 'UNKNOWN'
+            if previous_status != status:
                 for admin in User.query_admin():
                     if admin.email:
                         body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(

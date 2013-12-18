@@ -281,7 +281,7 @@ class PingTest(AgentApiTest):
         body = json.loads(response.body)
         self.assertLength(1, body)
         self.assertEmpty(body['commands'])
-        self.assertIsNone(models.Server.query().get().is_running)
+        self.assertEqual(models.SERVER_UNKNOWN, models.Server.query().get().status)
 
     def test_post_no_server_name(self):
         logging.disable(logging.ERROR)
@@ -874,7 +874,7 @@ class ServersTest(MultiPageApiTest):
         self.assertLength(len(self.servers), reponse_servers)
         for i, server in enumerate(reponse_servers):
             self.assertEqual(NUM_SERVER_FIELDS, len(server))
-            self.assertFalse(server['is_running'])
+            self.assertEqual(models.SERVER_UNKNOWN, server['status'])
 
     def test_get_inactive(self):
         self.server.active = False
@@ -887,7 +887,7 @@ class ServersTest(MultiPageApiTest):
         self.assertLength(len(self.servers)-1, reponse_servers)
         for i, server in enumerate(reponse_servers):
             self.assertEqual(NUM_SERVER_FIELDS, len(server))
-            self.assertFalse(server['is_running'])
+            self.assertEqual(models.SERVER_UNKNOWN, server['status'])
 
 
 class ServerKeyTest(KeyApiTest):
@@ -908,7 +908,7 @@ class ServerKeyTest(KeyApiTest):
         self.assertEqual(NUM_SERVER_FIELDS, len(server))
         self.assertEqual(self.server.key.urlsafe(), server['key'])
         self.assertEqual(self.server.name, server['name'])
-        self.assertFalse(server['is_running'])
+        self.assertEqual(models.SERVER_UNKNOWN, server['status'])
 
 
 class ServerModelTestBase(object):

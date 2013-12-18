@@ -15,6 +15,7 @@ from restler.serializers import ModelStrategy
 
 from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG, ACHIEVEMENT_TAG
+from models import SERVER_UNKNOWN, SERVER_RUNNING, SERVER_STOPPED
 from oauth import Client, authenticate_agent_oauth_required, authenticate_user_required
 from user_auth import authentication_required
 
@@ -125,8 +126,13 @@ class PingHandler(JsonHandler):
         server = client.server
         if not server.active:
             self.abort(404)
-        server.update_is_running(
-            is_server_running,
+        status = SERVER_UNKNOWN
+        if is_server_running:
+            status = SERVER_RUNNING
+        elif is_server_running == False:
+            status = SERVER_STOPPED
+        server.update_status(
+            status=status,
             last_ping=datetime.datetime.utcnow(),
             server_day=server_day,
             server_time=server_time,
@@ -265,7 +271,7 @@ class UserKeyHandler(JsonHandler):
         self.json_response(user, USER_STRATEGY)
 
 
-SERVER_FIELDS = ['name', 'version', 'is_running', 'server_day', 'server_time', 'is_raining', 'is_thundering']
+SERVER_FIELDS = ['name', 'version', 'status', 'server_day', 'server_time', 'is_raining', 'is_thundering']
 SERVER_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
     'last_ping': lambda o: api_datetime(o.last_ping),

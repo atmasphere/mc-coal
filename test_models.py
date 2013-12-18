@@ -157,16 +157,16 @@ class ServerTest(BaseTest):
         self.server = models.Server.create()
         self.now = datetime.datetime.utcnow()
 
-    def test_update_is_running(self):
-        self.server.update_is_running(True, self.now)
+    def test_update_status(self):
+        self.server.update_status(models.SERVER_RUNNING, self.now)
         self.assertTrue(self.server.is_running)
         self.assertEqual(self.now, self.server.last_ping)
         ping_time = self.now + datetime.timedelta(seconds=30)
-        self.server.update_is_running(True, ping_time)
+        self.server.update_status(models.SERVER_RUNNING, ping_time)
         self.assertTrue(self.server.is_running)
         self.assertEqual(self.now, self.server.last_ping)
         ping_time = self.now + datetime.timedelta(seconds=61)
-        self.server.update_is_running(True, ping_time)
+        self.server.update_status(models.SERVER_RUNNING, ping_time)
         self.assertTrue(self.server.is_running)
         self.assertEqual(ping_time, self.server.last_ping)
 
