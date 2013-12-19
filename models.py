@@ -1,6 +1,5 @@
 from cStringIO import StringIO
 import datetime
-import logging
 import re
 import random
 import string
@@ -20,6 +19,7 @@ from channel import ServerChannels
 
 from filters import datetime_filter
 from image import NdbImage
+from queue import start_server, stop_server
 import search
 
 
@@ -431,6 +431,13 @@ class Server(ndb.Model):
     def agent(self):
         return self.agent_key.get() if self.agent_key is not None else None
 
+    def start(self):
+        if not (self.is_running or self.is_queued):
+            start_server(self.key)
+            self.update_status(status=SERVER_QUEUED)
+
+    def stop(self):
+        stop_server(self.key)
 
     def update_version(self, server_version):
         if server_version is not None:

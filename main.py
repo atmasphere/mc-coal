@@ -338,7 +338,7 @@ class AdminHandler(PagingHandler):
         servers = []
         for server in Server.query():
             servers.append(server)
-        instance = gce.Instance.singleton()
+        instance = gce.Instance.singleton() if gce.is_setup() else None
         context = {'servers': servers, 'instance': instance}
         self.render_template('admin.html', context=context)
 
@@ -615,6 +615,34 @@ class ServerDeactivateHandler(UserHandler):
         self.redirect(webapp2.uri_for('servers'))
 
 
+class ServerStartHandler(MainHandlerBase):
+    @authentication_required(authenticate=authenticate)
+    def post(self, server_key):
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('servers')
+            return
+        try:
+            server.start()
+        except Exception, e:
+            logging.error(u"Error starting server: {0}".format(e))
+        self.redirect(webapp2.uri_for('servers'))
+
+
+class ServerStopHandler(MainHandlerBase):
+    @authentication_required(authenticate=authenticate)
+    def post(self, server_key):
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('servers')
+            return
+        try:
+            server.stop()
+        except Exception, e:
+            logging.error(u"Error stopping server: {0}".format(e))
+        self.redirect(webapp2.uri_for('servers'))
+
+
 class InstanceForm(form.Form):
     zone = fields.SelectField(u'Zone', validators=[validators.DataRequired()])
 
@@ -692,6 +720,8 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/admin/servers', handler=ServersHandler, strict_slash=True, name="servers"),
         RedirectRoute('/admin/servers/<key>', handler=ServerEditHandler, strict_slash=True, name="server"),
         RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
+        RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
+        RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
         RedirectRoute('/admin/instance/configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure"),
         RedirectRoute('/admin/instance/start', handler=InstanceStartHandler, strict_slash=True, name="instance_start"),
         RedirectRoute('/admin/instance/stop', handler=InstanceStopHandler, strict_slash=True, name="instance_stop"),

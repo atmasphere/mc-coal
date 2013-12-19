@@ -11,7 +11,7 @@
         <h2 class="box"><a href="{{ uri_for('servers') }}">Servers</a></h2>
     </div>
     <div class="title box wrap">
-        {% if instance.is_setup() %}
+        {% if instance and instance.is_setup() %}
             <h2 class="box">GCE Instance</h2>
             <div class="player wrap">
                 <h1 class="data">{{ instance.status() }} in {{ instance.zone }}</h1>
