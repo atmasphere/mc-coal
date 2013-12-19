@@ -448,10 +448,10 @@ class Server(ndb.Model):
     def update_status(self, status=None, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None, timestamp=None):
         previous_status = self.status
         if status is None:
+            status = previous_status
             if self.last_ping is None or self.last_ping < datetime.datetime.utcnow() - datetime.timedelta(minutes=5):
-                status = SERVER_UNKNOWN
-            else:
-                status = previous_status
+                if not self.is_queued:
+                    status = SERVER_UNKNOWN
         record_ping = False
         if (server_day is not None and server_day != self.last_server_day) or (server_time is not None and server_time != self.last_server_time):
             self.timestamp = timestamp or datetime.datetime.utcnow()
