@@ -2,6 +2,7 @@
 
 import base64
 import fnmatch
+import json
 import logging
 import os
 import sys
@@ -30,7 +31,7 @@ def lease_tasks():
     response = service_call.execute()
     tasks += response.get('items', [])
     for task in tasks:
-        task['payload'] = base64.b64decode(task['payloadBase64'])
+        task['payload'] = json.loads(base64.b64decode(task['payloadBase64']))
     return tasks
 
 def complete_tasks(tasks):
