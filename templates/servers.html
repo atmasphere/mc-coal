@@ -16,13 +16,13 @@
                 <h1 class="data">{{ s.name }}
                     <a href="{{ uri_for('server', key=s.key.urlsafe()) }}">Edit</a>
                     {% if s.is_stopped or s.status == 'UNKNOWN' %}
-                        <form action="{{ uri_for('server_start', server_key=s.key.urlsafe()) }}" method="post">
+                        <form action="{{ uri_for('server_start', key=s.key.urlsafe()) }}" method="post">
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary">Start</button>
                             </div>
                         </form>
                     {% else %}
-                        <form action="{{ uri_for('server_stop', server_key=s.key.urlsafe()) }}" method="post">
+                        <form action="{{ uri_for('server_stop', key=s.key.urlsafe()) }}" method="post">
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary">Stop</button>
                             </div>

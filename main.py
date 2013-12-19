@@ -617,8 +617,8 @@ class ServerDeactivateHandler(UserHandler):
 
 class ServerStartHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
-    def post(self, server_key):
-        server = self.get_server_by_key(server_key, abort=False)
+    def post(self, key):
+        server = self.get_server_by_key(key, abort=False)
         if server is None:
             self.redirect_to_server('servers')
             return
@@ -631,8 +631,8 @@ class ServerStartHandler(MainHandlerBase):
 
 class ServerStopHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
-    def post(self, server_key):
-        server = self.get_server_by_key(server_key, abort=False)
+    def post(self, key):
+        server = self.get_server_by_key(key, abort=False)
         if server is None:
             self.redirect_to_server('servers')
             return
