@@ -43,7 +43,7 @@ def complete_tasks(tasks):
 
 def delete_tasks(tasks):
     for task in tasks:
-        service_call = service.tasks().delete(project=project, taskqueue='controller', task=task['id'])
+        service_call = service.tasks().delete(project='s~{0}'.format(project), taskqueue='controller', task=task['id'])
         service_call.execute()
 
 def get_servers():
