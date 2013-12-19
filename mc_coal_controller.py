@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import base64
 import fnmatch
 import logging
 import os
@@ -28,6 +29,8 @@ def lease_tasks():
     )
     response = service_call.execute()
     tasks += response.get('items', [])
+    for task in tasks:
+        task['payload'] = base64.b64decode(task['payloadBase64'])
     return tasks
 
 def complete_tasks(tasks):
@@ -36,6 +39,7 @@ def complete_tasks(tasks):
     logger.info("TASKS: {0}".format(tasks))
     for task in tasks:
         logging.info(task)
+    return tasks
 
 def delete_tasks(tasks):
     for task in tasks:
@@ -84,7 +88,7 @@ def main(argv):
                     completed_tasks = complete_tasks(tasks)
                 finally:
                     i = len(completed_tasks) if completed_tasks else 0
-                    server = completed_tasks[0].tag if completed_tasks else None
+                    server = None
                     m = u"Completed {0} task{1} for server {2}".format(i, 's' if i != 1 else '', server)
                     logger.info(m)
                     delete_tasks(completed_tasks)
