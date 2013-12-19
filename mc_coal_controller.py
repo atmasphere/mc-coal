@@ -32,6 +32,8 @@ def lease_tasks():
 
 def complete_tasks(tasks):
     global servers
+    logger = logging.getLogger('main')
+    logger.info("TASKS: {0}".format(tasks))
     for task in tasks:
         logging.info(task)
 
@@ -67,9 +69,9 @@ def init_loggers(debug=False, logfile='controller.log'):
 def main(argv):
     global project
     global service
+    init_loggers()
+    logger = logging.getLogger('main')
     try:
-        init_loggers()
-        logger = logging.getLogger('main')
         project = open('/coal/project_id', 'r').read()
         credentials = gce.AppAssertionCredentials(scope=SCOPE)
         http = credentials.authorize(httplib2.Http())
