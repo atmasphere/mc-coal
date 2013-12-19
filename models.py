@@ -433,11 +433,11 @@ class Server(ndb.Model):
 
     def start(self):
         if not (self.is_running or self.is_queued):
-            start_server(self.key)
+            start_server(self)
             self.update_status(status=SERVER_QUEUED)
 
     def stop(self):
-        stop_server(self.key)
+        stop_server(self)
 
     def update_version(self, server_version):
         if server_version is not None:
