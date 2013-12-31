@@ -664,7 +664,7 @@ class InstanceConfigureHandler(UserHandler):
         form = InstanceForm(self.request.POST)
         if form.validate():
             instance = gce.Instance.singleton()
-            instance.zone=form.zone.data
+            instance.zone = form.zone.data
             instance.put()
             self.redirect(webapp2.uri_for('admin'))
         context = {'form': form}
@@ -742,4 +742,4 @@ from image import routes as image_routes
 from oauth import routes as oauth_routes
 routes = user_auth_routes + api_routes + image_routes + oauth_routes
 for route in routes:
-     application.router.add(route)
+    application.router.add(route)

@@ -328,7 +328,7 @@ class User(auth_models.User):
 
     @classmethod
     def is_single_admin(cls):
-        return cls.query().filter(cls.admin==True).count(keys_only=True, limit=2) < 2
+        return cls.query().filter(cls.admin == True).count(keys_only=True, limit=2) < 2
 
     @classmethod
     def query_all(cls):
@@ -521,11 +521,11 @@ class Server(ndb.Model):
 
     @classmethod
     def query_all(cls):
-        return cls.query().filter(cls.active==True).order(cls.created)
+        return cls.query().filter(cls.active == True).order(cls.created)
 
     @classmethod
     def query_all_reverse(cls):
-        return cls.query().filter(cls.active==True).order(-cls.created)
+        return cls.query().filter(cls.active == True).order(-cls.created)
 
 
 class ServerModel(ndb.Model):
