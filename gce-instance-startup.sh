@@ -1,5 +1,6 @@
 #!/bin/bash
 
+apt-get update
 apt-get -y install openjdk-7-jre
 apt-get -y install python-pip
 apt-get -y install git
