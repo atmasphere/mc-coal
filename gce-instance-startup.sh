@@ -19,19 +19,19 @@ cd ..
 mkdir coal
 cd coal
 
-curl http://metadata/computeMetadata/v1beta1/instance/attributes/timezones -o timezones.py
-
+PROJECT_ID=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/project_id)
+$PROJECT_MC_URL="https://$PROJECT_ID.appspot.com/mc"
 curl http://metadata/computeMetadata/v1beta1/instance/attributes/project-id -o project_id
+
+curl http://metadata/computeMetadata/v1beta1/instance/attributes/timezones -o timezones.py
 
 curl http://metadata/computeMetadata/v1beta1/instance/attributes/agent-script -o mc_coal_agent.py
 chmod a+x mc_coal_agent.py
 
-curl http://metadata/computeMetadata/v1beta1/instance/attributes/start-script -o mc-start.py
-chmod a+x mc-start.py
+$MC_PROP_URL="$PROJECT_MC_URL/server.properties"
+wget $MC_PROP_URL -O server.properties
 
-curl http://metadata/computeMetadata/v1beta1/instance/attributes/stop-script -o mc-stop.py
-chmod a+x mc-stop.py
-
-curl http://metadata/computeMetadata/v1beta1/instance/attributes/controller-script -o mc_coal_controller.py
+$CONTROLLER_URL="$PROJECT_MC_URL/mc_coal_controller.py"
+wget $CONTROLLER_URL -O mc_coal_controller.py
 chmod a+x mc_coal_controller.py
 ./mc_coal_controller.py &

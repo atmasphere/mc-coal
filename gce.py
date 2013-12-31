@@ -66,24 +66,12 @@ class Instance(ndb.Model):
                         'value': project_id
                     },
                     {
-                        'key': 'controller-script',
-                        'value': open('mc_coal_controller.py', 'r').read()
-                    },
-                    {
                         'key': 'agent-script',
                         'value': open('mc_coal_agent.py', 'r').read()
                     },
                     {
                         'key': 'log4j2',
                         'value': open('log4j2.xml', 'r').read()
-                    },
-                    {
-                        'key': 'start-script',
-                        'value': open('mc-start.sh', 'r').read()
-                    },
-                    {
-                        'key': 'stop-script',
-                        'value': open('mc-stop.sh', 'r').read()
                     },
                     {
                         'key': 'timezones',
