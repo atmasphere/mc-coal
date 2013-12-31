@@ -20,7 +20,7 @@ cd ..
 mkdir coal
 cd coal
 
-PROJECT_ID=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/project_id)
+PROJECT_ID=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/project-id)
 printf "PROJECT_ID: $PROJECT_ID"
 PROJECT_MC_URL="https://$PROJECT_ID.appspot.com/mc"
 printf "PROJECT_MC_URL: $PROJECT_MC_URL"
