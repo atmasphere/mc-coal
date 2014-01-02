@@ -128,7 +128,7 @@ def start_server(server_key, **kwargs):
         server_properties = kwargs.get('server_properties', {})
         copy_server_files(port, server_properties)
     try:
-        fifo = make_fifo(server_dir)
+        fifo = make_fifo(server_dir, 0666)
         # Start Agent
         mc_coal_dir = os.path.join(server_dir, 'mc_coal')
         agent = os.path.join(mc_coal_dir, 'mc_coal_agent.py')
@@ -143,12 +143,13 @@ def start_server(server_key, **kwargs):
         # Start MC
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
         log4j = os.path.join(server_dir, 'log4j2.xml')
-        args = ['java', '-Xmx1G' '-Xms1G']
+        args = ['java', '-Xmx1G', '-Xms1G']
         args.append('-Dlog4j.configurationFile={0}'.format(log4j))
         args.append('-jar')
         args.append(mc_jar)
         args.append('nogui')
-        with open(fifo, 'rw') as fifo_file:
+        logger.info("Minecraft Args: {0}".format(args))
+        with open(fifo, 'w+') as fifo_file:
             logger.info("Starting minecraft: {0}".format(args))
             pid = subprocess.Popen(args, stdout=fifo_file, stdin=fifo_file).pid
             logger.info("Minecraft PID: {0}".format(pid))
