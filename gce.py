@@ -146,7 +146,7 @@ def get_project_id():
 
 def get_gce_service():
     credentials = AppAssertionCredentials(scope=GCE_SCOPE)
-    http = credentials.authorize(httplib2.Http(memcache))
+    http = credentials.authorize(httplib2.Http(memcache, 30))
     return discovery.build('compute', API_VERSION, http=http)
 
 

@@ -270,34 +270,43 @@ def line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, comma
             yield line, last_ping, last_time
 
 
-def tail(client, filename, zone, parse_history, skip_chat, last_line, last_ping, last_time, levelfile, pidfile, commandfifo):
+def tail(
+    client, filename, zone, parse_history, skip_chat,
+    last_line, last_ping, last_time, levelfile, pidfile, commandfifo
+):
     logger = logging.getLogger('main')
-    with open(filename, 'r') as logfile:
-        st_results = os.stat(filename)
-        st_size = st_results[6]
-        if parse_history:
-            read_last_line = False if last_line is not None else True
-            if last_line is not None:
-                logger.debug(u"Skipping ahead to line '{0}'".format(last_line))
-        else:
-            st_results = os.stat(filename)
-            st_size = st_results[6]
-            logfile.seek(st_size)
-            read_last_line = True
-        for line, last_ping, last_time in line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo):
-            if read_last_line:
-                post_line(client, line, zone, skip_chat)
-                if skip_chat:
-                    where = logfile.tell()
-                    if where >= st_size:
-                        skip_chat = False
-            elif line == last_line:
-                read_last_line = True
-            else:
-                where = logfile.tell()
-                if where >= st_size:
+    while True:
+        try:
+            with open(filename, 'r') as logfile:
+                st_results = os.stat(filename)
+                st_size = st_results[6]
+                if parse_history:
+                    read_last_line = False if last_line is not None else True
+                    if last_line is not None:
+                        logger.debug(u"Skipping ahead to line '{0}'".format(last_line))
+                else:
+                    st_results = os.stat(filename)
+                    st_size = st_results[6]
+                    logfile.seek(st_size)
                     read_last_line = True
-                    skip_chat = False
+                for line, last_ping, last_time in line_reader(
+                    logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo
+                ):
+                    if read_last_line:
+                        post_line(client, line, zone, skip_chat)
+                        if skip_chat:
+                            where = logfile.tell()
+                            if where >= st_size:
+                                skip_chat = False
+                    elif line == last_line:
+                        read_last_line = True
+                    else:
+                        where = logfile.tell()
+                        if where >= st_size:
+                            read_last_line = True
+                            skip_chat = False
+        except IOError, e:
+            logger.error(e)
 
 
 def get_application_host():
@@ -367,7 +376,9 @@ def main(argv):
     parser.add_argument(
         '--coal_host',
         default=coal_host,
-        help="The MC COAL server host name (default: {0})".format("'{0}'".format(coal_host) if coal_host else '<No default found in app.yaml>')
+        help="The MC COAL server host name (default: {0})".format(
+            "'{0}'".format(coal_host) if coal_host else '<No default found in app.yaml>'
+        )
     )
     parser.add_argument(
         '--agent_client_id',
@@ -416,12 +427,14 @@ def main(argv):
     parser.add_argument(
         '--mc_timezone',
         default=mc_timezone,
-        help="The Minecraft server timezone name (default: {0})".format("'{0}'".format(mc_timezone) if mc_timezone else '<No default local timezone>')
+        help="The Minecraft server timezone name (default: {0})".format(
+            "'{0}'".format(mc_timezone) if mc_timezone else '<No default local timezone>'
+        )
     )
     args = parser.parse_args()
+    init_loggers(debug=args.verbose, logfile=args.agent_logfile)
+    logger = logging.getLogger('main')
     try:
-        init_loggers(debug=args.verbose, logfile=args.agent_logfile)
-        logger = logging.getLogger('main')
         coal_host = args.coal_host
         if not coal_host:
             raise NoHostException()

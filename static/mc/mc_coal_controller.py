@@ -78,7 +78,7 @@ def copy_server_properties(port, server_properties):
             for line in fin:
                 for prop in server_properties:
                     if line.startswith(prop):
-                        line = "{0}={1}".format(prop, server_properties[prop])
+                        line = "{0}={1}\n".format(prop, server_properties[prop])
                 fout.write(line)
 
 
