@@ -3,11 +3,11 @@
 apt-get update
 apt-get -y install openjdk-7-jre
 apt-get -y install python-pip
+apt-get -y python-psutil
 apt-get -y install git
 pip install --upgrade google-api-python-client
 pip install pyyaml
 pip install requests
-pip install psutil
 pip install git+https://github.com/twoolie/NBT@version-1.4.1#egg=NBT
 
 MINECRAFT_URL=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/minecraft-url)

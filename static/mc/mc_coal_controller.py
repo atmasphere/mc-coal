@@ -17,6 +17,7 @@ import httplib2
 
 SCOPE = 'https://www.googleapis.com/auth/taskqueue'
 TQ_API_VERSION = 'v1beta2'
+MINECRAFT_DIR = '/minecraft/'
 COAL_DIR = '/coal/'
 SERVERS_DIR = os.path.join(COAL_DIR, 'servers')
 
@@ -36,12 +37,13 @@ def get_ports_in_use():
 def get_free_port():
     ports_in_use = get_ports_in_use()
     port = 25565
-    while str(port) not in ports_in_use:
+    while str(port) in ports_in_use:
         port += 1
+    return port
 
 
 def get_server_dir(port):
-    return os.path.join(SERVERS_DIR, port)
+    return os.path.join(SERVERS_DIR, str(port))
 
 
 def read_server_key(port):
@@ -82,8 +84,8 @@ def copy_server_properties(port, server_properties):
 
 def copy_server_files(port, server_properties):
     server_dir = get_server_dir(port)
-    shutil.copy2(os.path.join(COAL_DIR, 'minecraft_server.jar'), server_dir)
-    shutil.copy2(os.path.join(COAL_DIR, 'log4j2.xml'), server_dir)
+    shutil.copy2(os.path.join(MINECRAFT_DIR, 'minecraft_server.jar'), server_dir)
+    shutil.copy2(os.path.join(MINECRAFT_DIR, 'log4j2.xml'), server_dir)
     copy_server_properties(port, server_properties)
     filenames = [
         'timezones.py',
