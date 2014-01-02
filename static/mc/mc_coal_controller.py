@@ -109,8 +109,11 @@ def start_server(server_key, **kwargs):
     servers = get_servers()
     if server_key in servers.keys():
         return
+    logger.info('server_key: {0}'.format(server_key))
     port = get_free_port()
+    logger.info('port: {0}'.format(port))
     server_dir = get_server_dir(port)
+    logger.info('server_dir: {0}'.format(server_dir))
     while os.path.exists(server_dir):
         if read_server_key(port) == server_key:
             break
