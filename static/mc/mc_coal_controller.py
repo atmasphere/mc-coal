@@ -139,7 +139,7 @@ def start_server(server_key, **kwargs):
         pid = subprocess.Popen(args).pid
         pid_filename = os.path.join(server_dir, 'agent.pid')
         with open(pid_filename, 'w') as pid_file:
-            pid_file.write(pid)
+            pid_file.write(str(pid))
         # Start MC
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
         log4j = os.path.join(server_dir, 'log4j2.xml')
@@ -152,7 +152,7 @@ def start_server(server_key, **kwargs):
             pid = subprocess.Popen(args, stdout=fifo_file, stdin=fifo_file).pid
         pid_filename = os.path.join(server_dir, 'server.pid')
         with open(pid_filename, 'w') as pid_file:
-            pid_file.write(pid)
+            pid_file.write(str(pid))
     except Exception, e:
         logger.error(e)
 
