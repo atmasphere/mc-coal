@@ -29,7 +29,8 @@ service = None
 def get_ports_in_use():
     _, port_dirs, _ = os.walk(SERVERS_DIR).next()
     ports = [port for port in port_dirs if fnmatch.fnmatch(port, '[0-9]*')]
-    return ports.sort()
+    ports.sort()
+    return ports
 
 
 def get_free_port():
