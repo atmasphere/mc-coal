@@ -104,7 +104,7 @@ def make_fifo(server_dir):
         os.remove(fifo)
     except OSError:
         pass
-    os.mkfifo(fifo)
+    os.mkfifo(fifo, 0666)
     return fifo
 
 
@@ -128,7 +128,7 @@ def start_server(server_key, **kwargs):
         server_properties = kwargs.get('server_properties', {})
         copy_server_files(port, server_properties)
     try:
-        fifo = make_fifo(server_dir, 0666)
+        fifo = make_fifo(server_dir)
         # Start Agent
         mc_coal_dir = os.path.join(server_dir, 'mc_coal')
         agent = os.path.join(mc_coal_dir, 'mc_coal_agent.py')
