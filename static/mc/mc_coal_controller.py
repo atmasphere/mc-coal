@@ -149,7 +149,9 @@ def start_server(server_key, **kwargs):
         args.append(mc_jar)
         args.append('nogui')
         with open(fifo, 'rw') as fifo_file:
+            logger.info("Starting minecraft: {0}".format(args))
             pid = subprocess.Popen(args, stdout=fifo_file, stdin=fifo_file).pid
+            logger.info("Minecraft PID: {0}".format(pid))
         pid_filename = os.path.join(server_dir, 'server.pid')
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
