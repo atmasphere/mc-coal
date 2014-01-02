@@ -307,6 +307,7 @@ def tail(
                             skip_chat = False
         except IOError, e:
             logger.error(e)
+            time.sleep(5)
 
 
 def get_application_host():
