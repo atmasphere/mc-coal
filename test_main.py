@@ -615,13 +615,12 @@ class ServerCreateTest(AdminAuthTest):
         self.log_in_admin()
         self.assertEqual(0, Server.query().count())
         self.assertEqual(0, Client.query().count())
-        response = self.post(params={'name': 'new server', 'address': '12.34.56.78'})
+        response = self.post(params={'name': 'new server'})
         self.assertRedirects(response, ServersTest.URL)
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
         server = Server.query().get()
         self.assertEqual('new server', server.name)
-        self.assertEqual('12.34.56.78', server.address)
 
 
 class ServerKeyTest(AdminAuthTest):
@@ -633,13 +632,12 @@ class ServerKeyTest(AdminAuthTest):
 
     def test_post(self):
         self.log_in_admin()
-        response = self.post(params={'name': 'new name', 'address': '87.65.43.21'})
+        response = self.post(params={'name': 'new name'})
         self.assertRedirects(response, ServersTest.URL)
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
         server = self.server.key.get()
         self.assertEqual('new name', server.name)
-        self.assertEqual('87.65.43.21', server.address)
 
 
 class InstanceConfigureTest(AdminAuthTest):

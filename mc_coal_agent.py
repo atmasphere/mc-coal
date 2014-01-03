@@ -181,7 +181,7 @@ def execute_commands(commandfifo, commands):
                 command_fifo.write(c.encode('ISO-8859-2', errors='ignore'))
 
 
-def ping_host(client, running, server_day, server_time, raining, thundering, commandfifo):
+def ping_host(client, running, server_day, server_time, raining, thundering, commandfifo, address):
     logger = logging.getLogger('ping')
     try:
         params = {'server_name': client.host}
@@ -192,6 +192,8 @@ def ping_host(client, running, server_day, server_time, raining, thundering, com
             params['server_time'] = server_time
         params['is_raining'] = raining
         params['is_thundering'] = thundering
+        if address:
+            params['address'] = address
         response_json = client.post("/api/v1/agents/ping", params=params).json()
         commands = response_json['commands']
         logger.debug(u"PING: {0}".format(commands))
@@ -251,13 +253,13 @@ def get_lastline(client):
         raise NoPingException()
 
 
-def line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo):
+def line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo, address):
     while True:
         if datetime.datetime.now() > last_ping + datetime.timedelta(seconds=5):
             running = is_server_running(pidfile)
             server_day, server_time, raining, thundering = read_level(levelfile)
             last_time = datetime.datetime.now()
-            ping_host(client, running, server_day, server_time, raining, thundering, commandfifo)
+            ping_host(client, running, server_day, server_time, raining, thundering, commandfifo, address)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()
@@ -272,7 +274,8 @@ def line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, comma
 
 def tail(
     client, filename, zone, parse_history, skip_chat,
-    last_line, last_ping, last_time, levelfile, pidfile, commandfifo
+    last_line, last_ping, last_time, levelfile, pidfile, commandfifo,
+    address
 ):
     logger = logging.getLogger('main')
     while True:
@@ -290,7 +293,7 @@ def tail(
                     logfile.seek(st_size)
                     read_last_line = True
                 for line, last_ping, last_time in line_reader(
-                    logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo
+                    logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo, address
                 ):
                     if read_last_line:
                         post_line(client, line, zone, skip_chat)
@@ -432,6 +435,10 @@ def main(argv):
             "'{0}'".format(mc_timezone) if mc_timezone else '<No default local timezone>'
         )
     )
+    parser.add_argument(
+        '--address',
+        help="The Minecraft server IP address and (optional) port"
+    )
     args = parser.parse_args()
     init_loggers(debug=args.verbose, logfile=args.agent_logfile)
     logger = logging.getLogger('main')
@@ -458,6 +465,7 @@ def main(argv):
         parse_all = args.parse_all
         if parse_all:
             last_line = None
+        address = args.address
         last_ping = datetime.datetime.now()
         last_time = datetime.datetime.now()
         logger.info(u"Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
@@ -472,7 +480,8 @@ def main(argv):
             last_time,
             mc_levelfile,
             mc_pidfile,
-            mc_commandfile
+            mc_commandfile,
+            address
         )
     except NoPingException:
         logger.error(u"Unable to ping '{0}'".format(coal_host))

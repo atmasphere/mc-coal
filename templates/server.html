@@ -16,8 +16,6 @@
             <form action="{{ uri_for('server', key=edit_server.key.urlsafe()) }}" method="post">
                 <label>Name</label>
                 {{ macros.with_errors(form.name, class="span3") }}
-                <label>Address</label>
-                {{ macros.with_errors(form.address, class="span3") }}
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save</button>
                     <a class="btn" href="{{ uri_for('servers') }}">Cancel</a>

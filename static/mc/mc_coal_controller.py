@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -25,6 +26,16 @@ SERVERS_DIR = os.path.join(COAL_DIR, 'servers')
 logger = None
 project = None
 service = None
+external_ip = None
+
+
+def init_external_ip():
+    global external_ip
+    results = subprocess.Popen(
+        ['gcutil', 'getinstance', '--format=json', socket.gethostname()],
+        stdout=subprocess.PIPE
+    ).stdout.read()
+    external_ip = results['networkInterfaces'][0]['accessConfigs'][0]['natIP']
 
 
 def get_ports_in_use():
@@ -112,11 +123,11 @@ def start_server(server_key, **kwargs):
     servers = get_servers()
     if server_key in servers.keys():
         return
-    logger.info('server_key: {0}'.format(server_key))
     port = get_free_port()
-    logger.info('port: {0}'.format(port))
+    address = external_ip
+    if port != 25565:
+        address += ':{0}'.format(port)
     server_dir = get_server_dir(port)
-    logger.info('server_dir: {0}'.format(server_dir))
     while os.path.exists(server_dir):
         if read_server_key(port) == server_key:
             break
@@ -136,6 +147,7 @@ def start_server(server_key, **kwargs):
         args.append('--coal_host={0}.appspot.com'.format(project))
         args.append('--agent_client_id={0}'.format(kwargs['agent_client_id']))
         args.append('--agent_secret={0}'.format(kwargs['agent_secret']))
+        args.append('--address={0}'.format(address))
         pid = subprocess.Popen(args, cwd=mc_coal_dir).pid
         pid_filename = os.path.join(server_dir, 'agent.pid')
         with open(pid_filename, 'w') as pid_file:
@@ -148,11 +160,8 @@ def start_server(server_key, **kwargs):
         args.append('-jar')
         args.append(mc_jar)
         args.append('nogui')
-        logger.info("Minecraft Args: {0}".format(args))
         with open(fifo, 'w+') as fifo_file:
-            logger.info("Starting minecraft: {0}".format(args))
             pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file).pid
-            logger.info("Minecraft PID: {0}".format(pid))
         pid_filename = os.path.join(server_dir, 'server.pid')
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
@@ -170,25 +179,19 @@ def stop_server(server_key, **kwargs):
     # Stop MC
     fifo = os.path.join(server_dir, 'command-fifo')
     with open(fifo, 'a+') as fifo_file:
-        logger.info("Saving minecraft...")
         fifo_file.write('save-all\n')
-        logger.info("Stopping minecraft...")
         fifo_file.write('stop\n')
     pid = open(os.path.join(server_dir, 'server.pid'), 'r').read()
     try:
-        logger.info("Waiting...")
-        logger.info("Done {0}".format(os.waitpid(int(pid), 0)))
-        time.sleep(1.0)
+        os.waitpid(int(pid), 0)
+        time.sleep(10)
     except OSError, e:
         logger.error(e)
     # Stop Agent
-    logger.info("Stopping the agent...")
     pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
     os.kill(int(pid), signal.SIGTERM)
-    logger.info("Waiting...")
-    logger.info("Done {0}".format(os.waitpid(int(pid), 0)))
+    os.waitpid(int(pid), 0)
     shutil.rmtree(server_dir)
-    logger.info("Stopped")
 
 
 def complete_tasks(tasks):
@@ -268,6 +271,7 @@ def main(argv):
     global logger
     init_logger()
     logger = logging.getLogger('main')
+    init_external_ip()
     if not os.path.exists(SERVERS_DIR):
         os.makedirs(SERVERS_DIR)
     try:

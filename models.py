@@ -445,7 +445,10 @@ class Server(ndb.Model):
                 self.version = server_version
                 self.put()
 
-    def update_status(self, status=None, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None, timestamp=None):
+    def update_status(
+        self, status=None, last_ping=None, server_day=None, server_time=None,
+        is_raining=None, is_thundering=None, address=None, timestamp=None
+    ):
         previous_status = self.status
         if status is None:
             status = previous_status
@@ -453,7 +456,15 @@ class Server(ndb.Model):
                 if not self.is_queued:
                     status = SERVER_UNKNOWN
         record_ping = False
-        if (server_day is not None and server_day != self.last_server_day) or (server_time is not None and server_time != self.last_server_time):
+        if status not in [SERVER_RUNNING, SERVER_UNKNOWN]:
+            address = None
+        if address != self.address:
+            self.address = address
+            record_ping = True
+        if (
+            (server_day is not None and server_day != self.last_server_day) or
+            (server_time is not None and server_time != self.last_server_time)
+        ):
             self.timestamp = timestamp or datetime.datetime.utcnow()
             if server_day is not None:
                 self.last_server_day = server_day

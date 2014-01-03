@@ -541,7 +541,6 @@ class ServersHandler(PagingHandler):
 
 class ServerForm(form.Form):
     name = fields.StringField(u'Name', [validators.Required()])
-    address = fields.StringField(u'Address', [validators.Optional()])
 
 
 class ServerCreateHandler(UserHandler):
@@ -556,7 +555,7 @@ class ServerCreateHandler(UserHandler):
         try:
             form = ServerForm(formdata=self.request.POST)
             if form.validate():
-                Server.create(name=form.name.data, address=form.address.data)
+                Server.create(name=form.name.data)
                 self.redirect(webapp2.uri_for('servers'))
         except Exception, e:
             logging.error(u"Error POSTing server: {0}".format(e))
@@ -590,7 +589,6 @@ class ServerEditHandler(UserHandler):
             form = ServerForm(formdata=self.request.POST, obj=server)
             if form.validate():
                 server.name = form.name.data
-                server.address = form.address.data
                 server.put()
                 self.redirect(webapp2.uri_for('servers'))
         except Exception, e:

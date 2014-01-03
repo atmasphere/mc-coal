@@ -108,6 +108,7 @@ class PingForm(form.Form):
     server_time = fields.IntegerField(validators=[validators.Optional()])
     is_raining = OptionalBooleanField(validators=[validators.Optional()])
     is_thundering = OptionalBooleanField(validators=[validators.Optional()])
+    address = fields.StringField(validators=[validators.Optional()])
     timestamp = fields.DateTimeField(validators=[validators.Optional()])
 
 
@@ -121,6 +122,7 @@ class PingHandler(JsonHandler):
         server_time = form.server_time.data
         is_raining = form.is_raining.data
         is_thundering = form.is_thundering.data
+        address = form.address.data
         timestamp = form.timestamp.data
         client = Client.get_by_client_id(self.request.authentication.client_id)
         server = client.server
@@ -129,7 +131,7 @@ class PingHandler(JsonHandler):
         status = SERVER_UNKNOWN
         if is_server_running:
             status = SERVER_RUNNING
-        elif is_server_running == False:
+        elif is_server_running is False:
             status = SERVER_STOPPED
         server.update_status(
             status=status,
@@ -138,6 +140,7 @@ class PingHandler(JsonHandler):
             server_time=server_time,
             is_raining=is_raining,
             is_thundering=is_thundering,
+            address=address,
             timestamp=timestamp
         )
         response = {
