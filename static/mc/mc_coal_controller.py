@@ -162,8 +162,7 @@ def start_server(server_key, **kwargs):
         results = subprocess.Popen(
             ['gcutil', 'getfirewall', '--format=json', firewall_name], stdout=subprocess.PIPE
         ).stdout.read()
-        logger.debug(results)
-        if results.startswith('Error'):
+        if not results:
             allowed = '--allowed="tcp:{0}"'.format(port)
             results = subprocess.Popen(
                 ['gcutil', 'addfirewall', firewall_name, '--network=default', allowed], stdout=subprocess.PIPE
