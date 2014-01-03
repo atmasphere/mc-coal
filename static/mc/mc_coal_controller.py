@@ -151,7 +151,7 @@ def start_server(server_key, **kwargs):
         logger.info("Minecraft Args: {0}".format(args))
         with open(fifo, 'w+') as fifo_file:
             logger.info("Starting minecraft: {0}".format(args))
-            pid = subprocess.Popen(args, stdout=fifo_file, stdin=fifo_file).pid
+            pid = subprocess.Popen(args, cwd=server_dir, stdout=fifo_file, stdin=fifo_file).pid
             logger.info("Minecraft PID: {0}".format(pid))
         pid_filename = os.path.join(server_dir, 'server.pid')
         with open(pid_filename, 'w') as pid_file:
