@@ -136,7 +136,7 @@ def start_server(server_key, **kwargs):
         args.append('--coal_host={0}.appspot.com'.format(project))
         args.append('--agent_client_id={0}'.format(kwargs['agent_client_id']))
         args.append('--agent_secret={0}'.format(kwargs['agent_secret']))
-        pid = subprocess.Popen(args).pid
+        pid = subprocess.Popen(args, cwd=mc_coal_dir).pid
         pid_filename = os.path.join(server_dir, 'agent.pid')
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
