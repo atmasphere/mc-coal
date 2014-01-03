@@ -169,7 +169,7 @@ def stop_server(server_key, **kwargs):
     server_dir = get_server_dir(port)
     # Stop MC
     fifo = os.path.join(server_dir, 'command-fifo')
-    with open(fifo, 'w') as fifo_file:
+    with open(fifo, 'a') as fifo_file:
         fifo_file.write('save-all')
         fifo_file.write('stop')
     pid = open(os.path.join(server_dir, 'server.pid'), 'r').read()
