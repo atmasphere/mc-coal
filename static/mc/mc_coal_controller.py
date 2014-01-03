@@ -169,12 +169,11 @@ def stop_server(server_key, **kwargs):
     server_dir = get_server_dir(port)
     # Stop MC
     fifo = os.path.join(server_dir, 'command-fifo')
-    logger.info("Stopping via FIFO {0}".format(fifo))
     with open(fifo, 'a+') as fifo_file:
         logger.info("Saving...")
-        fifo_file.write('save-all')
+        fifo_file.write('save-all\n')
         logger.info("Stopping...")
-        fifo_file.write('stop')
+        fifo_file.write('stop\n')
     pid = open(os.path.join(server_dir, 'server.pid'), 'r').read()
     running = True
     while running:
