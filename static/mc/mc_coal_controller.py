@@ -163,9 +163,10 @@ def start_server(server_key, **kwargs):
             ['gcutil', 'getfirewall', '--format=json', firewall_name], stdout=subprocess.PIPE
         ).stdout.read()
         if not results:
-            allowed = '--allowed="tcp:{0}"'.format(port)
+            allowed = '--allowed=\"tcp:{0}\"'.format(port)
             results = subprocess.Popen(
-                ['gcutil', 'addfirewall', firewall_name, '--network=default', allowed], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+                ['gcutil', 'addfirewall', firewall_name, '--network=default', allowed],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT
             ).stdout.read()
             logger.debug("CREATE FIREWALL: {0}".format(results))
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
