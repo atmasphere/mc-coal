@@ -163,9 +163,9 @@ def start_server(server_key, **kwargs):
             ['gcutil', 'getfirewall', '--format=json', firewall_name], stdout=subprocess.PIPE
         ).stdout.read()
         if not results:
-            allowed = '--allowed=\"tcp:{0}\"'.format(port)
+            allowed = '--allowed=tcp:{0}'.format(port)
             results = subprocess.Popen(
-                ['gcutil', 'addfirewall', '--network=default', allowed, firewall_name],
+                ['gcutil', 'addfirewall', firewall_name, '--network=default', allowed, '--force'],
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT
             ).stdout.read()
             logger.debug("CREATE FIREWALL for {0}: {1}".format(allowed, results))
@@ -204,7 +204,8 @@ def stop_server(server_key, **kwargs):
     except OSError, e:
         logger.error(e)
     firewall_name = get_firewall_name(port)
-    subprocess.Popen(['gcutil', 'deletefirewall', firewall_name])
+    results = subprocess.Popen(['gcutil', 'deletefirewall', firewall_name, '--force'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
+    logger.debug("DELETE FIREWALL for {0}: {1}".format(firewall_name, results))
     # Stop Agent
     pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
     os.kill(int(pid), signal.SIGTERM)
