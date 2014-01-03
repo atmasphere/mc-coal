@@ -165,7 +165,7 @@ def start_server(server_key, **kwargs):
         if not results:
             allowed = '--allowed=tcp:{0}'.format(port)
             results = subprocess.Popen(
-                ['gcutil', 'addfirewall', firewall_name, '--network=default', allowed, '--force'],
+                ['gcutil', 'addfirewall', firewall_name, '--network=default', allowed],
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT
             ).stdout.read()
             logger.debug("CREATE FIREWALL for {0}: {1}".format(allowed, results))
