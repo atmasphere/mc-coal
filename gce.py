@@ -102,7 +102,9 @@ class Instance(ndb.Model):
         status = None
         try:
             gce_service = get_gce_service()
-            instance = execute_request(gce_service.instances().get(instance=self.name, project=get_project_id(), zone=self.zone))
+            instance = execute_request(gce_service.instances().get(
+                instance=self.name, project=get_project_id(), zone=self.zone
+            ))
             if instance is not None:
                 status = instance['status']
         except HttpError as e:
@@ -166,7 +168,9 @@ def execute_request(request, block=False):
                         zone=zone_name
                     )
                 else:
-                    status_request = gce_service.globalOperations().get(project=get_project_id(), operation=operation_id)
+                    status_request = gce_service.globalOperations().get(
+                        project=get_project_id(), operation=operation_id
+                    )
                 response = status_request.execute()
                 if response:
                     status = response['status']
