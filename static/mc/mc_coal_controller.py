@@ -151,7 +151,7 @@ def start_server(server_key, **kwargs):
         logger.info("Minecraft Args: {0}".format(args))
         with open(fifo, 'w+') as fifo_file:
             logger.info("Starting minecraft: {0}".format(args))
-            pid = subprocess.Popen(args, cwd=server_dir, stdout=fifo_file, stdin=fifo_file).pid
+            pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file).pid
             logger.info("Minecraft PID: {0}".format(pid))
         pid_filename = os.path.join(server_dir, 'server.pid')
         with open(pid_filename, 'w') as pid_file:
@@ -170,23 +170,23 @@ def stop_server(server_key, **kwargs):
     # Stop MC
     fifo = os.path.join(server_dir, 'command-fifo')
     with open(fifo, 'a+') as fifo_file:
-        logger.info("Saving...")
+        logger.info("Saving minecraft...")
         fifo_file.write('save-all\n')
-        logger.info("Stopping...")
+        logger.info("Stopping minecraft...")
         fifo_file.write('stop\n')
     pid = open(os.path.join(server_dir, 'server.pid'), 'r').read()
-    running = True
-    while running:
-        try:
-            os.kill(int(pid), 0)
-            logger.info("Waiting...")
-            time.sleep(1.0)
-        except OSError:
-            running = False
+    try:
+        logger.info("Waiting...")
+        logger.info("Done {0}".format(os.waitpid(int(pid), 0)))
+        time.sleep(1.0)
+    except OSError, e:
+        logger.error(e)
     # Stop Agent
     logger.info("Stopping the agent...")
     pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
     os.kill(int(pid), signal.SIGTERM)
+    logger.info("Waiting...")
+    logger.info("Done {0}".format(os.waitpid(int(pid), 0)))
     shutil.rmtree(server_dir)
     logger.info("Stopped")
 
