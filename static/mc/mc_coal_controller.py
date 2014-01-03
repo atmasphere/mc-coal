@@ -169,21 +169,27 @@ def stop_server(server_key, **kwargs):
     server_dir = get_server_dir(port)
     # Stop MC
     fifo = os.path.join(server_dir, 'command-fifo')
-    with open(fifo, 'a') as fifo_file:
+    logger.info("Stopping via FIFO {0}".format(fifo))
+    with open(fifo, 'a+') as fifo_file:
+        logger.info("Saving...")
         fifo_file.write('save-all')
+        logger.info("Stopping...")
         fifo_file.write('stop')
     pid = open(os.path.join(server_dir, 'server.pid'), 'r').read()
     running = True
     while running:
         try:
             os.kill(int(pid), 0)
+            logger.info("Waiting...")
             time.sleep(1.0)
         except OSError:
             running = False
     # Stop Agent
+    logger.info("Stopping the agent...")
     pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
     os.kill(int(pid), signal.SIGTERM)
     shutil.rmtree(server_dir)
+    logger.info("Stopped")
 
 
 def complete_tasks(tasks):
