@@ -31,7 +31,7 @@ class Instance(ndb.Model):
             return
         project_id = get_project_id()
         project_url = '%s%s' % (GCE_URL, project_id)
-        image_url = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20130926')
+        image_url = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20131120')
         machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'n1-standard-1')
         network_url = '%s/global/networks/%s' % (project_url, 'default')
         instance = {
