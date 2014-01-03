@@ -31,10 +31,11 @@ external_ip = None
 
 def init_external_ip():
     global external_ip
-    results = subprocess.Popen(
-        ['gcutil', 'getinstance', '--format=json', socket.gethostname()],
-        stdout=subprocess.PIPE
-    ).stdout.read()
+    results = json.loads(
+        subprocess.Popen(
+            ['gcutil', 'getinstance', '--format=json', socket.gethostname()], stdout=subprocess.PIPE
+        ).stdout.read()
+    )
     external_ip = results['networkInterfaces'][0]['accessConfigs'][0]['natIP']
 
 
@@ -55,6 +56,10 @@ def get_free_port():
 
 def get_server_dir(port):
     return os.path.join(SERVERS_DIR, str(port))
+
+
+def get_firewall_name(port):
+    return 'mc-server-{0}'.format(port)
 
 
 def read_server_key(port):
@@ -153,6 +158,15 @@ def start_server(server_key, **kwargs):
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
         # Start MC
+        firewall_name = get_firewall_name(port)
+        results = subprocess.Popen(
+            ['gcutil', 'getfirewall', '--format=json', firewall_name], stdout=subprocess.PIPE
+        ).stdout.read()
+        if results.startswith('Error'):
+            allowed = '--allowed="tcp:{0}"'.format(port)
+            results = subprocess.Popen(
+                ['gcutil', 'addfirewall', firewall_name, '--network=default', allowed], stdout=subprocess.PIPE
+            ).stdout.read()
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
         log4j = os.path.join(server_dir, 'log4j2.xml')
         args = ['java', '-Xmx1G', '-Xms1G']
@@ -187,6 +201,8 @@ def stop_server(server_key, **kwargs):
         time.sleep(10)
     except OSError, e:
         logger.error(e)
+    firewall_name = get_firewall_name(port)
+    subprocess.Popen(['gcutil', 'deletefirewall', firewall_name])
     # Stop Agent
     pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
     os.kill(int(pid), signal.SIGTERM)
