@@ -11,7 +11,7 @@ from oauth2client.appengine import AppAssertionCredentials
 
 
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
-API_VERSION = 'v1beta16'
+API_VERSION = 'v1'
 GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
 SCOPES = [
     'https://www.googleapis.com/auth/devstorage.full_control',

@@ -58,10 +58,6 @@ def get_server_dir(port):
     return os.path.join(SERVERS_DIR, str(port))
 
 
-def get_firewall_name(port):
-    return 'mc-server-{0}'.format(port)
-
-
 def read_server_key(port):
     server_key_filename = os.path.join(SERVERS_DIR, port, 'server_key')
     server_key = open(server_key_filename, 'r').read()
