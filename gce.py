@@ -165,7 +165,7 @@ def verify_minecraft_firewall():
         gce_service = get_gce_service()
         execute_request(gce_service.firewalls().get(firewall=name, project=get_project_id()))
     except HttpError as e:
-        if e.resp.status == 404:
+        if e.resp.status == 400:
             create_minecraft_firewall()
 
 
