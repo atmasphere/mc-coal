@@ -29,6 +29,7 @@ class Instance(ndb.Model):
     def start(self):
         if not self.is_unprovisioned():
             return
+        verify_minecraft_firewall()
         project_id = get_project_id()
         project_url = '%s%s' % (GCE_URL, project_id)
         image_url = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20131120')
@@ -114,29 +115,6 @@ class Instance(ndb.Model):
                 status = 'UNPROVISIONED'
         return status
 
-    def verify_minecraft_firewall(self, port=25565):
-        try:
-            name = 'minecraft-{0}'.format(port)
-            gce_service = get_gce_service()
-            execute_request(gce_service.firewalls().get(firewall=name, project=get_project_id()))
-        except HttpError as e:
-            if e.resp.status == 404:
-                self.create_minecraft_firewall(port=port)
-
-    def create_minecraft_firewall(self, port=25565):
-        project_id = get_project_id()
-        firewall = {
-            'name': 'minecraft-{0}'.format(port),
-            'sourceRanges': ["0.0.0.0/0"],
-            'allowed': [{
-                'IPProtocol': 'tcp',
-                'ports': [port]
-            }],
-            'network': 'default'
-        }
-        gce_service = get_gce_service()
-        execute_request(gce_service.firewalls().insert(project=project_id, body=firewall))
-
     @classmethod
     def singleton(cls):
         return cls.get_or_insert('coal-instance-singleton')
@@ -179,6 +157,31 @@ def execute_request(request, block=False):
             logging.error(repr(e))
         raise
     return response
+
+
+def verify_minecraft_firewall():
+    try:
+        name = 'minecraft-firewall'
+        gce_service = get_gce_service()
+        execute_request(gce_service.firewalls().get(firewall=name, project=get_project_id()))
+    except HttpError as e:
+        if e.resp.status == 404:
+            create_minecraft_firewall()
+
+
+def create_minecraft_firewall():
+    project_id = get_project_id()
+    firewall = {
+        'name': 'minecraft-firewall',
+        'sourceRanges': ["0.0.0.0/0"],
+        'allowed': [{
+            'IPProtocol': 'tcp',
+            'ports': [i for i in range(25565, 25575)]
+        }],
+        'network': 'default'
+    }
+    gce_service = get_gce_service()
+    execute_request(gce_service.firewalls().insert(project=project_id, body=firewall))
 
 
 def get_zones():
