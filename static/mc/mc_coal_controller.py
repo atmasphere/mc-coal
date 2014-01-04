@@ -185,10 +185,10 @@ def stop_server(server_key, **kwargs):
     pid = open(os.path.join(server_dir, 'server.pid'), 'r').read()
     try:
         os.waitpid(int(pid), 0)
-        time.sleep(10)
     except OSError, e:
         logger.error(e)
     # Stop Agent
+    time.sleep(10)
     pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
     os.kill(int(pid), signal.SIGTERM)
     os.waitpid(int(pid), 0)
