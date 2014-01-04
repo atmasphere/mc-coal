@@ -20,7 +20,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/taskqueue'
 ]
 FIREWALL_NAME = 'minecraft-firewall'
-DISK_NAME = 'mc-coal-boot-disk'
+DISK_NAME = 'coal-boot-disk'
 
 
 class Instance(ndb.Model):
@@ -38,12 +38,12 @@ class Instance(ndb.Model):
         verify_minecraft_firewall(network_url)
         if not verify_boot_disk(self.zone):
             create_boot_disk(self.zone)
-        disk = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
+        disk_url = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
         machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'n1-standard-1')
         instance = {
             'name': self.name,
             'machineType': machine_type_url,
-            'disks': [{'source': disk, 'type': 'PERSISTENT', 'boot': True}],
+            'disks': [{'source': disk_url, 'type': 'PERSISTENT', 'boot': True}],
             'networkInterfaces': [{
                 'accessConfigs': [{
                     'type': 'ONE_TO_ONE_NAT',
@@ -203,7 +203,7 @@ def create_boot_disk(zone):
         gce_service = get_gce_service()
         execute_request(
             gce_service.disks().insert(
-                project=get_project_id(), zone=zone, sourceImage=IMAGE_URL, name=DISK_NAME
+                project=get_project_id(), zone=zone, sourceImage=IMAGE_URL, body={'name': DISK_NAME}
             )
         )
         return True
