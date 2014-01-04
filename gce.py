@@ -29,12 +29,12 @@ class Instance(ndb.Model):
     def start(self):
         if not self.is_unprovisioned():
             return
-        verify_minecraft_firewall()
         project_id = get_project_id()
         project_url = '%s%s' % (GCE_URL, project_id)
+        network_url = '%s/global/networks/%s' % (project_url, 'default')
+        verify_minecraft_firewall(network_url)
         image_url = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20131120')
         machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'n1-standard-1')
-        network_url = '%s/global/networks/%s' % (project_url, 'default')
         instance = {
             'name': self.name,
             'machineType': machine_type_url,
@@ -159,17 +159,17 @@ def execute_request(request, block=False):
     return response
 
 
-def verify_minecraft_firewall():
+def verify_minecraft_firewall(network):
     try:
         name = 'minecraft-firewall'
         gce_service = get_gce_service()
         execute_request(gce_service.firewalls().get(firewall=name, project=get_project_id()))
     except HttpError as e:
-        if e.resp.status == 400:
-            create_minecraft_firewall()
+        if e.resp.status == 404:
+            create_minecraft_firewall(network)
 
 
-def create_minecraft_firewall():
+def create_minecraft_firewall(network):
     project_id = get_project_id()
     firewall = {
         'name': 'minecraft-firewall',
@@ -178,7 +178,7 @@ def create_minecraft_firewall():
             'IPProtocol': 'tcp',
             'ports': [i for i in range(25565, 25575)]
         }],
-        'network': 'default'
+        'network': network
     }
     gce_service = get_gce_service()
     execute_request(gce_service.firewalls().insert(project=project_id, body=firewall))
