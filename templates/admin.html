@@ -11,20 +11,20 @@
         <h2 class="box"><a href="{{ uri_for('servers') }}">Servers</a></h2>
     </div>
     <div class="title box wrap">
-        {% if instance and instance.is_setup() %}
+        {% if status != None %}
             <h2 class="box">GCE Instance</h2>
             <div class="player wrap">
-                <h1 class="data">{{ instance.status() }} in {{ instance.zone }}</h1>
+                <h1 class="data">{{ status }} in {{ instance.zone }}</h1>
             </div>
             <h2 class="box"><a href="{{ uri_for('instance_configure') }}">Configure</a></h2>
-            {% if instance.is_unprovisioned() %}
+            {% if status == 'UNPROVISIONED' %}
                 <form action="{{ uri_for('instance_start') }}" method="post">
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Start</button>
                     </div>
                 </form>
             {% endif %}
-            {% if instance.is_running() %}
+            {% if status == 'RUNNING' %}
                 <form action="{{ uri_for('instance_stop') }}" method="post">
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Stop</button>

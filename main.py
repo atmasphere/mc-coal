@@ -338,8 +338,9 @@ class AdminHandler(PagingHandler):
         servers = []
         for server in Server.query():
             servers.append(server)
-        instance = gce.Instance.singleton() if gce.is_setup() else None
-        context = {'servers': servers, 'instance': instance}
+        instance = gce.Instance.singleton()
+        status = instance.status()
+        context = {'servers': servers, 'instance': instance, 'status': status}
         self.render_template('admin.html', context=context)
 
 
