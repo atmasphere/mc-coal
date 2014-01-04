@@ -13,11 +13,14 @@ from oauth2client.appengine import AppAssertionCredentials
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
 API_VERSION = 'v1'
 GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
+IMAGE_URL = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20131120')
 SCOPES = [
     'https://www.googleapis.com/auth/devstorage.full_control',
     'https://www.googleapis.com/auth/compute',
     'https://www.googleapis.com/auth/taskqueue'
 ]
+FIREWALL_NAME = 'minecraft-firewall'
+DISK_NAME = 'mc-coal-boot-disk'
 
 
 class Instance(ndb.Model):
@@ -33,12 +36,14 @@ class Instance(ndb.Model):
         project_url = '%s%s' % (GCE_URL, project_id)
         network_url = '%s/global/networks/%s' % (project_url, 'default')
         verify_minecraft_firewall(network_url)
-        image_url = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20131120')
+        if not verify_boot_disk(self.zone):
+            create_boot_disk(self.zone)
+        disk = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
         machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'n1-standard-1')
         instance = {
             'name': self.name,
             'machineType': machine_type_url,
-            'image': image_url,
+            'disks': [{'source': disk, 'type': 'PERSISTENT', 'boot': True}],
             'networkInterfaces': [{
                 'accessConfigs': [{
                     'type': 'ONE_TO_ONE_NAT',
@@ -161,9 +166,8 @@ def execute_request(request, block=False):
 
 def verify_minecraft_firewall(network):
     try:
-        name = 'minecraft-firewall'
         gce_service = get_gce_service()
-        execute_request(gce_service.firewalls().get(firewall=name, project=get_project_id()))
+        execute_request(gce_service.firewalls().get(firewall=FIREWALL_NAME, project=get_project_id()))
     except HttpError as e:
         if e.resp.status == 404:
             create_minecraft_firewall(network)
@@ -172,7 +176,7 @@ def verify_minecraft_firewall(network):
 def create_minecraft_firewall(network):
     project_id = get_project_id()
     firewall = {
-        'name': 'minecraft-firewall',
+        'name': FIREWALL_NAME,
         'sourceRanges': ["0.0.0.0/0"],
         'allowed': [{
             'IPProtocol': 'tcp',
@@ -182,6 +186,30 @@ def create_minecraft_firewall(network):
     }
     gce_service = get_gce_service()
     execute_request(gce_service.firewalls().insert(project=project_id, body=firewall))
+
+
+def verify_boot_disk(zone):
+    try:
+        gce_service = get_gce_service()
+        execute_request(gce_service.disks().get(disk=DISK_NAME, project=get_project_id(), zone=zone))
+        return True
+    except HttpError:
+        pass
+    return False
+
+
+def create_boot_disk(zone):
+    try:
+        gce_service = get_gce_service()
+        execute_request(
+            gce_service.disks().insert(
+                project=get_project_id(), zone=zone, sourceImage=IMAGE_URL, name=DISK_NAME
+            )
+        )
+        return True
+    except HttpError:
+        pass
+    return False
 
 
 def get_zones():
