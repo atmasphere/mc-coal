@@ -5,22 +5,33 @@ import fnmatch
 import json
 import logging
 import os
+import random
 import shutil
 import signal
 import socket
 import subprocess
 import sys
 import time
+import zipfile
 
 from apiclient.discovery import build
+from apiclient.errors import HttpError
+from apiclient.http import MediaFileUpload, MediaIoBaseDownload
+
 from oauth2client import gce
 import httplib2
 
 SCOPE = 'https://www.googleapis.com/auth/taskqueue'
 TQ_API_VERSION = 'v1beta2'
+STORAGE_API_VERSION = 'v1beta2'
 MINECRAFT_DIR = '/minecraft/'
 COAL_DIR = '/coal/'
 SERVERS_DIR = os.path.join(COAL_DIR, 'servers')
+ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
+WORLDS_BUCKET = 'worlds'
+NUM_RETRIES = 5
+CHUNKSIZE = 2 * 1024 * 1024
+RETRYABLE_ERRORS = (httplib2.HttpLib2Error, IOError)
 
 #Globals
 logger = None
@@ -120,6 +131,50 @@ def make_fifo(server_dir):
     return fifo
 
 
+def load_zip_from_gcs(server_key, server_dir):
+    credentials = gce.AppAssertionCredentials(scope=SCOPE)
+    http = credentials.authorize(httplib2.Http())
+    service = build('storage', STORAGE_API_VERSION, http=http)
+    archive_file = os.path.join(server_dir, '{0}.zip'.format(server_key))
+    with file(archive_file, 'w') as f:
+        name = '{0}.zip'.format(server_key)
+        request = service.objects().get_media(bucket=WORLDS_BUCKET, object=name)
+        media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
+        progressless_iters = 0
+        done = False
+        while not done:
+            error = None
+            try:
+                progress, done = media.next_chunk()
+                if progress:
+                    logger.info('Download %d%%' % (100 * progress.progress()))
+            except HttpError, err:
+                error = err
+                if err.resp.status < 500:
+                    raise
+            except RETRYABLE_ERRORS, err:
+                error = err
+                if error:
+                    progressless_iters += 1
+                    if progressless_iters > NUM_RETRIES:
+                        raise error
+                        sleeptime = random.random() * (2**progressless_iters)
+                        logger.error('Caught exception ({0}). Sleeping for {1} seconds before retry #{2}.'.format(
+                            str(error), sleeptime, progressless_iters)
+                        )
+                        time.sleep(sleeptime)
+                    else:
+                        progressless_iters = 0
+
+
+def unzip_server_dir(server_key, server_dir):
+    archive_file = os.path.join(server_dir, '{0}.zip'.format(server_key))
+    with zipfile.ZipFile(archive_file) as zf:
+        for member in zf.infolist():
+            path = os.path.join(server_dir, member.filename)
+            zf.extract(member, path)
+
+
 def start_server(server_key, **kwargs):
     servers = get_servers()
     if server_key in servers.keys():
@@ -137,6 +192,8 @@ def start_server(server_key, **kwargs):
     if not os.path.exists(server_dir):
         os.makedirs(server_dir)
         write_server_key(port, server_key)
+        load_zip_from_gcs(server_key, server_dir)
+        unzip_server_dir(server_key, server_dir)
         server_properties = kwargs.get('server_properties', {})
         copy_server_files(port, server_properties)
     try:
@@ -170,6 +227,65 @@ def start_server(server_key, **kwargs):
         logger.error(e)
 
 
+def zip_server_dir(server_dir, archive_file):
+    skip_dirs = [
+        os.path.join(server_dir, 'mc_coal'),
+        os.path.join(server_dir, 'logs'),
+    ]
+    skip_files = [
+        'command-fifo',
+        'minecraft_server.jar',
+        'log4j.xml'
+    ]
+    abs_src = os.path.abspath(server_dir)
+    with zipfile.ZipFile(archive_file, "w") as zf:
+        for dirname, subdirs, files in os.walk(server_dir):
+            if dirname not in skip_dirs:
+                arcname = os.path.relpath(dirname, abs_src)
+                zf.write(dirname, arcname)
+                for filename in files:
+                    if filename not in skip_files:
+                        absname = os.path.abspath(os.path.join(dirname, filename))
+                        arcname = os.path.relpath(absname, abs_src)
+                        zf.write(absname, arcname)
+
+
+def upload_zip_to_gcs(server_key, archive_file):
+    credentials = gce.AppAssertionCredentials(scope=SCOPE)
+    http = credentials.authorize(httplib2.Http())
+    service = build('storage', STORAGE_API_VERSION, http=http)
+    media = MediaFileUpload(archive_file, chunksize=CHUNKSIZE, resumable=True)
+    if not media.mimetype():
+        media = MediaFileUpload(archive_file, 'application/octet-stream', resumable=True)
+    name = '{0}.zip'.format(server_key)
+    request = service.objects().insert(bucket=WORLDS_BUCKET, name=name, media_body=media)
+    progressless_iters = 0
+    response = None
+    while response is None:
+        error = None
+        try:
+            progress, response = request.next_chunk()
+            if progress:
+                logger.info('Upload %d%%' % (100 * progress.progress()))
+        except HttpError, err:
+            error = err
+            if err.resp.status < 500:
+                raise
+        except RETRYABLE_ERRORS, err:
+            error = err
+        if error:
+            progressless_iters += 1
+            if progressless_iters > NUM_RETRIES:
+                raise error
+            sleeptime = random.random() * (2**progressless_iters)
+            logger.error('Caught exception ({0}). Sleeping for {1} seconds before retry #{2}.'.format(
+                str(error), sleeptime, progressless_iters)
+            )
+            time.sleep(sleeptime)
+        else:
+            progressless_iters = 0
+
+
 def stop_server(server_key, **kwargs):
     servers = get_servers()
     server = servers.get(server_key, None)
@@ -187,6 +303,10 @@ def stop_server(server_key, **kwargs):
         os.waitpid(int(pid), 0)
     except OSError, e:
         logger.error(e)
+    # Archive server_dir
+    archive_file = os.path.join(ARCHIVES_DIR, '{0}.zip'.format(server_key))
+    zip_server_dir(server_dir, archive_file)
+    upload_zip_to_gcs(server_key, archive_file)
     # Stop Agent
     time.sleep(10)
     pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
