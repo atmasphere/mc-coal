@@ -131,40 +131,59 @@ def make_fifo(server_dir):
     return fifo
 
 
+def verify_bucket():
+    credentials = gce.AppAssertionCredentials(scope=SCOPE)
+    http = credentials.authorize(httplib2.Http())
+    service = build('storage', STORAGE_API_VERSION, http=http)
+    request = service.buckets().get(bucket=WORLDS_BUCKET)
+    done = False
+    while not done:
+        try:
+            request.execute()
+            done = True
+        except HttpError, error:
+            if error.resp.status == 403:
+                service.buckets().insert(project=project, body={'name': WORLDS_BUCKET})
+
+
 def load_zip_from_gcs(server_key, server_dir):
+    verify_bucket()
     credentials = gce.AppAssertionCredentials(scope=SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
     archive_file = os.path.join(server_dir, '{0}.zip'.format(server_key))
-    with file(archive_file, 'w') as f:
-        name = '{0}.zip'.format(server_key)
-        request = service.objects().get_media(bucket=WORLDS_BUCKET, object=name)
-        media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
-        progressless_iters = 0
-        done = False
-        while not done:
-            error = None
-            try:
-                progress, done = media.next_chunk()
-                if progress:
-                    logger.info('Download %d%%' % (100 * progress.progress()))
-            except HttpError, err:
-                error = err
-                if err.resp.status < 500:
-                    raise
-            except RETRYABLE_ERRORS, err:
-                error = err
-                if error:
-                    progressless_iters += 1
-                    if progressless_iters > NUM_RETRIES:
-                        raise error
-                        sleeptime = random.random() * (2**progressless_iters)
-                        logger.error('Caught exception ({0}). Sleeping for {1} seconds before retry #{2}.'.format(
-                            str(error), sleeptime, progressless_iters)
-                        )
-                        time.sleep(sleeptime)
-                    else:
-                        progressless_iters = 0
+    try:
+        with file(archive_file, 'w') as f:
+            name = '{0}.zip'.format(server_key)
+            request = service.objects().get_media(bucket=WORLDS_BUCKET, object=name)
+            media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
+            progressless_iters = 0
+            done = False
+            while not done:
+                error = None
+                try:
+                    progress, done = media.next_chunk()
+                    if progress:
+                        logger.info('Download %d%%' % (100 * progress.progress()))
+                except HttpError, err:
+                    error = err
+                    if err.resp.status < 500:
+                        raise
+                except RETRYABLE_ERRORS, err:
+                    error = err
+                    if error:
+                        progressless_iters += 1
+                        if progressless_iters > NUM_RETRIES:
+                            raise error
+                            sleeptime = random.random() * (2**progressless_iters)
+                            logger.error('Caught exception ({0}). Sleeping for {1} seconds before retry #{2}.'.format(
+                                str(error), sleeptime, progressless_iters)
+                            )
+                            time.sleep(sleeptime)
+                        else:
+                            progressless_iters = 0
+    except Exception:
+        os.remove(archive_file)
 
 
 def unzip_server_dir(server_key, server_dir):
@@ -173,6 +192,7 @@ def unzip_server_dir(server_key, server_dir):
         for member in zf.infolist():
             path = os.path.join(server_dir, member.filename)
             zf.extract(member, path)
+    os.remove(archive_file)
 
 
 def start_server(server_key, **kwargs):
@@ -251,6 +271,7 @@ def zip_server_dir(server_dir, archive_file):
 
 
 def upload_zip_to_gcs(server_key, archive_file):
+    verify_bucket()
     credentials = gce.AppAssertionCredentials(scope=SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
@@ -284,6 +305,7 @@ def upload_zip_to_gcs(server_key, archive_file):
             time.sleep(sleeptime)
         else:
             progressless_iters = 0
+    os.remove(archive_file)
 
 
 def stop_server(server_key, **kwargs):
