@@ -135,14 +135,15 @@ def verify_bucket():
     credentials = gce.AppAssertionCredentials(scope=SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
-    request = service.buckets().get(bucket=WORLDS_BUCKET)
     done = False
     while not done:
         try:
+            request = service.buckets().get(bucket=WORLDS_BUCKET)
             request.execute()
             done = True
-        except HttpError, error:
-            if error.resp.status == 403:
+        except HttpError, err:
+            logger.error(err)
+            if err.resp.status == 403:
                 service.buckets().insert(project=project, body={'name': WORLDS_BUCKET})
 
 
@@ -182,7 +183,8 @@ def load_zip_from_gcs(server_key, server_dir):
                             time.sleep(sleeptime)
                         else:
                             progressless_iters = 0
-    except Exception:
+    except Exception, err:
+        logger.error(err)
         os.remove(archive_file)
 
 
