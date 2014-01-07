@@ -256,8 +256,10 @@ def zip_server_dir(server_dir, archive_file):
     skip_files = [
         'command-fifo',
         'minecraft_server.jar',
-        'log4j.xml',
-        'server_key'
+        'log4j2.xml',
+        'server_key',
+        'agent.pid',
+        'server.pid'
     ]
     abs_src = os.path.abspath(server_dir)
     with zipfile.ZipFile(archive_file, "w") as zf:
