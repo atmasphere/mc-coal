@@ -28,7 +28,7 @@ MINECRAFT_DIR = '/minecraft/'
 COAL_DIR = '/coal/'
 SERVERS_DIR = os.path.join(COAL_DIR, 'servers')
 ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
-WORLDS_BUCKET = 'worlds'
+WORLDS_BUCKET = 'mc-coal-worlds'
 NUM_RETRIES = 5
 CHUNKSIZE = 2 * 1024 * 1024
 RETRY_ERRORS = (httplib2.HttpLib2Error, IOError)
@@ -139,8 +139,10 @@ def verify_bucket(service):
             done = True
         except HttpError, err:
             logger.error(err)
-            if err.resp.status == 403:
-                service.buckets().insert(project=project, body={'name': WORLDS_BUCKET})
+            if err.resp.status == 404:
+                request = service.buckets().insert(project=project, body={'name': WORLDS_BUCKET})
+                request.execute()
+                done = True
 
 
 def load_zip_from_gcs(server_key, server_dir):
@@ -186,11 +188,12 @@ def load_zip_from_gcs(server_key, server_dir):
 
 def unzip_server_dir(server_key, server_dir):
     archive_file = os.path.join(server_dir, '{0}.zip'.format(server_key))
-    with zipfile.ZipFile(archive_file) as zf:
-        for member in zf.infolist():
-            path = os.path.join(server_dir, member.filename)
-            zf.extract(member, path)
-    os.remove(archive_file)
+    if os.path.exists(archive_file):
+        with zipfile.ZipFile(archive_file) as zf:
+            for member in zf.infolist():
+                path = os.path.join(server_dir, member.filename)
+                zf.extract(member, path)
+        os.remove(archive_file)
 
 
 def start_server(server_key, **kwargs):
@@ -360,10 +363,10 @@ def complete_tasks(tasks):
 
 def lease_tasks(service):
     tasks = []
-    service_call = service.tasks().lease(
+    request = service.tasks().lease(
         project=project, taskqueue='controller', leaseSecs=300, numTasks=10
     )
-    response = service_call.execute()
+    response = request.execute()
     tasks += response.get('items', [])
     for task in tasks:
         task['payload'] = json.loads(base64.b64decode(task['payloadBase64']))
@@ -373,12 +376,12 @@ def lease_tasks(service):
 def delete_tasks(service, tasks):
     for task in tasks:
         try:
-            service_call = service.tasks().delete(
+            request = service.tasks().delete(
                 project='s~{0}'.format(project),
                 taskqueue='controller',
                 task=task['id']
             )
-            service_call.execute()
+            request.execute()
         except Exception, e:
             logger.error(
                 u"Delete Task Error {0}: {1}".format(type(e).__name__, e)
