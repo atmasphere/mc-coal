@@ -20,8 +20,9 @@ from apiclient.http import MediaFileUpload, MediaIoBaseDownload
 from oauth2client import gce
 import httplib2
 
-SCOPE = 'https://www.googleapis.com/auth/taskqueue'
+TQ_API_SCOPE = 'https://www.googleapis.com/auth/taskqueue'
 TQ_API_VERSION = 'v1beta2'
+STORAGE_API_SCOPE = 'https://www.googleapis.com/auth/devstorage.full_control'
 STORAGE_API_VERSION = 'v1beta2'
 MINECRAFT_DIR = '/minecraft/'
 COAL_DIR = '/coal/'
@@ -143,7 +144,7 @@ def verify_bucket(service):
 
 
 def load_zip_from_gcs(server_key, server_dir):
-    credentials = gce.AppAssertionCredentials(scope=SCOPE)
+    credentials = gce.AppAssertionCredentials(scope=STORAGE_API_SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
     verify_bucket(service)
@@ -268,7 +269,7 @@ def zip_server_dir(server_dir, archive_file):
 
 
 def upload_zip_to_gcs(server_key, archive_file):
-    credentials = gce.AppAssertionCredentials(scope=SCOPE)
+    credentials = gce.AppAssertionCredentials(scope=STORAGE_API_SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
     verify_bucket(service)
@@ -415,7 +416,7 @@ def main(argv):
         os.makedirs(SERVERS_DIR)
     try:
         project = open('/coal/project_id', 'r').read()
-        credentials = gce.AppAssertionCredentials(scope=SCOPE)
+        credentials = gce.AppAssertionCredentials(scope=TQ_API_SCOPE)
         http = credentials.authorize(httplib2.Http())
         service = build('taskqueue', TQ_API_VERSION, http=http)
         while True:
