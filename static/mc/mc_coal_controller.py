@@ -28,7 +28,6 @@ MINECRAFT_DIR = '/minecraft/'
 COAL_DIR = '/coal/'
 SERVERS_DIR = os.path.join(COAL_DIR, 'servers')
 ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
-WORLDS_BUCKET = 'mc-coal-worlds'
 NUM_RETRIES = 5
 CHUNKSIZE = 2 * 1024 * 1024
 RETRY_ERRORS = (httplib2.HttpLib2Error, IOError)
@@ -36,6 +35,7 @@ RETRY_ERRORS = (httplib2.HttpLib2Error, IOError)
 #Globals
 logger = None
 project = None
+world_bucket = None
 external_ip = None
 
 
@@ -134,13 +134,13 @@ def verify_bucket(service):
     done = False
     while not done:
         try:
-            request = service.buckets().get(bucket=WORLDS_BUCKET)
+            request = service.buckets().get(bucket=world_bucket)
             request.execute()
             done = True
         except HttpError, err:
             logger.error(err)
             if err.resp.status == 404:
-                request = service.buckets().insert(project=project, body={'name': WORLDS_BUCKET})
+                request = service.buckets().insert(project=project, body={'name': world_bucket})
                 request.execute()
                 done = True
 
@@ -154,7 +154,7 @@ def load_zip_from_gcs(server_key, server_dir):
     try:
         with file(archive_file, 'w') as f:
             name = '{0}.zip'.format(server_key)
-            request = service.objects().get_media(bucket=WORLDS_BUCKET, object=name)
+            request = service.objects().get_media(bucket=world_bucket, object=name)
             media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
             tries = 0
             done = False
@@ -280,7 +280,7 @@ def upload_zip_to_gcs(server_key, archive_file):
     if not media.mimetype():
         media = MediaFileUpload(archive_file, 'application/octet-stream', resumable=True)
     name = '{0}.zip'.format(server_key)
-    request = service.objects().insert(bucket=WORLDS_BUCKET, name=name, media_body=media)
+    request = service.objects().insert(bucket=world_bucket, name=name, media_body=media)
     tries = 0
     response = None
     while response is None:
@@ -411,14 +411,18 @@ def init_logger(debug=False, logfile='controller.log'):
 
 def main(argv):
     global project
+    global world_bucket
     global logger
     init_logger()
     logger = logging.getLogger('main')
     init_external_ip()
     if not os.path.exists(SERVERS_DIR):
         os.makedirs(SERVERS_DIR)
+    if not os.path.exists(ARCHIVES_DIR):
+        os.makedirs(ARCHIVES_DIR)
     try:
         project = open('/coal/project_id', 'r').read()
+        world_bucket = '{0}-worlds'.format(project)
         credentials = gce.AppAssertionCredentials(scope=TQ_API_SCOPE)
         http = credentials.authorize(httplib2.Http())
         service = build('taskqueue', TQ_API_VERSION, http=http)
