@@ -256,7 +256,8 @@ def zip_server_dir(server_dir, archive_file):
     skip_files = [
         'command-fifo',
         'minecraft_server.jar',
-        'log4j.xml'
+        'log4j.xml',
+        'server_key'
     ]
     abs_src = os.path.abspath(server_dir)
     with zipfile.ZipFile(archive_file, "w") as zf:
@@ -278,7 +279,7 @@ def upload_zip_to_gcs(server_key, archive_file):
     verify_bucket(service)
     media = MediaFileUpload(archive_file, chunksize=CHUNKSIZE, resumable=True)
     if not media.mimetype():
-        media = MediaFileUpload(archive_file, 'application/octet-stream', resumable=True)
+        media = MediaFileUpload(archive_file, 'application/zip', resumable=True)
     name = '{0}.zip'.format(server_key)
     request = service.objects().insert(bucket=world_bucket, name=name, media_body=media)
     tries = 0
