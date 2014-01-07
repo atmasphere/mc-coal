@@ -191,8 +191,7 @@ def unzip_server_dir(server_key, server_dir):
     if os.path.exists(archive_file):
         with zipfile.ZipFile(archive_file) as zf:
             for member in zf.infolist():
-                path = os.path.join(server_dir, member.filename)
-                zf.extract(member, path)
+                zf.extract(member, server_dir)
         os.remove(archive_file)
 
 
