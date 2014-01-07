@@ -17,7 +17,6 @@ import zipfile
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from apiclient.http import MediaFileUpload, MediaIoBaseDownload
-
 from oauth2client import gce
 import httplib2
 
@@ -31,12 +30,11 @@ ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
 WORLDS_BUCKET = 'worlds'
 NUM_RETRIES = 5
 CHUNKSIZE = 2 * 1024 * 1024
-RETRYABLE_ERRORS = (httplib2.HttpLib2Error, IOError)
+RETRY_ERRORS = (httplib2.HttpLib2Error, IOError)
 
 #Globals
 logger = None
 project = None
-service = None
 external_ip = None
 
 
@@ -131,10 +129,7 @@ def make_fifo(server_dir):
     return fifo
 
 
-def verify_bucket():
-    credentials = gce.AppAssertionCredentials(scope=SCOPE)
-    http = credentials.authorize(httplib2.Http())
-    service = build('storage', STORAGE_API_VERSION, http=http)
+def verify_bucket(service):
     done = False
     while not done:
         try:
@@ -148,17 +143,17 @@ def verify_bucket():
 
 
 def load_zip_from_gcs(server_key, server_dir):
-    verify_bucket()
     credentials = gce.AppAssertionCredentials(scope=SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
+    verify_bucket(service)
     archive_file = os.path.join(server_dir, '{0}.zip'.format(server_key))
     try:
         with file(archive_file, 'w') as f:
             name = '{0}.zip'.format(server_key)
             request = service.objects().get_media(bucket=WORLDS_BUCKET, object=name)
             media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
-            progressless_iters = 0
+            tries = 0
             done = False
             while not done:
                 error = None
@@ -170,19 +165,19 @@ def load_zip_from_gcs(server_key, server_dir):
                     error = err
                     if err.resp.status < 500:
                         raise
-                except RETRYABLE_ERRORS, err:
+                except RETRY_ERRORS, err:
                     error = err
                     if error:
-                        progressless_iters += 1
-                        if progressless_iters > NUM_RETRIES:
+                        tries += 1
+                        if tries > NUM_RETRIES:
                             raise error
-                            sleeptime = random.random() * (2**progressless_iters)
+                            sleeptime = random.random() * (2**tries)
                             logger.error('Caught exception ({0}). Sleeping for {1} seconds before retry #{2}.'.format(
-                                str(error), sleeptime, progressless_iters)
+                                str(error), sleeptime, tries)
                             )
                             time.sleep(sleeptime)
                         else:
-                            progressless_iters = 0
+                            tries = 0
     except Exception, err:
         logger.error(err)
         os.remove(archive_file)
@@ -273,16 +268,16 @@ def zip_server_dir(server_dir, archive_file):
 
 
 def upload_zip_to_gcs(server_key, archive_file):
-    verify_bucket()
     credentials = gce.AppAssertionCredentials(scope=SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
+    verify_bucket(service)
     media = MediaFileUpload(archive_file, chunksize=CHUNKSIZE, resumable=True)
     if not media.mimetype():
         media = MediaFileUpload(archive_file, 'application/octet-stream', resumable=True)
     name = '{0}.zip'.format(server_key)
     request = service.objects().insert(bucket=WORLDS_BUCKET, name=name, media_body=media)
-    progressless_iters = 0
+    tries = 0
     response = None
     while response is None:
         error = None
@@ -294,19 +289,19 @@ def upload_zip_to_gcs(server_key, archive_file):
             error = err
             if err.resp.status < 500:
                 raise
-        except RETRYABLE_ERRORS, err:
+        except RETRY_ERRORS, err:
             error = err
         if error:
-            progressless_iters += 1
-            if progressless_iters > NUM_RETRIES:
+            tries += 1
+            if tries > NUM_RETRIES:
                 raise error
-            sleeptime = random.random() * (2**progressless_iters)
+            sleeptime = random.random() * (2**tries)
             logger.error('Caught exception ({0}). Sleeping for {1} seconds before retry #{2}.'.format(
-                str(error), sleeptime, progressless_iters)
+                str(error), sleeptime, tries)
             )
             time.sleep(sleeptime)
         else:
-            progressless_iters = 0
+            tries = 0
     os.remove(archive_file)
 
 
@@ -362,7 +357,7 @@ def complete_tasks(tasks):
     return completed_tasks
 
 
-def lease_tasks():
+def lease_tasks(service):
     tasks = []
     service_call = service.tasks().lease(
         project=project, taskqueue='controller', leaseSecs=300, numTasks=10
@@ -374,7 +369,7 @@ def lease_tasks():
     return tasks
 
 
-def delete_tasks(tasks):
+def delete_tasks(service, tasks):
     for task in tasks:
         try:
             service_call = service.tasks().delete(
@@ -412,7 +407,6 @@ def init_logger(debug=False, logfile='controller.log'):
 
 def main(argv):
     global project
-    global service
     global logger
     init_logger()
     logger = logging.getLogger('main')
@@ -425,7 +419,7 @@ def main(argv):
         http = credentials.authorize(httplib2.Http())
         service = build('taskqueue', TQ_API_VERSION, http=http)
         while True:
-            tasks = lease_tasks()
+            tasks = lease_tasks(service)
             if tasks:
                 completed_tasks = []
                 try:
@@ -433,9 +427,9 @@ def main(argv):
                 finally:
                     i = len(completed_tasks) if completed_tasks else 0
                     logger.info(u"Completed {0} task{1}".format(
-                        i, 's' if i != 1 else '')
-                    )
-                    delete_tasks(completed_tasks)
+                        i, 's' if i != 1 else ''
+                    ))
+                    delete_tasks(service, completed_tasks)
             time.sleep(1.0)
     except KeyboardInterrupt:
         logger.info(u"Canceled")
