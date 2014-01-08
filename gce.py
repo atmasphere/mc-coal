@@ -40,7 +40,6 @@ class Instance(ndb.Model):
         if not verify_boot_disk(self.zone):
             create_boot_disk(self.zone)
         disk_url = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
-        logging.info("DISK URL: {0}".format(disk_url))
         machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'f1-micro')
         instance = {
             'name': self.name,
@@ -223,6 +222,7 @@ def is_setup():
         request.execute()
         setup = True
     except HttpError as e:
+        logging.error("GCE not set up: {0}".format(e))
         if e.resp.status != 404 and e.resp.status != 401:
             raise
     return setup
