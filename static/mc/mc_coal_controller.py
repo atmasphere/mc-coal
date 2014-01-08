@@ -422,7 +422,7 @@ def main(argv):
     if not os.path.exists(ARCHIVES_DIR):
         os.makedirs(ARCHIVES_DIR)
     try:
-        project = open('/coal/project_id', 'r').read()
+        project = open('/coal/project_id', 'r').read().strip()
         world_bucket = '{0}-worlds'.format(project)
         credentials = gce.AppAssertionCredentials(scope=TQ_API_SCOPE)
         http = credentials.authorize(httplib2.Http())
