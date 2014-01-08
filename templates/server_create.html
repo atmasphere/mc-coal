@@ -10,6 +10,8 @@
             <form action="{{ uri_for('server_create') }}" method="post">
                 <label>Name</label>
                 {{ macros.with_errors(form.name, class="span3") }}
+                <label>Host on Compute Engine?</label>
+                {{ macros.with_errors(form.gce, class="span3") }}
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Create</button>
                     <a class="btn" href="{{ uri_for('servers') }}">Cancel</a>

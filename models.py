@@ -396,6 +396,7 @@ class UsernameClaim(ndb.Model):
 @ae_ndb_serializer
 class Server(ndb.Model):
     name = ndb.StringProperty()
+    is_gce = ndb.BooleanProperty(default=False)
     address = ndb.StringProperty()
     active = ndb.BooleanProperty(default=True)
     version = ndb.StringProperty()

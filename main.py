@@ -542,6 +542,7 @@ class ServersHandler(PagingHandler):
 
 class ServerForm(form.Form):
     name = fields.StringField(u'Name', [validators.Required()])
+    gce = fields.BooleanField(u'GCE', default=True)
 
 
 class ServerCreateHandler(UserHandler):
@@ -556,7 +557,7 @@ class ServerCreateHandler(UserHandler):
         try:
             form = ServerForm(formdata=self.request.POST)
             if form.validate():
-                Server.create(name=form.name.data)
+                Server.create(name=form.name.data, is_gce=form.gce.data)
                 self.redirect(webapp2.uri_for('servers'))
         except Exception, e:
             logging.error(u"Error POSTing server: {0}".format(e))

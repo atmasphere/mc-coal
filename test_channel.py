@@ -2,6 +2,7 @@ from testing_utils import fix_sys_path; fix_sys_path()
 
 import json
 
+from google.appengine.ext import ndb
 from google.appengine.api import channel as gae_channel
 
 from base_test import BaseTest

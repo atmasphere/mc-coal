@@ -2,6 +2,8 @@ from testing_utils import fix_sys_path; fix_sys_path()
 
 import datetime
 
+from google.appengine.ext import ndb
+
 from base_test import BaseTest
 from web_test import WebTest
 

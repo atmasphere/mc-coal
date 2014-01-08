@@ -3,6 +3,8 @@ from testing_utils import fix_sys_path; fix_sys_path()
 import logging
 import os
 
+from google.appengine.ext import ndb
+
 import minimock
 
 from base_test import BaseTest
@@ -615,12 +617,13 @@ class ServerCreateTest(AdminAuthTest):
         self.log_in_admin()
         self.assertEqual(0, Server.query().count())
         self.assertEqual(0, Client.query().count())
-        response = self.post(params={'name': 'new server'})
+        response = self.post(params={'name': 'new server', 'gce': True})
         self.assertRedirects(response, ServersTest.URL)
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
         server = Server.query().get()
         self.assertEqual('new server', server.name)
+        self.assertEqual(True, server.is_gce)
 
 
 class ServerKeyTest(AdminAuthTest):

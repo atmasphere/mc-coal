@@ -1,6 +1,7 @@
 import os
 import sys
 
+
 def fix_sys_path():
     for d in os.environ["PATH"].split(":"):
         dev_appserver_path = os.path.join(d, "dev_appserver.py")
