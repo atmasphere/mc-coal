@@ -40,7 +40,7 @@ class Instance(ndb.Model):
         if not verify_boot_disk(self.zone):
             create_boot_disk(self.zone)
         disk_url = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
-        machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'f1-micro')
+        machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'n1-standard-1')
         instance = {
             'name': self.name,
             'machineType': machine_type_url,
