@@ -21,6 +21,7 @@ SCOPES = [
 ]
 FIREWALL_NAME = 'minecraft-firewall'
 DISK_NAME = 'coal-boot-disk'
+MINECRAFT_JAR_URL = 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
 
 
 class Instance(ndb.Model):
@@ -39,7 +40,7 @@ class Instance(ndb.Model):
         if not verify_boot_disk(self.zone):
             create_boot_disk(self.zone)
         disk_url = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
-        machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'n1-standard-1')
+        machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'f1-micro')
         instance = {
             'name': self.name,
             'machineType': machine_type_url,
@@ -64,24 +65,12 @@ class Instance(ndb.Model):
                         'value': open('gce-instance-startup.sh', 'r').read()
                     },
                     {
-                        'key': 'minecraft-url',
-                        'value': 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
-                    },
-                    {
                         'key': 'project-id',
                         'value': project_id
                     },
                     {
-                        'key': 'agent-script',
-                        'value': open('mc_coal_agent.py', 'r').read()
-                    },
-                    {
-                        'key': 'log4j2',
-                        'value': open('log4j2.xml', 'r').read()
-                    },
-                    {
-                        'key': 'timezones',
-                        'value': open('timezones.py', 'r').read()
+                        'key': 'minecraft-url',
+                        'value': MINECRAFT_JAR_URL
                     }
                 ],
             }]

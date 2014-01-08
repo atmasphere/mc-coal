@@ -24,7 +24,6 @@ TQ_API_SCOPE = 'https://www.googleapis.com/auth/taskqueue'
 TQ_API_VERSION = 'v1beta2'
 STORAGE_API_SCOPE = 'https://www.googleapis.com/auth/devstorage.full_control'
 STORAGE_API_VERSION = 'v1beta2'
-MINECRAFT_DIR = '/minecraft/'
 COAL_DIR = '/coal/'
 SERVERS_DIR = os.path.join(COAL_DIR, 'servers')
 ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
@@ -106,8 +105,8 @@ def copy_server_properties(port, server_properties):
 
 def copy_server_files(port, server_properties):
     server_dir = get_server_dir(port)
-    shutil.copy2(os.path.join(MINECRAFT_DIR, 'minecraft_server.jar'), server_dir)
-    shutil.copy2(os.path.join(MINECRAFT_DIR, 'log4j2.xml'), server_dir)
+    shutil.copy2(os.path.join(COAL_DIR, 'minecraft_server.jar'), server_dir)
+    shutil.copy2(os.path.join(COAL_DIR, 'log4j2.xml'), server_dir)
     copy_server_properties(port, server_properties)
     filenames = [
         'timezones.py',
@@ -233,7 +232,7 @@ def start_server(server_key, **kwargs):
         # Start MC
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
         log4j = os.path.join(server_dir, 'log4j2.xml')
-        args = ['java', '-Xmx1G', '-Xms1G']
+        args = ['java', '-Xmx512M', '-Xms512M']
         args.append('-Dlog4j.configurationFile={0}'.format(log4j))
         args.append('-jar')
         args.append(mc_jar)
