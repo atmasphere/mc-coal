@@ -196,8 +196,8 @@ def create_boot_disk(zone):
             )
         )
         return True
-    except HttpError:
-        pass
+    except HttpError, e:
+        logging.error(e)
     return False
 
 
