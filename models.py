@@ -27,7 +27,8 @@ UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
 AGENT_CLIENT_ID = 'mc-coal-agent'
 TICKS_PER_PLAY_SECOND = 20
 SERVER_UNKNOWN = 'UNKNOWN'
-SERVER_QUEUED = 'QUEUED'
+SERVER_QUEUED_START = 'QUEUED_START'
+SERVER_QUEUED_STOP = 'QUEUED_STOP'
 SERVER_RUNNING = 'RUNNING'
 SERVER_STOPPED = 'STOPPED'
 UNKNOWN_TAG = 'unknown'
@@ -404,7 +405,10 @@ class Server(ndb.Model):
     status = ndb.StringProperty(default=SERVER_UNKNOWN)
     is_running = ndb.ComputedProperty(lambda self: self.status == SERVER_RUNNING)
     is_stopped = ndb.ComputedProperty(lambda self: self.status == SERVER_STOPPED)
-    is_queued = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED)
+    is_queued_start = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED_START)
+    is_queued_stop = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED_STOP)
+    is_queued = ndb.ComputedProperty(lambda self: self.status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP])
+    is_unknown = ndb.ComputedProperty(lambda self: self.status == SERVER_UNKNOWN)
     last_ping = ndb.DateTimeProperty()
     last_server_day = ndb.IntegerProperty()
     last_server_time = ndb.IntegerProperty()
@@ -434,12 +438,14 @@ class Server(ndb.Model):
         return self.agent_key.get() if self.agent_key is not None else None
 
     def start(self):
-        if not (self.is_running or self.is_queued):
+        if not (self.is_running or self.is_queued_start):
             start_server(self)
-            self.update_status(status=SERVER_QUEUED)
+            self.update_status(status=SERVER_QUEUED_START)
 
     def stop(self):
-        stop_server(self)
+        if self.is_running and not self.is_queued_stop:
+            stop_server(self)
+            self.update_status(status=SERVER_QUEUED_STOP)
 
     def update_version(self, server_version):
         if server_version is not None:

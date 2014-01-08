@@ -391,6 +391,14 @@ header nav li.user:hover {
     background-position: 0px -30px;
 }
 
+.status.queued {
+    background-color: rgba(225,225,0,0.65);
+}
+
+.status.status.queued i.sprite {
+    background-position: 0px -55px;
+}
+
 .status.unknown {
     background-color: rgba(101,101,101,0.65);
 }

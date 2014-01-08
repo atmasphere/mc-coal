@@ -6,57 +6,79 @@
 
 {% block content %}
     {% for server in servers %}
-    <div class="title box wrap">
-        <div class="left">
-            <h1><a href="{{ uri_for('home', server_key=server.key.urlsafe()) }}">{{ server.name }}</a></h1>
-            <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
-            {% if server.is_raining != None %}
-                {% if server.is_raining %}
-                    / Raining
-                    {% if server.is_thundering %}
-                        & Thundering
-                    {% endif %}
-                {% else %}
-                    / Clear
-                {% endif %}
-            {% endif %}
-            </h4>
-            {% if user.admin %}
-                {% if not server.is_gce %}
-                    <div><strong>AGENT CLIENT ID:</strong> {{ server.agent.client_id }}</div>
-                    <div><strong>AGENT SECRET:</strong> {{ server.agent.secret }}</div>
-                {% endif %}
-                <h3><a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a></h3>
-            {% endif %}
-        </div>
-        <div class="status wrap {% if server.is_running == True %}up{% elif server.is_stopped == True %}down{% else %}unknown{% endif %}">
-            <i class="sprite"></i>
-            <div class="right">
-                <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% endif %})</h4>
-                <strong>
-                    {{ server.status }} (v{{ server.version }})
-                </strong>
-                {% if server.is_running == True %}
-                    <br/>(Problems?&nbsp;Check&nbsp;<strong><a href="http://xpaw.ru/mcstatus/">Minecraft's&nbsp;Status</a></strong>)
-                {% endif %}
-                {% if server.is_gce %}
-                    {% if server.is_stopped or server.is_queued or server.status == 'UNKNOWN' %}
-                        <form action="{{ uri_for('server_start', key=server.key.urlsafe()) }}" method="post">
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Start</button>
-                            </div>
-                        </form>
+        <div class="title box wrap">
+            <div class="left">
+                <h1><a href="{{ uri_for('home', server_key=server.key.urlsafe()) }}">{{ server.name }}</a></h1>
+                <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
+                {% if server.is_raining != None %}
+                    {% if server.is_raining %}
+                        / Raining
+                        {% if server.is_thundering %}
+                            & Thundering
+                        {% endif %}
                     {% else %}
-                        <form action="{{ uri_for('server_stop', key=server.key.urlsafe()) }}" method="post">
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Stop</button>
-                            </div>
-                        </form>
+                        / Clear
                     {% endif %}
+                {% endif %}
+                </h4>
+                {% if user.admin %}
+                    {% if not server.is_gce %}
+                        <div><strong>AGENT CLIENT ID:</strong> {{ server.agent.client_id }}</div>
+                        <div><strong>AGENT SECRET:</strong> {{ server.agent.secret }}</div>
+                    {% endif %}
+                    <h3><a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a></h3>
                 {% endif %}
             </div>
+            {% set status = 'unknown' %}
+            {% set status_text = 'Existential Crisis' %}
+            {% if server.is_running == True %}
+                {% set status = 'up' %}
+                {% set status_text = 'Playing' %}
+            {% endif %}
+            {% if server.is_stopped == True %}
+                {% set status = 'down' %}
+                {% set status_text = 'Defunct' %}
+            {% endif %}
+            {% if server.is_gce %}
+                {% if server.is_unknown or server.is_stopped == True %}
+                    {% set status = 'down' %}
+                    {% set status_text = 'Paused' %}
+                {% elif server.is_queued_start %}
+                    {% set status = 'queued' %}
+                    {% set status_text = 'Prologging...' %}
+                {% elif server.is_queued_stop %}
+                    {% set status = 'queued' %}
+                    {% set status_text = 'Epilogging...' %}
+               {% endif %}
+            {% endif %}
+            <div class="status wrap {{ status }}">
+                <i class="sprite"></i>
+                <div class="right">
+                    <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% endif %})</h4>
+                    <strong>
+                        {{ status_text }} (v{{ server.version }})
+                    </strong>
+                    {% if server.is_running == True %}
+                        <br/>(Problems?&nbsp;Check&nbsp;<strong><a href="http://xpaw.ru/mcstatus/">Minecraft's&nbsp;Status</a></strong>)
+                    {% endif %}
+                    {% if server.is_gce %}
+                        {% if server.is_stopped or server.is_unknown %}
+                            <form action="{{ uri_for('server_start', key=server.key.urlsafe()) }}" method="post">
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Start</button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <form action="{{ uri_for('server_stop', key=server.key.urlsafe()) }}" method="post">
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Stop</button>
+                                </div>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
         </div>
-    </div>
-    <br/>
+        <br/>
     {% endfor %}
 {% endblock %}
