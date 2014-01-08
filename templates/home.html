@@ -40,10 +40,10 @@
                 {% set status_text = 'Paused' %}
             {% elif server.is_queued_start %}
                 {% set status = 'queued' %}
-                {% set status_text = 'Prologging...' %}
+                {% set status_text = 'Prologue...' %}
             {% elif server.is_queued_stop %}
                 {% set status = 'queued' %}
-                {% set status_text = 'Epilogging...' %}
+                {% set status_text = 'Epilogue...' %}
            {% endif %}
         {% endif %}
         <div class="status wrap {{ status }}">
