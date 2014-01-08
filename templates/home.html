@@ -56,7 +56,7 @@
                 {% if server.is_running == True %}
                     <br/>(Problems?&nbsp;Check&nbsp;<strong><a href="http://xpaw.ru/mcstatus/">Minecraft's&nbsp;Status</a></strong>)
                 {% endif %}
-                {% if user.is_admin and server.is_gce %}
+                {% if user.admin and server.is_gce %}
                     {% if server.is_stopped or server.is_unknown %}
                         <form action="{{ uri_for('server_start', key=server.key.urlsafe()) }}" method="post">
                             <div class="form-actions">
