@@ -27,6 +27,7 @@ MINECRAFT_JAR_URL = 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/
 class Instance(ndb.Model):
     name = ndb.StringProperty(required=False, default='coal-instance')
     zone = ndb.StringProperty(required=False, default='us-central1-a')
+    machine_type = ndb.StringProperty(required=False, default='n1-standard-1')
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -40,7 +41,7 @@ class Instance(ndb.Model):
         if not verify_boot_disk(self.zone):
             create_boot_disk(self.zone)
         disk_url = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
-        machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, 'n1-standard-1')
+        machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, self.machine_type)
         instance = {
             'name': self.name,
             'machineType': machine_type_url,

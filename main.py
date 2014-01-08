@@ -720,10 +720,22 @@ class ServerStopHandler(MainHandlerBase):
 
 class InstanceForm(form.Form):
     zone = fields.SelectField(u'Zone', validators=[validators.DataRequired()])
+    machine_type = fields.SelectField(u'Machine Type', validators=[validators.DataRequired()])
 
     def __init__(self, *args, **kwargs):
         super(InstanceForm, self).__init__(*args, **kwargs)
         self.zone.choices = [(z, z) for z in gce.get_zones() or []]
+        self.machine_type.choices = [
+            ('f1-micro', '1 vCPU (shared physical core) and 0.6 GB RAM @ $0.019/Hour'),
+            ('g1-small', '1 vCPU (shared physical core) and 1.7 GB RAM @ $0.054/Hour'),
+            ('n1-standard-1', '1 vCPU, 3.75 GB RAM @ $0.104/Hour'),
+            ('n1-standard-2', '2 vCPUs, 7.5 GB RAM @ $0.207/Hour'),
+            ('n1-standard-4', '4 vCPUs, 15 GB RAM @ $0.415/Hour'),
+            ('n1-standard-8', '8 vCPUs, 30 GB RAM @ $0.829/Hour'),
+            ('n1-highmem-2', '2 vCPUs, 13 GB RAM @ $0.244/Hour'),
+            ('n1-highmem-4', '4 vCPUs, 26 GB RAM @ $0.488/Hour'),
+            ('n1-highmem-8', '8 vCPUs, 52 GB RAM @ $0.975/Hour')
+        ]
 
 
 class InstanceConfigureHandler(UserHandler):
@@ -740,6 +752,7 @@ class InstanceConfigureHandler(UserHandler):
         if form.validate():
             instance = gce.Instance.singleton()
             instance.zone = form.zone.data
+            instance.machine_type = form.machine_type.data
             instance.put()
             self.redirect(webapp2.uri_for('admin'))
         context = {'form': form}

@@ -10,6 +10,8 @@
             <form action="{{ uri_for('instance_configure') }}" method="post">
                 <label>Zone</label>
                 {{ macros.with_errors(form.zone, class="span3") }}
+                <label>Machine Type</label>
+                {{ macros.with_errors(form.machine_type, class="span3") }}
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save</button>
                     <a class="btn" href="{{ uri_for('admin') }}">Cancel</a>
