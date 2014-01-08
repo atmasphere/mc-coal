@@ -19,6 +19,7 @@ def start_server(server):
         payload['server_key'] = server.key.urlsafe()
         payload['agent_client_id'] = server.agent.client_id
         payload['agent_secret'] = server.agent.secret
+        payload['server_properties'] = {'memory': server.memory}
         queue_controller_task(payload)
 
 

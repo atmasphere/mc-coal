@@ -617,13 +617,31 @@ class ServerCreateTest(AdminAuthTest):
         self.log_in_admin()
         self.assertEqual(0, Server.query().count())
         self.assertEqual(0, Client.query().count())
-        response = self.post(params={'name': 'new server', 'gce': True})
-        self.assertRedirects(response, ServersTest.URL)
+        response = self.post(params={'name': 'new server'})
+        self.assertEqual(1, Server.query().count())
+        self.assertEqual(1, Client.query().count())
+        server = Server.query().get()
+        self.assertEqual('new server', server.name)
+        self.assertEqual(False, server.is_gce)
+        self.assertRedirects(response, '/servers/{0}'.format(server.key.urlsafe()))
+
+
+class ServerCreateGceTest(AdminAuthTest):
+    URL = '/admin/server_create_gce'
+
+    def test_post(self):
+        self.server.key.delete()
+        self.log_in_admin()
+        self.assertEqual(0, Server.query().count())
+        self.assertEqual(0, Client.query().count())
+        response = self.post(params={'name': 'new server', 'memory': '1G'})
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
         server = Server.query().get()
         self.assertEqual('new server', server.name)
         self.assertEqual(True, server.is_gce)
+        self.assertEqual('1G', server.memory)
+        self.assertRedirects(response, '/servers/{0}'.format(server.key.urlsafe()))
 
 
 class ServerKeyTest(AdminAuthTest):
@@ -641,6 +659,24 @@ class ServerKeyTest(AdminAuthTest):
         self.assertEqual(1, Client.query().count())
         server = self.server.key.get()
         self.assertEqual('new name', server.name)
+
+
+class ServerKeyGceTest(AdminAuthTest):
+    URL = '/admin/servers/{0}/gce'
+
+    @property
+    def url(self):
+        return self.URL.format(self.server.key.urlsafe())
+
+    def test_post(self):
+        self.log_in_admin()
+        response = self.post(params={'name': 'new name', 'memory': '1G'})
+        self.assertEqual(1, Server.query().count())
+        self.assertEqual(1, Client.query().count())
+        server = self.server.key.get()
+        self.assertEqual('new name', server.name)
+        self.assertEqual('1G', server.memory)
+        self.assertRedirects(response, '/servers/{0}'.format(server.key.urlsafe()))
 
 
 class InstanceConfigureTest(AdminAuthTest):

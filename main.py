@@ -542,7 +542,6 @@ class ServersHandler(PagingHandler):
 
 class ServerForm(form.Form):
     name = fields.StringField(u'Name', [validators.Required()])
-    gce = fields.BooleanField(u'GCE', default=True)
 
 
 class ServerCreateHandler(UserHandler):
@@ -557,8 +556,8 @@ class ServerCreateHandler(UserHandler):
         try:
             form = ServerForm(formdata=self.request.POST)
             if form.validate():
-                Server.create(name=form.name.data, is_gce=form.gce.data)
-                self.redirect(webapp2.uri_for('servers'))
+                server = Server.create(name=form.name.data, is_gce=False)
+                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
         except Exception, e:
             logging.error(u"Error POSTing server: {0}".format(e))
             self.abort(404)
@@ -574,6 +573,8 @@ class ServerEditHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
+            if server.is_gce:
+                self.redirect(webapp2.uri_for('server_gce', key=server.key.urlsafe()))
             form = ServerForm(obj=server)
         except Exception, e:
             logging.error(u"Error GETting server: {0}".format(e))
@@ -608,11 +609,85 @@ class ServerDeactivateHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
+            if server.is_running:
+                server.stop()
             server.active = False
             server.put()
         except Exception, e:
             logging.error(u"Error deactivating server: {0}".format(e))
         self.redirect(webapp2.uri_for('servers'))
+
+
+class ServerGceForm(ServerForm):
+    memory = fields.SelectField(u'Memory', validators=[validators.DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        super(ServerGceForm, self).__init__(*args, **kwargs)
+        self.memory.choices = [
+            ('256M', '256 Megabytes'),
+            ('512M', '512 Megabytes'),
+            ('1G', '1 Gigabyte')
+        ]
+
+
+class ServerCreateGceHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self):
+        form = ServerGceForm()
+        context = {'form': form}
+        self.render_template('server_create_gce.html', context=context)
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self):
+        try:
+            form = ServerGceForm(formdata=self.request.POST)
+            if form.validate():
+                server = Server.create(
+                    name=form.name.data,
+                    is_gce=True,
+                    memory=form.memory.data
+                )
+                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+        except Exception, e:
+            logging.error(u"Error POSTing GCE server: {0}".format(e))
+            self.abort(404)
+        context = {'form': form}
+        self.render_template('server_create_gce.html', context=context)
+
+
+class ServerEditGceHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.abort(404)
+            form = ServerGceForm(obj=server)
+        except Exception, e:
+            logging.error(u"Error GETting server: {0}".format(e))
+            self.abort(404)
+        context = {'edit_server': server, 'form': form}
+        self.render_template('server_gce.html', context=context)
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.abort(404)
+            form = ServerGceForm(formdata=self.request.POST, obj=server)
+            if form.validate():
+                server.name = form.name.data
+                server.memory = form.memory.data
+                server.put()
+                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+        except Exception, e:
+            logging.error(u"Error POSTing server: {0}".format(e))
+            self.abort(404)
+        context = {'edit_server': server, 'form': form}
+        self.render_template('server_gce.html', context=context)
 
 
 class ServerStartHandler(MainHandlerBase):
@@ -626,7 +701,7 @@ class ServerStartHandler(MainHandlerBase):
             server.start()
         except Exception, e:
             logging.error(u"Error starting server: {0}".format(e))
-        self.redirect(webapp2.uri_for('servers'))
+        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
 class ServerStopHandler(MainHandlerBase):
@@ -640,7 +715,7 @@ class ServerStopHandler(MainHandlerBase):
             server.stop()
         except Exception, e:
             logging.error(u"Error stopping server: {0}".format(e))
-        self.redirect(webapp2.uri_for('servers'))
+        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
 class InstanceForm(form.Form):
@@ -717,11 +792,13 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/admin/users/<key>', handler=UserEditHandler, strict_slash=True, name="user"),
         RedirectRoute('/admin/users/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove"),
         RedirectRoute('/admin/server_create', handler=ServerCreateHandler, strict_slash=True, name="server_create"),
-        RedirectRoute('/admin/servers', handler=ServersHandler, strict_slash=True, name="servers"),
+        RedirectRoute('/admin/server_create_gce', handler=ServerCreateGceHandler, strict_slash=True, name="server_create_gce"),
         RedirectRoute('/admin/servers/<key>', handler=ServerEditHandler, strict_slash=True, name="server"),
+        RedirectRoute('/admin/servers/<key>/gce', handler=ServerEditGceHandler, strict_slash=True, name="server_gce"),
         RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
         RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
         RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
+        RedirectRoute('/admin/servers', handler=ServersHandler, strict_slash=True, name="servers"),
         RedirectRoute('/admin/instance/configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure"),
         RedirectRoute('/admin/instance/start', handler=InstanceStartHandler, strict_slash=True, name="instance_start"),
         RedirectRoute('/admin/instance/stop', handler=InstanceStopHandler, strict_slash=True, name="instance_stop"),

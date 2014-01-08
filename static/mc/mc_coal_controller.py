@@ -195,6 +195,8 @@ def unzip_server_dir(server_key, server_dir):
 
 
 def start_server(server_key, **kwargs):
+    server_properties = kwargs.get('server_properties', {})
+    server_memory = server_properties.pop('memory', '512M')
     servers = get_servers()
     if server_key in servers.keys():
         return
@@ -213,7 +215,6 @@ def start_server(server_key, **kwargs):
         write_server_key(port, server_key)
         load_zip_from_gcs(server_key, server_dir)
         unzip_server_dir(server_key, server_dir)
-        server_properties = kwargs.get('server_properties', {})
         copy_server_files(port, server_properties)
     try:
         fifo = make_fifo(server_dir)
@@ -232,7 +233,7 @@ def start_server(server_key, **kwargs):
         # Start MC
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
         log4j = os.path.join(server_dir, 'log4j2.xml')
-        args = ['java', '-Xmx512M', '-Xms512M']
+        args = ['java', '-Xms{0}'.format(server_memory), '-Xmx{0}'.format(server_memory)]
         args.append('-Dlog4j.configurationFile={0}'.format(log4j))
         args.append('-jar')
         args.append(mc_jar)

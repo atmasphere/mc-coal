@@ -397,6 +397,7 @@ class UsernameClaim(ndb.Model):
 class Server(ndb.Model):
     name = ndb.StringProperty()
     is_gce = ndb.BooleanProperty(default=False)
+    memory = ndb.StringProperty(default='512M')
     address = ndb.StringProperty()
     active = ndb.BooleanProperty(default=True)
     version = ndb.StringProperty()
