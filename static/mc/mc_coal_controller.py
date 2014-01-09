@@ -467,6 +467,7 @@ def main(argv):
         service = build('taskqueue', TQ_API_VERSION, http=http)
         while True:
             tasks = lease_tasks(service)
+            logger.info("Working on tasks {0}".format(tasks))
             if tasks:
                 completed_tasks = []
                 try:
