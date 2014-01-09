@@ -67,6 +67,10 @@ def get_server_dir(port):
     return os.path.join(SERVERS_DIR, str(port))
 
 
+def get_archive_file_path(server_key):
+    return os.path.join(ARCHIVES_DIR, '{0}.zip'.format(server_key))
+
+
 def read_server_key(port):
     server_key_filename = os.path.join(SERVERS_DIR, port, 'server_key')
     server_key = open(server_key_filename, 'r').read()
@@ -137,11 +141,17 @@ def verify_bucket(service):
             request.execute()
             done = True
         except HttpError, err:
-            logger.error(err)
             if err.resp.status == 404:
-                request = service.buckets().insert(project=project, body={'name': world_bucket})
-                request.execute()
-                done = True
+                try:
+                    request = service.buckets().insert(project=project, body={'name': world_bucket})
+                    request.execute()
+                    done = True
+                except HttpError, err2:
+                    logger.error("Error ({0}) creating bucket".format(err2))
+                    time.sleep(2)
+            else:
+                logger.error("Error ({0}) verifying bucket".format(err))
+                time.sleep(2)
 
 
 def load_zip_from_gcs(server_key, server_dir):
@@ -161,28 +171,41 @@ def load_zip_from_gcs(server_key, server_dir):
                 error = None
                 try:
                     progress, done = media.next_chunk()
-                    if progress:
-                        logger.info('Download %d%%' % (100 * progress.progress()))
                 except HttpError, err:
                     error = err
                     if err.resp.status < 500:
                         raise
-                except RETRY_ERRORS, err:
-                    error = err
-                    if error:
-                        tries += 1
-                        if tries > NUM_RETRIES:
-                            raise error
-                            sleeptime = random.random() * (2**tries)
-                            logger.error('Caught exception ({0}). Sleeping for {1} seconds before retry #{2}.'.format(
-                                str(error), sleeptime, tries)
-                            )
-                            time.sleep(sleeptime)
-                        else:
-                            tries = 0
-    except Exception, err:
-        logger.error(err)
+                except RETRY_ERRORS, err2:
+                    error = err2
+                if error:
+                    tries += 1
+                    if tries > NUM_RETRIES:
+                        raise error
+                    sleeptime = random.random() * (2**tries)
+                    logger.error(
+                        "Error ({0}) downloading archive for server {1}. Sleeping {2} seconds.".format(
+                            str(error), server_key, sleeptime
+                        )
+                    )
+                    time.sleep(sleeptime)
+                else:
+                    tries = 0
+    except HttpError, err:
         os.remove(archive_file)
+        if err.resp.status != 404:
+            raise
+    except Exception:
+        os.remove(archive_file)
+        raise
+
+
+def load_zip(server_key, server_dir):
+    archive = get_archive_file_path(server_key)
+    if os.path.exists(archive):
+        archive_dest = os.path.join(server_dir, '{0}.zip'.format(server_key))
+        shutil.copy2(archive, archive_dest)
+    else:
+        load_zip_from_gcs(server_key, server_dir)
 
 
 def unzip_server_dir(server_key, server_dir):
@@ -213,12 +236,12 @@ def start_server(server_key, **kwargs):
     if not os.path.exists(server_dir):
         os.makedirs(server_dir)
         write_server_key(port, server_key)
-        load_zip_from_gcs(server_key, server_dir)
+        load_zip(server_key, server_dir)
         unzip_server_dir(server_key, server_dir)
         copy_server_files(port, server_properties)
+    # Start Agent
     try:
         fifo = make_fifo(server_dir)
-        # Start Agent
         mc_coal_dir = os.path.join(server_dir, 'mc_coal')
         agent = os.path.join(mc_coal_dir, 'mc_coal_agent.py')
         args = [agent]
@@ -230,7 +253,10 @@ def start_server(server_key, **kwargs):
         pid_filename = os.path.join(server_dir, 'agent.pid')
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
-        # Start MC
+    except Exception, e:
+        logger.error("Error ({0}) starting agent process for server {1}".format(e, server_key))
+    # Start MC
+    try:
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
         log4j = os.path.join(server_dir, 'log4j2.xml')
         args = ['java', '-Xms{0}'.format(server_memory), '-Xmx{0}'.format(server_memory)]
@@ -244,7 +270,7 @@ def start_server(server_key, **kwargs):
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
     except Exception, e:
-        logger.error(e)
+        logger.error("Error ({0}) starting MC process for server {1}".format(e, server_key))
 
 
 def zip_server_dir(server_dir, archive_file):
@@ -289,21 +315,21 @@ def upload_zip_to_gcs(server_key, archive_file):
         error = None
         try:
             progress, response = request.next_chunk()
-            if progress:
-                logger.info('Upload %d%%' % (100 * progress.progress()))
         except HttpError, err:
             error = err
             if err.resp.status < 500:
                 raise
-        except RETRY_ERRORS, err:
-            error = err
+        except RETRY_ERRORS, err2:
+            error = err2
         if error:
             tries += 1
             if tries > NUM_RETRIES:
                 raise error
             sleeptime = random.random() * (2**tries)
-            logger.error('Caught exception ({0}). Sleeping for {1} seconds before retry #{2}.'.format(
-                str(error), sleeptime, tries)
+            logger.error(
+                "Error ({0}) uploading archive for server {1}. Sleeping {2} seconds.".format(
+                    str(error), server_key, sleeptime
+                )
             )
             time.sleep(sleeptime)
         else:
@@ -319,36 +345,44 @@ def stop_server(server_key, **kwargs):
     port = server['port']
     server_dir = get_server_dir(port)
     # Stop MC
-    fifo = os.path.join(server_dir, 'command-fifo')
-    with open(fifo, 'a+') as fifo_file:
-        fifo_file.write('save-all\n')
-        fifo_file.write('stop\n')
-    pid = open(os.path.join(server_dir, 'server.pid'), 'r').read()
     try:
+        fifo = os.path.join(server_dir, 'command-fifo')
+        with open(fifo, 'a+') as fifo_file:
+            fifo_file.write('save-all\n')
+            fifo_file.write('stop\n')
+        pid = open(os.path.join(server_dir, 'server.pid'), 'r').read()
         os.waitpid(int(pid), 0)
     except OSError, e:
-        logger.error(e)
+        logger.error("Error ({0}) stopping MC process for server {1}".format(e, server_key))
     # Archive server_dir
-    archive_file = os.path.join(ARCHIVES_DIR, '{0}.zip'.format(server_key))
-    zip_server_dir(server_dir, archive_file)
-    upload_zip_to_gcs(server_key, archive_file)
-    # Stop Agent
-    time.sleep(10)
-    pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
+    archive = get_archive_file_path(server_key)
     try:
+        zip_server_dir(server_dir, archive)
+        archive_successful = True
+    except Exception, e:
+        logger.error("Error ({0}) archiving server {1}".format(e, server_key))
+    try:
+        upload_zip_to_gcs(server_key, archive)
+    except Exception, e:
+        logger.error("Error ({0}) uploading archived server {1}".format(e, server_key))
+    try:
+        # Stop Agent
+        time.sleep(10)
+        pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
         os.kill(int(pid), signal.SIGTERM)
         os.waitpid(int(pid), 0)
     except OSError, e:
-        logger.error(e)
-    shutil.rmtree(server_dir)
+        logger.error("Error ({0}) terminating agent process for server {1}".format(e, server_key))
+    # Delete server_dir
+    if archive_successful:
+        shutil.rmtree(server_dir)
 
 
 def complete_tasks(tasks):
-    logger.info("TASKS: {0}".format(tasks))
     completed_tasks = list()
     for task in tasks:
         try:
-            logging.info(task)
+            logging.info("Working on task: {0}".format(task))
             payload = task['payload']
             event = payload.pop('event')
             server_key = payload.pop('server_key')
@@ -358,23 +392,25 @@ def complete_tasks(tasks):
                 stop_server(server_key, **payload)
             completed_tasks.append(task)
         except Exception, e:
-            logger.error(
-                u"Task Error {0}: {1} for task: {2}".format(
-                    type(e).__name__, e, task
-                )
-            )
+            logger.error(u"Error ({0}: {1}) completing task: {2}".format(type(e).__name__, e, task))
     return completed_tasks
 
 
 def lease_tasks(service):
     tasks = []
-    request = service.tasks().lease(
-        project=project, taskqueue='controller', leaseSecs=300, numTasks=10
-    )
-    response = request.execute()
-    tasks += response.get('items', [])
-    for task in tasks:
-        task['payload'] = json.loads(base64.b64decode(task['payloadBase64']))
+    try:
+        request = service.tasks().lease(
+            project=project, taskqueue='controller', leaseSecs=300, numTasks=1
+        )
+        response = request.execute()
+        tasks += response.get('items', [])
+        for task in tasks:
+            try:
+                task['payload'] = json.loads(base64.b64decode(task['payloadBase64']))
+            except Exception, e:
+                logger.error(u"Error ({0}: {1}) parsing task".format(type(e).__name__, e, task))
+    except Exception, e:
+        logger.error(u"Error ({0}: {1}) leasing tasks".format(type(e).__name__, e, task))
     return tasks
 
 
@@ -388,9 +424,7 @@ def delete_tasks(service, tasks):
             )
             request.execute()
         except Exception, e:
-            logger.error(
-                u"Delete Task Error {0}: {1}".format(type(e).__name__, e)
-            )
+            logger.error(u"Error ({0}: {1}) deleting task {2}".format(type(e).__name__, e, task))
 
 
 def init_logger(debug=False, logfile='controller.log'):
@@ -439,11 +473,10 @@ def main(argv):
                     completed_tasks = complete_tasks(tasks)
                 finally:
                     i = len(completed_tasks) if completed_tasks else 0
-                    logger.info(u"Completed {0} task{1}".format(
-                        i, 's' if i != 1 else ''
-                    ))
+                    logger.info(u"Completed {0} task{1}".format(i, 's' if i != 1 else ''))
                     delete_tasks(service, completed_tasks)
-            time.sleep(1.0)
+            else:
+                time.sleep(5.0)
     except KeyboardInterrupt:
         logger.info(u"Canceled")
     except SystemExit:
