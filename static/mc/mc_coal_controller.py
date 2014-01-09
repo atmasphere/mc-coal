@@ -382,7 +382,8 @@ def complete_tasks(tasks):
     completed_tasks = list()
     for task in tasks:
         try:
-            logging.info("Working on task: {0}".format(task))
+            task_id = task['id']
+            logger.info("Working task {0}: {1}".format(task_id, task))
             payload = task['payload']
             event = payload.pop('event')
             server_key = payload.pop('server_key')
@@ -391,8 +392,9 @@ def complete_tasks(tasks):
             if event == 'STOP_SERVER':
                 stop_server(server_key, **payload)
             completed_tasks.append(task)
+            logger.info(u"Completed task {0}".format(task_id))
         except Exception, e:
-            logger.error(u"Error ({0}: {1}) completing task: {2}".format(type(e).__name__, e, task))
+            logger.error(u"Error ({0}: {1}) completing task {2}".format(type(e).__name__, e, task))
     return completed_tasks
 
 
@@ -410,7 +412,7 @@ def lease_tasks(service):
             except Exception, e:
                 logger.error(u"Error ({0}: {1}) parsing task".format(type(e).__name__, e, task))
     except Exception, e:
-        logger.error(u"Error ({0}: {1}) leasing tasks".format(type(e).__name__, e, task))
+        logger.error(u"Error ({0}: {1}) leasing tasks".format(type(e).__name__, e))
     return tasks
 
 
@@ -424,7 +426,7 @@ def delete_tasks(service, tasks):
             )
             request.execute()
         except Exception, e:
-            logger.error(u"Error ({0}: {1}) deleting task {2}".format(type(e).__name__, e, task))
+            logger.error(u"Error ({0}: {1}) deleting task {2}".format(type(e).__name__, e, task['id']))
 
 
 def init_logger(debug=False, logfile='controller.log'):
@@ -467,14 +469,11 @@ def main(argv):
         service = build('taskqueue', TQ_API_VERSION, http=http)
         while True:
             tasks = lease_tasks(service)
-            logger.info("Working on tasks {0}".format(tasks))
             if tasks:
                 completed_tasks = []
                 try:
                     completed_tasks = complete_tasks(tasks)
                 finally:
-                    i = len(completed_tasks) if completed_tasks else 0
-                    logger.info(u"Completed {0} task{1}".format(i, 's' if i != 1 else ''))
                     delete_tasks(service, completed_tasks)
             else:
                 time.sleep(5.0)
