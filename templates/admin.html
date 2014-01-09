@@ -6,9 +6,7 @@
 {% block content %}
     <div class="title box wrap">
         <h2 class="box"><a href="{{ uri_for('users') }}">Users</a></h2>
-    </div>
-    <div class="title box wrap">
-        <h2 class="box"><a href="{{ uri_for('servers') }}">Servers</a></h2>
+        <h2 class="box"><a href="{{ uri_for('server_create') }}">Create New Server</a></h2>
     </div>
     <div class="title box wrap">
         {% if status != None %}
@@ -17,17 +15,11 @@
                 <h1 class="data">{{ status }} {{ instance.machine_type }} in {{ instance.zone }}</h1>
             </div>
             <h2 class="box"><a href="{{ uri_for('instance_configure') }}">Configure</a></h2>
-            {% if status == 'UNPROVISIONED' %}
-                <form action="{{ uri_for('instance_start') }}" method="post">
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Start</button>
-                    </div>
-                </form>
-            {% endif %}
+            <h2 class="box"><a href="{{ uri_for('server_create_gce') }}">Create New GCE-Hosted Server</a></h2>
             {% if status == 'RUNNING' %}
                 <form action="{{ uri_for('instance_stop') }}" method="post">
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Stop</button>
+                        <button type="submit" class="btn btn-primary">Kill Instance</button>
                     </div>
                 </form>
             {% endif %}

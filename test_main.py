@@ -605,10 +605,6 @@ class UsersTest(AdminAuthTest):
     URL = '/admin/users'
 
 
-class ServersTest(AdminAuthTest):
-    URL = '/admin/servers'
-
-
 class ServerCreateTest(AdminAuthTest):
     URL = '/admin/server_create'
 
@@ -654,10 +650,10 @@ class ServerKeyTest(AdminAuthTest):
     def test_post(self):
         self.log_in_admin()
         response = self.post(params={'name': 'new name'})
-        self.assertRedirects(response, ServersTest.URL)
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
         server = self.server.key.get()
+        self.assertRedirects(response, '/servers/{0}'.format(server.key.urlsafe()))
         self.assertEqual('new name', server.name)
 
 

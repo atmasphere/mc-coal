@@ -530,16 +530,6 @@ class UsernameClaimHandler(MainHandlerBase):
         self.redirect(next_url)
 
 
-class ServersHandler(PagingHandler):
-    @authentication_required(authenticate=authenticate_admin)
-    def get(self):
-        results, previous_cursor, next_cursor = self.get_results_with_cursors(
-            Server.query_all(), Server.query_all_reverse(), RESULTS_PER_PAGE
-        )
-        context = {'servers': results, 'previous_cursor': previous_cursor, 'next_cursor': next_cursor}
-        self.render_template('servers.html', context=context)
-
-
 class ServerForm(form.Form):
     name = fields.StringField(u'Name', [validators.Required()])
 
@@ -593,29 +583,12 @@ class ServerEditHandler(UserHandler):
             if form.validate():
                 server.name = form.name.data
                 server.put()
-                self.redirect(webapp2.uri_for('servers'))
+                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
         except Exception, e:
             logging.error(u"Error POSTing server: {0}".format(e))
             self.abort(404)
         context = {'edit_server': server, 'form': form}
         self.render_template('server.html', context=context)
-
-
-class ServerDeactivateHandler(UserHandler):
-    @authentication_required(authenticate=authenticate_admin)
-    def post(self, key):
-        try:
-            server_key = ndb.Key(urlsafe=key)
-            server = server_key.get()
-            if server is None:
-                self.abort(404)
-            if server.is_running:
-                server.stop()
-            server.active = False
-            server.put()
-        except Exception, e:
-            logging.error(u"Error deactivating server: {0}".format(e))
-        self.redirect(webapp2.uri_for('servers'))
 
 
 class ServerGceForm(ServerForm):
@@ -690,12 +663,29 @@ class ServerEditGceHandler(UserHandler):
         self.render_template('server_gce.html', context=context)
 
 
+class ServerDeactivateHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.abort(404)
+            if server.is_running:
+                server.stop()
+            server.active = False
+            server.put()
+        except Exception, e:
+            logging.error(u"Error deactivating server: {0}".format(e))
+        self.redirect(webapp2.uri_for('admin'))
+
+
 class ServerStartHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
     def post(self, key):
         server = self.get_server_by_key(key, abort=False)
         if server is None:
-            self.redirect_to_server('servers')
+            self.redirect_to_server('home')
             return
         try:
             server.start()
@@ -709,7 +699,7 @@ class ServerStopHandler(MainHandlerBase):
     def post(self, key):
         server = self.get_server_by_key(key, abort=False)
         if server is None:
-            self.redirect_to_server('servers')
+            self.redirect_to_server('home')
             return
         try:
             server.stop()
@@ -811,7 +801,6 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
         RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
         RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
-        RedirectRoute('/admin/servers', handler=ServersHandler, strict_slash=True, name="servers"),
         RedirectRoute('/admin/instance/configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure"),
         RedirectRoute('/admin/instance/start', handler=InstanceStartHandler, strict_slash=True, name="instance_start"),
         RedirectRoute('/admin/instance/stop', handler=InstanceStopHandler, strict_slash=True, name="instance_stop"),

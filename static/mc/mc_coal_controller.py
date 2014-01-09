@@ -335,8 +335,11 @@ def stop_server(server_key, **kwargs):
     # Stop Agent
     time.sleep(10)
     pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
-    os.kill(int(pid), signal.SIGTERM)
-    os.waitpid(int(pid), 0)
+    try:
+        os.kill(int(pid), signal.SIGTERM)
+        os.waitpid(int(pid), 0)
+    except OSError, e:
+        logger.error(e)
     shutil.rmtree(server_dir)
 
 

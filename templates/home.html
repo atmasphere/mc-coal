@@ -1,79 +1,12 @@
 {% extends "base.html" %}
 {% import 'macros.html' as macros %}
 
-{% block title %}Home{% endblock %}
-{% block page_name %}Home{% endblock %}
+{% block title %}{{ server.name }} Home{% endblock %}
+{% block page_name %}{{ server.name }} Home{% endblock %}
 
 {% block content %}
-    <div class="title box wrap">
-        <div class="left">
-            <h1>
-                <a href="{{ uri_for('home', server_key=server.key.urlsafe()) }}">{{ server.name }}</a>
-                {% if server.address %}({{ server.address }}){% endif %}
-            </h1>
-            <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
-            {% if server.is_raining != None %}
-                {% if server.is_raining %}
-                    / Raining
-                    {% if server.is_thundering %}
-                        & Thundering
-                    {% endif %}
-                {% else %}
-                    / Clear
-                {% endif %}
-            {% endif %}
-            </h4>
-        </div>
-        {% set status = 'unknown' %}
-        {% set status_text = 'Existential Crisis' %}
-        {% if server.is_running == True %}
-            {% set status = 'up' %}
-            {% set status_text = 'Playing' %}
-        {% endif %}
-        {% if server.is_stopped == True %}
-            {% set status = 'down' %}
-            {% set status_text = 'Defunct' %}
-        {% endif %}
-        {% if server.is_gce %}
-            {% if server.is_unknown or server.is_stopped == True %}
-                {% set status = 'down' %}
-                {% set status_text = 'Paused' %}
-            {% elif server.is_queued_start %}
-                {% set status = 'queued' %}
-                {% set status_text = 'Prologue...' %}
-            {% elif server.is_queued_stop %}
-                {% set status = 'queued' %}
-                {% set status_text = 'Epilogue...' %}
-           {% endif %}
-        {% endif %}
-        <div class="status wrap {{ status }}">
-            <i class="sprite"></i>
-            <div class="right">
-                <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% endif %})</h4>
-                <strong>
-                    {{ status_text }} (v{{ server.version }})
-                </strong>
-                {% if server.is_running == True %}
-                    <br/>(Problems?&nbsp;Check&nbsp;<strong><a href="http://xpaw.ru/mcstatus/">Minecraft's&nbsp;Status</a></strong>)
-                {% endif %}
-                {% if user.admin and server.is_gce %}
-                    {% if server.is_stopped or server.is_unknown %}
-                        <form action="{{ uri_for('server_start', key=server.key.urlsafe()) }}" method="post">
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Start</button>
-                            </div>
-                        </form>
-                    {% else %}
-                        <form action="{{ uri_for('server_stop', key=server.key.urlsafe()) }}" method="post">
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Stop</button>
-                            </div>
-                        </form>
-                    {% endif %}
-                {% endif %}
-            </div>
-        </div>
-    </div>
+
+    {{ macros.server_status(server, user) }}
 
     <div class="wrap">
     <div class="player_list left">
