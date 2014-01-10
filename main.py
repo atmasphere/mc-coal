@@ -569,7 +569,7 @@ class ServerEditHandler(UserHandler):
         except Exception, e:
             logging.error(u"Error GETting server: {0}".format(e))
             self.abort(404)
-        context = {'edit_server': server, 'form': form}
+        context = {'edit_server': server, 'form': form, 'action': webapp2.uri_for('server', key=server.key.urlsafe())}
         self.render_template('server.html', context=context)
 
     @authentication_required(authenticate=authenticate_admin)
@@ -587,7 +587,7 @@ class ServerEditHandler(UserHandler):
         except Exception, e:
             logging.error(u"Error POSTing server: {0}".format(e))
             self.abort(404)
-        context = {'edit_server': server, 'form': form}
+        context = {'edit_server': server, 'form': form, 'action': webapp2.uri_for('server', key=server.key.urlsafe())}
         self.render_template('server.html', context=context)
 
 
@@ -602,7 +602,7 @@ class ServerGceForm(ServerForm):
     generator_settings = fields.StringField(u'Settings used to customize Superflat world generation', default='')
     difficulty = fields.SelectField(u'Server difficulty', default='1')
     pvp = fields.BooleanField(u'Enable PvP', default=False)
-    hardcore = fields.BooleanField(u'Players will be permanently banned if they die', default=False)
+    hardcore = fields.BooleanField(u'Hardcore mode (players will be permanently banned if they die)', default=False)
     allow_flight = fields.BooleanField(u'Allow users to use flight while in Survival mode', default=False)
     allow_nether = fields.BooleanField(u'Allow players to travel to the Nether', default=True)
     max_build_height = fields.IntegerField(
@@ -668,8 +668,8 @@ class ServerCreateGceHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self):
         form = ServerGceForm()
-        context = {'form': form}
-        self.render_template('server_create_gce.html', context=context)
+        context = {'form': form, 'action': webapp2.uri_for('server_create_gce')}
+        self.render_template('server_create.html', context=context)
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self):
@@ -692,8 +692,8 @@ class ServerCreateGceHandler(UserHandler):
         except Exception, e:
             logging.error(u"Error POSTing GCE server: {0}".format(e))
             self.abort(404)
-        context = {'form': form}
-        self.render_template('server_create_gce.html', context=context)
+        context = {'form': form, 'action': webapp2.uri_for('server_create_gce')}
+        self.render_template('server_create.html', context=context)
 
 
 class ServerEditGceHandler(UserHandler):
@@ -704,12 +704,14 @@ class ServerEditGceHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
-            form = ServerGceForm(obj=server)
+            if not server.is_gce:
+                self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
+            form = ServerGceForm(obj=server.mc_properties, name=server.name, memory=server.memory)
         except Exception, e:
             logging.error(u"Error GETting GCE server: {0}".format(e))
             self.abort(404)
-        context = {'edit_server': server, 'form': form}
-        self.render_template('server_gce.html', context=context)
+        context = {'edit_server': server, 'form': form, 'action': webapp2.uri_for('server_gce', key=server.key.urlsafe())}
+        self.render_template('server.html', context=context)
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
@@ -740,8 +742,8 @@ class ServerEditGceHandler(UserHandler):
         except Exception, e:
             logging.error(u"Error POSTing GCE server: {0}".format(e))
             self.abort(404)
-        context = {'edit_server': server, 'form': form}
-        self.render_template('server_gce.html', context=context)
+        context = {'edit_server': server, 'form': form, 'action': webapp2.uri_for('server_gce', key=server.key.urlsafe())}
+        self.render_template('server.html', context=context)
 
 
 class ServerDeactivateHandler(UserHandler):

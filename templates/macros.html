@@ -90,11 +90,13 @@
             {% endif %}
             </h4>
              {% if user.admin %}
-                {% if not server.is_gce %}
+                {% if server.is_gce %}
+                    <h3><a href="{{ uri_for('server_gce', key=server.key.urlsafe()) }}">Edit</a></h3>
+                {% else %}
                     <div><strong>AGENT CLIENT ID:</strong> {{ server.agent.client_id }}</div>
                     <div><strong>AGENT SECRET:</strong> {{ server.agent.secret }}</div>
+                    <h3><a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a></h3>
                 {% endif %}
-                <h3><a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a></h3>
             {% endif %}
        </div>
         <div class="status wrap {{ status }}">

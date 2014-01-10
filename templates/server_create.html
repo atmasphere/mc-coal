@@ -7,9 +7,11 @@
 {% block content %}
     <div class="player_list players">
         <div class="box">
-            <form action="{{ uri_for('server_create') }}" method="post">
-                <label>Name</label>
-                {{ macros.with_errors(form.name, class="span3") }}
+            <form action="{{ action }}" method="post">
+            {% for field in form %}
+                <label>{{ field.label}} </label>
+                {{ macros.with_errors(field, class="span3") }}
+            {% endfor %}
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Create</button>
                     <a class="btn" href="{{ uri_for('admin') }}">Cancel</a>
