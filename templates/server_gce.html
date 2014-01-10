@@ -29,22 +29,5 @@
                 <input type="submit" name="submit" value="Deactivate">
             </form>
         </div>
-        <div class="box">
-            {% if edit_server.is_gce %}
-                {% if edit_server.is_stopped or edit_server.is_queued or edit_server.status == 'UNKNOWN' %}
-                    <form action="{{ uri_for('server_start', key=edit_server.key.urlsafe()) }}" method="post">
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Start</button>
-                        </div>
-                    </form>
-                {% else %}
-                    <form action="{{ uri_for('server_stop', key=edit_server.key.urlsafe()) }}" method="post">
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Stop</button>
-                        </div>
-                    </form>
-                {% endif %}
-            {% endif %}
-        </div>
     </div>
 {% endblock %}

@@ -398,7 +398,7 @@ class UsernameClaim(ndb.Model):
 class Server(ndb.Model):
     name = ndb.StringProperty()
     is_gce = ndb.BooleanProperty(default=False)
-    memory = ndb.StringProperty(default='512M')
+    memory = ndb.StringProperty(default='256M')
     address = ndb.StringProperty()
     active = ndb.BooleanProperty(default=True)
     version = ndb.StringProperty()
@@ -436,6 +436,10 @@ class Server(ndb.Model):
     @property
     def agent(self):
         return self.agent_key.get() if self.agent_key is not None else None
+
+    @property
+    def mc_properties(self):
+        return MinecraftProperties.get_or_create(self.key)
 
     def start(self):
         if not (self.is_running or self.is_queued_start):
@@ -491,7 +495,7 @@ class Server(ndb.Model):
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
-            if previous_status != status:
+            if not self.is_gce and previous_status != status:
                 for admin in User.query_admin():
                     if admin.email:
                         body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
@@ -555,6 +559,47 @@ class ServerModel(ndb.Model):
     @classmethod
     def server_query(cls, server_key):
         return cls.query(ancestor=server_key)
+
+
+class MinecraftProperties(ServerModel):
+    motd = ndb.StringProperty(default='An MC-COAL Minecraft Server')
+    white_list = ndb.BooleanProperty(default=False)
+    gamemode = ndb.IntegerProperty(default=0)
+    force_gamemode = ndb.BooleanProperty(default=False)
+    level_type = ndb.StringProperty(default='DEFAULT')
+    level_seed = ndb.StringProperty()
+    generator_settings = ndb.StringProperty()
+    difficulty = ndb.IntegerProperty(default=1)
+    pvp = ndb.BooleanProperty(default=False)
+    hardcore = ndb.BooleanProperty(default=False)
+    allow_flight = ndb.BooleanProperty(default=False)
+    allow_nether = ndb.BooleanProperty(default=True)
+    max_build_height = ndb.IntegerProperty(default=256)
+    generate_structures = ndb.BooleanProperty(default=True)
+    spawn_npcs = ndb.BooleanProperty(default=True)
+    spawn_animals = ndb.BooleanProperty(default=True)
+    spawn_monsters = ndb.BooleanProperty(default=True)
+    player_idle_timeout = ndb.IntegerProperty(default=0)
+    spawn_protection = ndb.IntegerProperty(default=16)
+    enable_command_block = ndb.BooleanProperty(default=False)
+    snooper_enabled = ndb.BooleanProperty(default=True)
+    resource_pack = ndb.StringProperty()
+    op_permission_level = ndb.IntegerProperty(default=3)
+
+    @property
+    def server_properties(self):
+        mc_props = {}
+        for prop in self._properties:
+            mc_prop_name = prop.replace('_', '-')
+            value = getattr(self, prop)
+            mc_props[mc_prop_name] = str(value) if value is not None else ''
+            if mc_props[mc_prop_name] in ['False', 'True']:
+                mc_props[mc_prop_name] = mc_props[mc_prop_name].lower()
+        return mc_props
+
+    @classmethod
+    def get_or_create(cls, server_key, **kwargs):
+        return cls.get_or_insert('mc-properties-{0}'.format(server_key.urlsafe()), parent=server_key, **kwargs)
 
 
 @ae_ndb_serializer

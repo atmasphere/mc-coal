@@ -630,13 +630,21 @@ class ServerCreateGceTest(AdminAuthTest):
         self.log_in_admin()
         self.assertEqual(0, Server.query().count())
         self.assertEqual(0, Client.query().count())
-        response = self.post(params={'name': 'new server', 'memory': '1G'})
+        response = self.post(params={
+            'name': 'new server',
+            'memory': '1G',
+            'motd': 'Welcome',
+            'white_list': True
+        })
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
         server = Server.query().get()
         self.assertEqual('new server', server.name)
         self.assertEqual(True, server.is_gce)
         self.assertEqual('1G', server.memory)
+        mc_properties = server.mc_properties
+        self.assertEqual('Welcome', mc_properties.motd)
+        self.assertEqual(True, mc_properties.white_list)
         self.assertRedirects(response, '/servers/{0}'.format(server.key.urlsafe()))
 
 

@@ -26,7 +26,7 @@ from user_auth import UserBase, UserHandler, authentication_required, authentica
 ON_SERVER = not os.environ.get('SERVER_SOFTWARE', 'Development').startswith('Development')
 RESULTS_PER_PAGE = 50
 TIMEZONE_CHOICES = [(tz, tz) for tz in pytz.common_timezones if tz.startswith('U')] + \
-[(tz, tz) for tz in pytz.common_timezones if not tz.startswith('U')]
+    [(tz, tz) for tz in pytz.common_timezones if not tz.startswith('U')]
 
 
 class MainHandlerBase(UserHandler):
@@ -592,7 +592,46 @@ class ServerEditHandler(UserHandler):
 
 
 class ServerGceForm(ServerForm):
-    memory = fields.SelectField(u'Memory', validators=[validators.DataRequired()])
+    memory = fields.SelectField(u'Server memory', validators=[validators.DataRequired()], default='256M')
+    motd = fields.StringField(u'Message of the day', default='An MC-COAL Minecraft Server')
+    white_list = fields.BooleanField(u'Enable whitelist', default=False)
+    gamemode = fields.SelectField(u'Game mode', default='0')
+    force_gamemode = fields.BooleanField(u'Force players to join in the default game mode', default=False)
+    level_type = fields.SelectField(u'Type of map', default='DEFAULT')
+    level_seed = fields.StringField(u'Seed for the world', default='')
+    generator_settings = fields.StringField(u'Settings used to customize Superflat world generation', default='')
+    difficulty = fields.SelectField(u'Server difficulty', default='1')
+    pvp = fields.BooleanField(u'Enable PvP', default=False)
+    hardcore = fields.BooleanField(u'Players will be permanently banned if they die', default=False)
+    allow_flight = fields.BooleanField(u'Allow users to use flight while in Survival mode', default=False)
+    allow_nether = fields.BooleanField(u'Allow players to travel to the Nether', default=True)
+    max_build_height = fields.IntegerField(
+        u'Maximum height in which building is allowed',
+        validators=[validators.NumberRange(min=0, max=1024)],
+        default=256
+    )
+    generate_structures = fields.BooleanField(u'Generate structures', default=True)
+    spawn_npcs = fields.BooleanField(u'Spawn villagers', default=True)
+    spawn_animals = fields.BooleanField(u'Spawn animals', default=True)
+    spawn_monsters = fields.BooleanField(u'Spawn monsters', default=True)
+    player_idle_timeout = fields.IntegerField(
+        u'Number of minutes before an idle player is kicked (zero means never)',
+        validators=[validators.NumberRange(min=0, max=60)],
+        default=0
+    )
+    spawn_protection = fields.IntegerField(
+        u'Radius of spawn area protection',
+        validators=[validators.NumberRange(min=0, max=64)],
+        default=16
+    )
+    enable_command_block = fields.BooleanField(u'Enable command blocks', default=False)
+    snooper_enabled = fields.BooleanField(
+        u'Send snoop data regularly to http://snoop.minecraft.net', default=True
+    )
+    resource_pack = fields.StringField(
+        u'Prompt clients to download resource pack from this URL', default=''
+    )
+    op_permission_level = fields.SelectField(u'Ops permission level', default='3')
 
     def __init__(self, *args, **kwargs):
         super(ServerGceForm, self).__init__(*args, **kwargs)
@@ -600,6 +639,28 @@ class ServerGceForm(ServerForm):
             ('256M', '256 Megabytes'),
             ('512M', '512 Megabytes'),
             ('1G', '1 Gigabyte')
+        ]
+        self.gamemode.choices = [
+            ('0', 'Survival'),
+            ('1', 'Creative'),
+            ('2', 'Adventure')
+        ]
+        self.level_type.choices = [
+            ('DEFAULT', 'Default: Standard world with hills, valleys, water, etc.'),
+            ('FLAT', 'Flat: A flat world with no features, meant for building.'),
+            ('LARGEBIOMES', 'Large Biomes: Same as default but all biomes are larger.'),
+            ('AMPLIFIED', 'Amplified: Same as default but world-generation height limit is increased.')
+        ]
+        self.difficulty.choices = [
+            ('0', 'Peaceful'),
+            ('1', 'Easy'),
+            ('2', 'Normal'),
+            ('3', 'Hard')
+        ]
+        self.op_permission_level.choices = [
+            ('1', 'Can bypass spawn protection'),
+            ('2', 'Can use /clear, /difficulty, /effect, /gamemode, /gamerule, /give, and /tp, and can edit command blocks'),
+            ('3', 'Can use /ban, /deop, /kick, and /op')
         ]
 
 
@@ -620,6 +681,13 @@ class ServerCreateGceHandler(UserHandler):
                     is_gce=True,
                     memory=form.memory.data
                 )
+                mc_properties = server.mc_properties
+                for prop in form:
+                    if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
+                        setattr(mc_properties, prop.name, int(prop.data))
+                    elif prop.name not in ['name', 'memory']:
+                        setattr(mc_properties, prop.name, prop.data)
+                mc_properties.put()
                 self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
         except Exception, e:
             logging.error(u"Error POSTing GCE server: {0}".format(e))
@@ -638,7 +706,7 @@ class ServerEditGceHandler(UserHandler):
                 self.abort(404)
             form = ServerGceForm(obj=server)
         except Exception, e:
-            logging.error(u"Error GETting server: {0}".format(e))
+            logging.error(u"Error GETting GCE server: {0}".format(e))
             self.abort(404)
         context = {'edit_server': server, 'form': form}
         self.render_template('server_gce.html', context=context)
@@ -650,14 +718,27 @@ class ServerEditGceHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
-            form = ServerGceForm(formdata=self.request.POST, obj=server)
+            form = ServerGceForm(
+                formdata=self.request.POST,
+                obj=server.mc_properties,
+                name=server.name,
+                memory=server.memory
+            )
             if form.validate():
                 server.name = form.name.data
+                server.is_gce = True
                 server.memory = form.memory.data
                 server.put()
+                mc_properties = server.mc_properties
+                for prop in form:
+                    if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
+                        setattr(mc_properties, prop.name, int(prop.data))
+                    elif prop not in ['name', 'memory']:
+                        setattr(mc_properties, prop.name, prop.data)
+                mc_properties.put()
                 self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
         except Exception, e:
-            logging.error(u"Error POSTing server: {0}".format(e))
+            logging.error(u"Error POSTing GCE server: {0}".format(e))
             self.abort(404)
         context = {'edit_server': server, 'form': form}
         self.render_template('server_gce.html', context=context)

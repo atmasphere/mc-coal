@@ -154,14 +154,14 @@ def verify_bucket(service):
                 time.sleep(2)
 
 
-def load_zip_from_gcs(server_key, server_dir):
+def load_zip_from_gcs(server_key):
     credentials = gce.AppAssertionCredentials(scope=STORAGE_API_SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
     verify_bucket(service)
-    archive_file = os.path.join(server_dir, '{0}.zip'.format(server_key))
+    archive = get_archive_file_path(server_key)
     try:
-        with file(archive_file, 'w') as f:
+        with file(archive, 'w') as f:
             name = '{0}.zip'.format(server_key)
             request = service.objects().get_media(bucket=world_bucket, object=name)
             media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
@@ -191,35 +191,32 @@ def load_zip_from_gcs(server_key, server_dir):
                 else:
                     tries = 0
     except HttpError, err:
-        os.remove(archive_file)
+        os.remove(archive)
         if err.resp.status != 404:
             raise
     except Exception:
-        os.remove(archive_file)
+        os.remove(archive)
         raise
 
 
-def load_zip(server_key, server_dir):
+def load_zip(server_key):
     archive = get_archive_file_path(server_key)
-    if os.path.exists(archive):
-        archive_dest = os.path.join(server_dir, '{0}.zip'.format(server_key))
-        shutil.copy2(archive, archive_dest)
-    else:
-        load_zip_from_gcs(server_key, server_dir)
+    if not os.path.exists(archive):
+        load_zip_from_gcs(server_key)
 
 
 def unzip_server_dir(server_key, server_dir):
-    archive_file = os.path.join(server_dir, '{0}.zip'.format(server_key))
-    if os.path.exists(archive_file):
-        with zipfile.ZipFile(archive_file) as zf:
+    archive = get_archive_file_path(server_key)
+    if os.path.exists(archive):
+        with zipfile.ZipFile(archive) as zf:
             for member in zf.infolist():
                 zf.extract(member, server_dir)
-        os.remove(archive_file)
+        os.remove(archive)
 
 
 def start_server(server_key, **kwargs):
+    server_memory = kwargs.get('memory', '256M')
     server_properties = kwargs.get('server_properties', {})
-    server_memory = server_properties.pop('memory', '512M')
     servers = get_servers()
     if server_key in servers.keys():
         return
@@ -236,7 +233,7 @@ def start_server(server_key, **kwargs):
     if not os.path.exists(server_dir):
         os.makedirs(server_dir)
         write_server_key(port, server_key)
-        load_zip(server_key, server_dir)
+        load_zip(server_key)
         unzip_server_dir(server_key, server_dir)
         copy_server_files(port, server_properties)
     # Start Agent
