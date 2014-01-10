@@ -491,7 +491,8 @@ class Server(ndb.Model):
             if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):
                 record_ping = True
         if record_ping or (previous_status != status):
-            self.status = status
+            if previous_status != SERVER_QUEUED_STOP or status != SERVER_RUNNING:
+                self.status = status
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
