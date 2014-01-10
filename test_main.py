@@ -668,6 +668,10 @@ class ServerKeyTest(AdminAuthTest):
 class ServerKeyGceTest(AdminAuthTest):
     URL = '/admin/servers/{0}/gce'
 
+    def setUp(self):
+        super(ServerKeyGceTest, self).setUp()
+        self.server.is_gce = True
+
     @property
     def url(self):
         return self.URL.format(self.server.key.urlsafe())
