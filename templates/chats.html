@@ -42,7 +42,7 @@
 
             <div class="chat">
                 <form action="{{ uri_for('chats', server_key=server.key.urlsafe()) }}" method="POST" id="chatform">
-                    <input type="text" name="chat" placeholder="Say something..."/>
+                    <input type="text" name="chat" placeholder="Say something... {% if not server.is_running %}The server isn't running but chats will be saved.{% endif %}"/>
                 </form>
             </div>
         </div>
