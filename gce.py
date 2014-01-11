@@ -1,3 +1,4 @@
+import datetime
 import httplib2
 import logging
 
@@ -22,12 +23,14 @@ SCOPES = [
 FIREWALL_NAME = 'minecraft-firewall'
 DISK_NAME = 'coal-boot-disk'
 MINECRAFT_JAR_URL = 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
+GCE_MAX_IDLE_SECONDS = 900  # 15 minutes
 
 
 class Instance(ndb.Model):
     name = ndb.StringProperty(required=False, default='coal-instance')
     zone = ndb.StringProperty(required=False, default='us-central1-a')
     machine_type = ndb.StringProperty(required=False, default='n1-standard-1')
+    idle = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -38,8 +41,8 @@ class Instance(ndb.Model):
         project_url = '%s%s' % (GCE_URL, project_id)
         network_url = '%s/global/networks/%s' % (project_url, 'default')
         verify_minecraft_firewall(network_url)
-        if not verify_boot_disk(self.zone):
-            create_boot_disk(self.zone)
+        if not verify_boot_disk(DISK_NAME, self.zone):
+            create_boot_disk(DISK_NAME, self.zone)
         disk_url = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
         machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, self.machine_type)
         instance = {
@@ -76,14 +79,24 @@ class Instance(ndb.Model):
                 ],
             }]
         }
-        gce_service = get_gce_service()
-        execute_request(gce_service.instances().insert(project=project_id, body=instance, zone=self.zone))
+        execute_request(
+            get_gce_service().instances().insert(
+                project=project_id, body=instance, zone=self.zone
+            )
+        )
+        self.idle = None
+        self.put()
 
     def stop(self):
         if not self.is_running():
             return
-        gce_service = get_gce_service()
-        execute_request(gce_service.instances().delete(instance=self.name, project=get_project_id(), zone=self.zone))
+        execute_request(
+            get_gce_service().instances().delete(
+                instance=self.name, project=get_project_id(), zone=self.zone
+            )
+        )
+        self.idle = None
+        self.put()
 
     def is_setup(self):
         return self.status() is not None
@@ -97,10 +110,11 @@ class Instance(ndb.Model):
     def status(self):
         status = None
         try:
-            gce_service = get_gce_service()
-            instance = execute_request(gce_service.instances().get(
-                instance=self.name, project=get_project_id(), zone=self.zone
-            ))
+            instance = execute_request(
+                get_gce_service().instances().get(
+                    instance=self.name, project=get_project_id(), zone=self.zone
+                )
+            )
             if instance is not None:
                 status = instance['status']
         except HttpError as e:
@@ -109,6 +123,12 @@ class Instance(ndb.Model):
             if e.resp.status == 404:
                 status = 'UNPROVISIONED'
         return status
+
+    def stop_if_idle(self):
+        if not (self.is_running and self.idle):
+            return
+        if datetime.datetime.now() > self.idle + datetime.timedelta(seconds=GCE_MAX_IDLE_SECONDS):
+            self.stop()
 
     @classmethod
     def singleton(cls):
@@ -149,15 +169,18 @@ def execute_request(request, block=False):
                     status = response['status']
     except HttpError as e:
         if e.resp.status != 404 and e.resp.status != 401:
-            logging.error(repr(e))
+            logging.error("Error ({0}) calling {1}".format(e.resp.error, e.operationType))
         raise
     return response
 
 
 def verify_minecraft_firewall(network):
     try:
-        gce_service = get_gce_service()
-        execute_request(gce_service.firewalls().get(firewall=FIREWALL_NAME, project=get_project_id()))
+        execute_request(
+            get_gce_service().firewalls().get(
+                firewall=FIREWALL_NAME, project=get_project_id()
+            )
+        )
     except HttpError as e:
         if e.resp.status == 404:
             create_minecraft_firewall(network)
@@ -174,38 +197,37 @@ def create_minecraft_firewall(network):
         }],
         'network': network
     }
-    gce_service = get_gce_service()
-    execute_request(gce_service.firewalls().insert(project=project_id, body=firewall))
+    execute_request(
+        get_gce_service().firewalls().insert(
+            project=project_id, body=firewall
+        )
+    )
 
 
-def verify_boot_disk(zone):
+def verify_boot_disk(disk, zone):
     try:
-        gce_service = get_gce_service()
-        execute_request(gce_service.disks().get(disk=DISK_NAME, project=get_project_id(), zone=zone))
+        execute_request(
+            get_gce_service().disks().get(
+                disk=disk, project=get_project_id(), zone=zone
+            )
+        )
         return True
     except HttpError:
         pass
     return False
 
 
-def create_boot_disk(zone):
-    try:
-        gce_service = get_gce_service()
-        execute_request(
-            gce_service.disks().insert(
-                project=get_project_id(), zone=zone, sourceImage=IMAGE_URL, body={'name': DISK_NAME}
-            )
+def create_boot_disk(disk, zone):
+    execute_request(
+        get_gce_service().disks().insert(
+            project=get_project_id(), zone=zone, sourceImage=IMAGE_URL, body={'name': disk}
         )
-        return True
-    except HttpError, e:
-        logging.error(e)
-    return False
+    )
 
 
 def get_zones():
     try:
-        gce_service = get_gce_service()
-        request = gce_service.zones().list(project=get_project_id())
+        request = get_gce_service().zones().list(project=get_project_id())
         response = request.execute()
         if response and 'items' in response:
             return [zone['name'] for zone in response['items']]
@@ -218,8 +240,7 @@ def get_zones():
 def is_setup():
     setup = False
     try:
-        gce_service = get_gce_service()
-        request = gce_service.zones().list(project=get_project_id())
+        request = get_gce_service().zones().list(project=get_project_id())
         request.execute()
         setup = True
     except HttpError as e:

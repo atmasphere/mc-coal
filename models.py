@@ -26,6 +26,7 @@ import search
 UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
 AGENT_CLIENT_ID = 'mc-coal-agent'
 TICKS_PER_PLAY_SECOND = 20
+SERVER_MAX_IDLE_SECONDS = 300  # 5 minutes
 SERVER_UNKNOWN = 'UNKNOWN'
 SERVER_QUEUED_START = 'QUEUED_START'
 SERVER_QUEUED_STOP = 'QUEUED_STOP'
@@ -415,6 +416,7 @@ class Server(ndb.Model):
     is_raining = ndb.BooleanProperty()
     is_thundering = ndb.BooleanProperty()
     timestamp = ndb.DateTimeProperty()
+    idle = ndb.DateTimeProperty()
     agent_key = ndb.KeyProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
@@ -441,15 +443,24 @@ class Server(ndb.Model):
     def mc_properties(self):
         return MinecraftProperties.get_or_create(self.key)
 
+    @property
+    def has_open_play_session(self):
+        return PlaySession.query_open(self.key).get() is not None
+
     def start(self):
-        if not (self.is_running or self.is_queued_start):
+        if self.is_gce and not (self.is_running or self.is_queued_start):
             start_server(self)
             self.update_status(status=SERVER_QUEUED_START)
 
     def stop(self):
-        if self.is_running and not self.is_queued_stop:
+        if self.is_gce and self.is_running and not self.is_queued_stop:
             stop_server(self)
             self.update_status(status=SERVER_QUEUED_STOP)
+
+    def stop_if_idle(self):
+        if self.is_gce and self.is_running and self.idle:
+            if datetime.datetime.now() > self.idle + datetime.timedelta(seconds=SERVER_MAX_IDLE_SECONDS):
+                self.stop()
 
     def update_version(self, server_version):
         if server_version is not None:
@@ -493,6 +504,8 @@ class Server(ndb.Model):
         if record_ping or (previous_status != status):
             if previous_status != SERVER_QUEUED_STOP or status != SERVER_RUNNING:
                 self.status = status
+            if status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP] and self.idle:
+                self.idle = None
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
@@ -511,6 +524,14 @@ class Server(ndb.Model):
                             subject="{0} server status is {1}".format(self.name, status),
                             body=body
                         )
+
+    def deactivate(self):
+        if self.is_running:
+            self.stop()
+        self.active = False
+        self.status = SERVER_UNKNOWN
+        self.idle = None
+        self.put()
 
     @classmethod
     def _pre_delete_hook(cls, key):
@@ -943,7 +964,7 @@ class PlaySession(UsernameModel):
         current = cls.current(server_key, username)
         if current:
             current.close(timestamp, login_log_line_key)
-        instance = cls(
+        session = cls(
             parent=server_key,
             username=username,
             login_timestamp=timestamp,
@@ -951,11 +972,15 @@ class PlaySession(UsernameModel):
             login_log_line_key=login_log_line_key,
             **kwargs
         )
-        instance.put()
-        player = Player.get_or_create(instance.server_key, username)
+        session.put()
+        server = server_key.get()
+        if server.idle:
+            server.idle = None
+            server.put()
+        player = Player.get_or_create(session.server_key, username)
         player.last_login_timestamp = timestamp
         player.put()
-        return instance
+        return session
 
     @classmethod
     def close_current(cls, server_key, username, timestamp, logout_log_line_key):

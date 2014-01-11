@@ -754,10 +754,7 @@ class ServerDeactivateHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
-            if server.is_running:
-                server.stop()
-            server.active = False
-            server.put()
+            server.deactivate()
         except Exception, e:
             logging.error(u"Error deactivating server: {0}".format(e))
         self.redirect(webapp2.uri_for('admin'))

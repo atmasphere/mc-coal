@@ -11,21 +11,22 @@ def queue_controller_task(payload):
 
 
 def start_server(server):
-    if gce.is_setup():
-        instance = gce.Instance.singleton()
-        if not instance.is_running():
-            instance.start()
-        payload = {'event': 'START_SERVER'}
-        payload['server_key'] = server.key.urlsafe()
-        payload['agent_client_id'] = server.agent.client_id
-        payload['agent_secret'] = server.agent.secret
-        payload['memory'] = server.memory
-        payload['server_properties'] = server.mc_properties.server_properties
-        queue_controller_task(payload)
+    instance = gce.Instance.singleton()
+    if not instance.is_running():
+        instance.start()
+    if instance.idle:
+        instance.idle = None
+        instance.put()
+    payload = {'event': 'START_SERVER'}
+    payload['server_key'] = server.key.urlsafe()
+    payload['agent_client_id'] = server.agent.client_id
+    payload['agent_secret'] = server.agent.secret
+    payload['memory'] = server.memory
+    payload['server_properties'] = server.mc_properties.server_properties
+    queue_controller_task(payload)
 
 
 def stop_server(server):
-    if gce.is_setup():
-        payload = {'event': 'STOP_SERVER'}
-        payload['server_key'] = server.key.urlsafe()
-        queue_controller_task(payload)
+    payload = {'event': 'STOP_SERVER'}
+    payload['server_key'] = server.key.urlsafe()
+    queue_controller_task(payload)
