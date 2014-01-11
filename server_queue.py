@@ -14,9 +14,6 @@ def start_server(server):
     instance = gce.Instance.singleton()
     if not instance.is_running():
         instance.start()
-    if instance.idle:
-        instance.idle = None
-        instance.put()
     payload = {'event': 'START_SERVER'}
     payload['server_key'] = server.key.urlsafe()
     payload['agent_client_id'] = server.agent.client_id
