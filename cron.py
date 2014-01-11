@@ -17,7 +17,7 @@ class ServerStatusHandler(webapp2.RequestHandler):
         for server in servers:
             server.update_status()
             if server.is_gce:
-                if server.is_running and not server.idle and not server.has_open_play_session():
+                if server.is_running and not server.idle and not server.has_open_play_session:
                     server.idle = datetime.datetime.now()
                     server.put()
                 server.stop_if_idle()
