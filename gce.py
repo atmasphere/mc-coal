@@ -23,7 +23,7 @@ SCOPES = [
 FIREWALL_NAME = 'minecraft-firewall'
 DISK_NAME = 'coal-boot-disk'
 MINECRAFT_JAR_URL = 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
-GCE_MAX_IDLE_SECONDS = 900  # 15 minutes
+GCE_MAX_IDLE_SECONDS = 300  # 5 minutes
 
 
 class Instance(ndb.Model):
