@@ -221,7 +221,6 @@ def unzip_server_dir(server_key, server_dir):
 def start_server(server_key, **kwargs):
     server_memory = kwargs.get('memory', '256M')
     operator = kwargs.get('operator', None)
-    logger.info("OPERATOR: {0}".format(operator))
     server_properties = kwargs.get('server_properties', {})
     servers = get_servers()
     if server_key in servers.keys():
@@ -241,7 +240,6 @@ def start_server(server_key, **kwargs):
         write_server_key(port, server_key)
         found = load_zip(server_key)
         if found:
-            logger.info("FOUND ZIP")
             unzip_server_dir(server_key, server_dir)
         elif operator:
             ops = os.path.join(server_dir, 'ops.txt')
