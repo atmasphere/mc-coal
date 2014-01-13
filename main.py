@@ -593,6 +593,7 @@ class ServerEditHandler(UserHandler):
 
 class ServerGceForm(ServerForm):
     memory = fields.SelectField(u'Server memory', validators=[validators.DataRequired()], default='256M')
+    operator = fields.StringField(u'Initial operator username', default='')
     motd = fields.StringField(u'Message of the day', default='An MC-COAL Minecraft Server')
     white_list = fields.BooleanField(u'Enable whitelist', default=False)
     gamemode = fields.SelectField(u'Game mode', default='0')
@@ -667,7 +668,11 @@ class ServerGceForm(ServerForm):
 class ServerCreateGceHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self):
-        form = ServerGceForm()
+        username = ''
+        usernames = self.request.user.usernames
+        if usernames:
+            username = usernames[0]
+        form = ServerGceForm(operator=username)
         context = {'form': form, 'action': webapp2.uri_for('server_create_gce')}
         self.render_template('server_create.html', context=context)
 
@@ -679,13 +684,14 @@ class ServerCreateGceHandler(UserHandler):
                 server = Server.create(
                     name=form.name.data,
                     is_gce=True,
-                    memory=form.memory.data
+                    memory=form.memory.data,
+                    operator=form.operator.data or None
                 )
                 mc_properties = server.mc_properties
                 for prop in form:
                     if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
                         setattr(mc_properties, prop.name, int(prop.data))
-                    elif prop.name not in ['name', 'memory']:
+                    elif prop.name not in ['name', 'memory', 'operator']:
                         setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()
                 self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
@@ -706,11 +712,17 @@ class ServerEditGceHandler(UserHandler):
                 self.abort(404)
             if not server.is_gce:
                 self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
-            form = ServerGceForm(obj=server.mc_properties, name=server.name, memory=server.memory)
+            form = ServerGceForm(
+                obj=server.mc_properties, name=server.name, memory=server.memory, operator=server.operator or ''
+            )
         except Exception, e:
             logging.error(u"Error GETting GCE server: {0}".format(e))
             self.abort(404)
-        context = {'edit_server': server, 'form': form, 'action': webapp2.uri_for('server_gce', key=server.key.urlsafe())}
+        context = {
+            'edit_server': server,
+            'form': form,
+            'action': webapp2.uri_for('server_gce', key=server.key.urlsafe())
+        }
         self.render_template('server.html', context=context)
 
     @authentication_required(authenticate=authenticate_admin)
@@ -730,19 +742,24 @@ class ServerEditGceHandler(UserHandler):
                 server.name = form.name.data
                 server.is_gce = True
                 server.memory = form.memory.data
+                server.operator = form.operator.data or None
                 server.put()
                 mc_properties = server.mc_properties
                 for prop in form:
                     if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
                         setattr(mc_properties, prop.name, int(prop.data))
-                    elif prop not in ['name', 'memory']:
+                    elif prop not in ['name', 'memory', 'operator']:
                         setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()
                 self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
         except Exception, e:
             logging.error(u"Error POSTing GCE server: {0}".format(e))
             self.abort(404)
-        context = {'edit_server': server, 'form': form, 'action': webapp2.uri_for('server_gce', key=server.key.urlsafe())}
+        context = {
+            'edit_server': server,
+            'form': form,
+            'action': webapp2.uri_for('server_gce', key=server.key.urlsafe())
+        }
         self.render_template('server.html', context=context)
 
 

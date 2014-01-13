@@ -190,9 +190,13 @@ def load_zip_from_gcs(server_key):
                     time.sleep(sleeptime)
                 else:
                     tries = 0
+        return True
     except HttpError, err:
         os.remove(archive)
-        if err.resp.status != 404:
+        if err.resp.status == 404:
+            os.remove(archive)
+            return False
+        else:
             raise
     except Exception:
         os.remove(archive)
@@ -202,7 +206,8 @@ def load_zip_from_gcs(server_key):
 def load_zip(server_key):
     archive = get_archive_file_path(server_key)
     if not os.path.exists(archive):
-        load_zip_from_gcs(server_key)
+        return load_zip_from_gcs(server_key)
+    return True
 
 
 def unzip_server_dir(server_key, server_dir):
@@ -216,6 +221,7 @@ def unzip_server_dir(server_key, server_dir):
 
 def start_server(server_key, **kwargs):
     server_memory = kwargs.get('memory', '256M')
+    operator = kwargs.get('operator', None)
     server_properties = kwargs.get('server_properties', {})
     servers = get_servers()
     if server_key in servers.keys():
@@ -233,8 +239,14 @@ def start_server(server_key, **kwargs):
     if not os.path.exists(server_dir):
         os.makedirs(server_dir)
         write_server_key(port, server_key)
-        load_zip(server_key)
-        unzip_server_dir(server_key, server_dir)
+        found = load_zip(server_key)
+        if found:
+            unzip_server_dir(server_key, server_dir)
+        elif operator:
+            ops = os.path.join(server_dir, 'ops.txt')
+            with open(ops, "w") as f:
+                line = "{0}\n".format(operator)
+                f.write(line)
         copy_server_files(port, server_properties)
     # Start Agent
     try:

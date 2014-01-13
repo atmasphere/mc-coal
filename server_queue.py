@@ -20,6 +20,9 @@ def start_server(server):
     payload['agent_secret'] = server.agent.secret
     payload['memory'] = server.memory
     payload['server_properties'] = server.mc_properties.server_properties
+    operator = server.operator
+    if operator is not None:
+        payload['operator'] = operator
     queue_controller_task(payload)
 
 

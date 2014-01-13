@@ -400,6 +400,7 @@ class Server(ndb.Model):
     name = ndb.StringProperty()
     is_gce = ndb.BooleanProperty(default=False)
     memory = ndb.StringProperty(default='256M')
+    operator = ndb.StringProperty()
     address = ndb.StringProperty()
     active = ndb.BooleanProperty(default=True)
     version = ndb.StringProperty()
@@ -446,6 +447,10 @@ class Server(ndb.Model):
     @property
     def has_open_play_session(self):
         return PlaySession.query_open(self.key).get() is not None
+
+    @property
+    def admin(self):
+        return self.admin_key.get() if self.admin_key is not None else None
 
     def start(self):
         if self.is_gce and not (self.is_running or self.is_queued_start):
