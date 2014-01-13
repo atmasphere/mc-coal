@@ -458,7 +458,7 @@ class Server(ndb.Model):
             self.update_status(status=SERVER_QUEUED_START)
 
     def stop(self):
-        if self.is_gce and self.is_running and not self.is_queued_stop:
+        if self.is_gce:
             stop_server(self)
             self.update_status(status=SERVER_QUEUED_STOP)
 
