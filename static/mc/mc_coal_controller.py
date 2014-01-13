@@ -194,7 +194,6 @@ def load_zip_from_gcs(server_key):
     except HttpError, err:
         os.remove(archive)
         if err.resp.status == 404:
-            os.remove(archive)
             return False
         else:
             raise
