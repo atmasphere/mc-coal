@@ -232,6 +232,7 @@ def get_zones():
         if response and 'items' in response:
             return [zone['name'] for zone in response['items']]
     except HttpError as e:
+        logging.error("Error ({0}) getting zones".format(e.resp))
         if e.resp.status != 404 and e.resp.status != 401:
             raise
     return None
