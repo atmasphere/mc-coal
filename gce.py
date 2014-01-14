@@ -71,12 +71,8 @@ class Instance(ndb.Model):
                     {
                         'key': 'project-id',
                         'value': project_id
-                    },
-                    {
-                        'key': 'minecraft-url',
-                        'value': MINECRAFT_JAR_URL
                     }
-                ],
+                ]
             }]
         }
         execute_request(
