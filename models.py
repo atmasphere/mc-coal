@@ -24,7 +24,6 @@ import search
 
 
 UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
-DEFAULT_MC_URL = 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
 AGENT_CLIENT_ID = 'mc-coal-agent'
 TICKS_PER_PLAY_SECOND = 20
 SERVER_MAX_IDLE_SECONDS = 300  # 5 minutes
