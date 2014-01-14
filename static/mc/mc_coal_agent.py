@@ -245,7 +245,6 @@ def get_lastline(client):
     try:
         response_json = client.get("/api/v1/agents/lastline").json()
         lastline = response_json['lastline']
-        logger.debug(u"LASTLINE: {0}".format(lastline))
         return lastline
     except requests.exceptions.RequestException as e:
         logger.error(u"UNEXPECTED RESPONSE {0}".format(e))
