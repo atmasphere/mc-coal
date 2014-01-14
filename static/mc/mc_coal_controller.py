@@ -126,6 +126,7 @@ def get_minecraft_version(minecraft_url):
         logger.error("Error ({0}) fetching minecraft jar".format(e))
         if new_mc_dir and os.path.exists(new_mc_dir):
             shutil.rmtree(new_mc_dir)
+        raise
 
 
 def copy_server_properties(port, server_properties):
@@ -283,7 +284,11 @@ def start_server(server_key, **kwargs):
             with open(ops, "w") as f:
                 line = "{0}\n".format(operator)
                 f.write(line)
-    copy_server_files(port, minecraft_url, server_properties)
+    try:
+        copy_server_files(port, minecraft_url, server_properties)
+    except Exception, e:
+        logger.error("Error ({0}) copying files for server {1}".format(e, server_key))
+        raise
     # Start Agent
     try:
         fifo = make_fifo(server_dir)
@@ -401,14 +406,15 @@ def stop_server(server_key, **kwargs):
     except OSError, e:
         logger.error("Error ({0}) stopping MC process for server {1}".format(e, server_key))
     # Archive server_dir
+    archive_successful = False
     archive = get_archive_file_path(server_key)
     try:
         zip_server_dir(server_dir, archive)
-        archive_successful = True
     except Exception, e:
         logger.error("Error ({0}) archiving server {1}".format(e, server_key))
     try:
         upload_zip_to_gcs(server_key, archive)
+        archive_successful = True
     except Exception, e:
         logger.error("Error ({0}) uploading archived server {1}".format(e, server_key))
     try:
