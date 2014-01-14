@@ -18,6 +18,7 @@ def start_server(server):
     payload['server_key'] = server.key.urlsafe()
     payload['agent_client_id'] = server.agent.client_id
     payload['agent_secret'] = server.agent.secret
+    payload['minecraft_url'] = 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
     payload['memory'] = server.memory
     payload['server_properties'] = server.mc_properties.server_properties
     operator = server.operator

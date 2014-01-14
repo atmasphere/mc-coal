@@ -9,9 +9,11 @@ import random
 import shutil
 import signal
 import socket
+import string
 import subprocess
 import sys
 import time
+import urllib
 import zipfile
 
 from apiclient.discovery import build
@@ -27,6 +29,7 @@ STORAGE_API_VERSION = 'v1beta2'
 COAL_DIR = '/coal/'
 SERVERS_DIR = os.path.join(COAL_DIR, 'servers')
 ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
+MINECRAFT_DIR = os.path.join(COAL_DIR, 'minecraft')
 NUM_RETRIES = 5
 CHUNKSIZE = 2 * 1024 * 1024
 RETRY_ERRORS = (httplib2.HttpLib2Error, IOError)
@@ -73,7 +76,8 @@ def get_archive_file_path(server_key):
 
 def read_server_key(port):
     server_key_filename = os.path.join(SERVERS_DIR, port, 'server_key')
-    server_key = open(server_key_filename, 'r').read()
+    with open(server_key_filename, 'r') as f:
+        server_key = f.read()
     return server_key
 
 
@@ -93,6 +97,37 @@ def get_servers():
     return servers
 
 
+def get_minecraft_version(minecraft_url):
+    new_mc_dir = None
+    try:
+        _, mc_dirs, _ = os.walk(MINECRAFT_DIR).next()
+        mc = None
+        for mc_dir in mc_dirs:
+            url_filename = os.path.join(MINECRAFT_DIR, mc_dir, 'url')
+            if os.path.exists(url_filename):
+                with open(url_filename, 'r') as f:
+                    mc_url = f.read().strip()
+                    if mc_url == minecraft_url:
+                        mc = os.path.join(MINECRAFT_DIR, mc_dir, 'minecraft_server.jar')
+        if mc is None:
+            exists = True
+            while exists:
+                mc_dir_name = ''.join(random.choice(string.ascii_uppercase) for x in range(10))
+                new_mc_dir = os.path.join(MINECRAFT_DIR, mc_dir_name)
+                exists = os.path.exists(new_mc_dir)
+            os.makedirs(new_mc_dir)
+            url_filename = os.path.join(new_mc_dir, 'url')
+            with open(url_filename, 'w') as f:
+                f.write(minecraft_url)
+            mc = os.path.join(new_mc_dir, 'minecraft_server.jar')
+            urllib.urlretrieve(minecraft_url, mc)
+        return mc
+    except Exception, e:
+        logger.error("Error ({0}) fetching minecraft jar".format(e))
+        if new_mc_dir and os.path.exists(new_mc_dir):
+            shutil.rmtree(new_mc_dir)
+
+
 def copy_server_properties(port, server_properties):
     default_properties = os.path.join(COAL_DIR, 'server.properties')
     server_dir = get_server_dir(port)
@@ -107,9 +142,10 @@ def copy_server_properties(port, server_properties):
                 fout.write(line)
 
 
-def copy_server_files(port, server_properties):
+def copy_server_files(port, minecraft_url, server_properties):
     server_dir = get_server_dir(port)
-    shutil.copy2(os.path.join(COAL_DIR, 'minecraft_server.jar'), server_dir)
+    mc = get_minecraft_version(minecraft_url)
+    shutil.copy2(mc, server_dir)
     shutil.copy2(os.path.join(COAL_DIR, 'log4j2.xml'), server_dir)
     copy_server_properties(port, server_properties)
     filenames = [
@@ -219,6 +255,7 @@ def unzip_server_dir(server_key, server_dir):
 
 
 def start_server(server_key, **kwargs):
+    minecraft_url = kwargs['minecraft_url']
     server_memory = kwargs.get('memory', '256M')
     operator = kwargs.get('operator', None)
     server_properties = kwargs.get('server_properties', {})
@@ -246,7 +283,7 @@ def start_server(server_key, **kwargs):
             with open(ops, "w") as f:
                 line = "{0}\n".format(operator)
                 f.write(line)
-        copy_server_files(port, server_properties)
+    copy_server_files(port, minecraft_url, server_properties)
     # Start Agent
     try:
         fifo = make_fifo(server_dir)
@@ -358,7 +395,8 @@ def stop_server(server_key, **kwargs):
         with open(fifo, 'a+') as fifo_file:
             fifo_file.write('save-all\n')
             fifo_file.write('stop\n')
-        pid = open(os.path.join(server_dir, 'server.pid'), 'r').read()
+        with open(os.path.join(server_dir, 'server.pid'), 'r') as f:
+            pid = f.read()
         os.waitpid(int(pid), 0)
     except OSError, e:
         logger.error("Error ({0}) stopping MC process for server {1}".format(e, server_key))
@@ -376,7 +414,8 @@ def stop_server(server_key, **kwargs):
     try:
         # Stop Agent
         time.sleep(10)
-        pid = open(os.path.join(server_dir, 'agent.pid'), 'r').read()
+        with open(os.path.join(server_dir, 'agent.pid'), 'r') as f:
+            pid = f.read()
         os.kill(int(pid), signal.SIGTERM)
         os.waitpid(int(pid), 0)
     except OSError, e:
@@ -469,8 +508,11 @@ def main(argv):
         os.makedirs(SERVERS_DIR)
     if not os.path.exists(ARCHIVES_DIR):
         os.makedirs(ARCHIVES_DIR)
+    if not os.path.exists(MINECRAFT_DIR):
+        os.makedirs(MINECRAFT_DIR)
     try:
-        project = open('/coal/project_id', 'r').read().strip()
+        with open('/coal/project_id', 'r') as f:
+            project = f.read().strip()
         world_bucket = '{0}-worlds'.format(project)
         credentials = gce.AppAssertionCredentials(scope=TQ_API_SCOPE)
         http = credentials.authorize(httplib2.Http())
