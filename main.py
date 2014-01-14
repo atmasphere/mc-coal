@@ -1,7 +1,7 @@
 import logging
 import os
 
-from google.appengine.api import lib_config
+from google.appengine.api import lib_config, urlfetch
 from google.appengine.ext import blobstore
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import Cursor
@@ -18,7 +18,7 @@ from wtforms import form, fields, validators, widgets
 from base_handler import uri_for_pagination
 from channel import ServerChannels
 import gce
-from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
+from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim, MinecraftDownload
 import search
 from user_auth import UserBase, UserHandler, authentication_required, authenticate, authenticate_admin
 
@@ -592,6 +592,7 @@ class ServerEditHandler(UserHandler):
 
 
 class ServerGceForm(ServerForm):
+    version = fields.SelectField(u'Minecraft Version', validators=[validators.DataRequired()])
     memory = fields.SelectField(u'Server memory', validators=[validators.DataRequired()], default='256M')
     operator = fields.StringField(u'Initial operator username', default='')
     motd = fields.StringField(u'Message of the day', default='An MC-COAL Minecraft Server')
@@ -627,7 +628,7 @@ class ServerGceForm(ServerForm):
     )
     enable_command_block = fields.BooleanField(u'Enable command blocks', default=False)
     snooper_enabled = fields.BooleanField(
-        u'Send snoop data regularly to http://snoop.minecraft.net', default=True
+        u'Send snoop data regularly to snoop.minecraft.net', default=True
     )
     resource_pack = fields.StringField(
         u'Prompt clients to download resource pack from this URL', default=''
@@ -636,6 +637,9 @@ class ServerGceForm(ServerForm):
 
     def __init__(self, *args, **kwargs):
         super(ServerGceForm, self).__init__(*args, **kwargs)
+        self.version.choices = [
+            (d.version, d.url) for d in MinecraftDownload.query().fetch(100)
+        ]
         self.memory.choices = [
             ('256M', '256 Megabytes'),
             ('512M', '512 Megabytes'),
@@ -805,6 +809,45 @@ class ServerStopHandler(MainHandlerBase):
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
+class UniqueVersion(object):
+    def __call__(self, form, field):
+        version = field.data
+        md = MinecraftDownload.lookup(version)
+        if md is not None:
+            raise validators.ValidationError("Minecraft version '{0}' is already assigned".format(version))
+
+
+class VersionUrlExists(object):
+    def __call__(self, form, field):
+        url = field.data
+        result = urlfetch.fetch(url=url, method=urlfetch.HEAD)
+        if result.status_code >= 400:
+            raise validators.ValidationError("Error ({0}) fetching url".format(result.status_code))
+
+
+class MinecraftDownloadForm(form.Form):
+    version = fields.StringField(u'Version', validators=[validators.DataRequired(), UniqueVersion()])
+    url = fields.StringField(u'Download URL', validators=[validators.URL(), VersionUrlExists()])
+
+
+class MinecraftDownloadCreateHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self):
+        form = MinecraftDownloadForm()
+        context = {'form': form}
+        self.render_template('version.html', context=context)
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self):
+        form = MinecraftDownloadForm(self.request.POST)
+        if form.validate():
+            download = MinecraftDownload.create(form.version.data, form.url.data)
+            download.put()
+            self.redirect(webapp2.uri_for('admin'))
+        context = {'form': form}
+        self.render_template('version.html', context=context)
+
+
 class InstanceForm(form.Form):
     zone = fields.SelectField(u'Zone', validators=[validators.DataRequired()])
     machine_type = fields.SelectField(u'Machine Type', validators=[validators.DataRequired()])
@@ -898,6 +941,7 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
         RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
         RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
+        RedirectRoute('/admin/minecraft_create', handler=MinecraftDownloadCreateHandler, strict_slash=True, name="minecraft_create"),
         RedirectRoute('/admin/instance/configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure"),
         RedirectRoute('/admin/instance/start', handler=InstanceStartHandler, strict_slash=True, name="instance_start"),
         RedirectRoute('/admin/instance/stop', handler=InstanceStopHandler, strict_slash=True, name="instance_stop"),

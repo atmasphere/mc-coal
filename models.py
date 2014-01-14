@@ -5,7 +5,7 @@ import random
 import string
 
 from google.appengine.ext import blobstore, ndb
-from google.appengine.api import users, mail, app_identity, taskqueue
+from google.appengine.api import users, mail, app_identity, taskqueue, urlfetch
 
 import webapp2_extras.appengine.auth.models as auth_models
 
@@ -24,6 +24,7 @@ import search
 
 
 UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
+DEFAULT_MC_URL = 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
 AGENT_CLIENT_ID = 'mc-coal-agent'
 TICKS_PER_PLAY_SECOND = 20
 SERVER_MAX_IDLE_SECONDS = 300  # 5 minutes
@@ -396,9 +397,39 @@ class UsernameClaim(ndb.Model):
 
 
 @ae_ndb_serializer
+class MinecraftDownload(ndb.Model):
+    version = ndb.StringProperty(required=True)
+    url = ndb.StringProperty(required=True)
+
+    def verify(self):
+        result = urlfetch.fetch(url=self.url, method=urlfetch.HEAD)
+        if result.status_code >= 400:
+            return False
+        return True
+
+    @classmethod
+    def create(cls, version, url):
+        key = ndb.Key(cls, version)
+        exists = key.get()
+        if exists:
+            raise Exception("Minecraft version ({0}) already exists".format(version))
+        mc = cls(key=key, version=version, url=url)
+        if not mc.verify():
+            raise Exception("Minecraft URL ({0}) is invalid".format(url))
+        mc.put()
+        return mc
+
+    @classmethod
+    def lookup(cls, version):
+        key = ndb.Key(cls, version)
+        return key.get()
+
+
+@ae_ndb_serializer
 class Server(ndb.Model):
     name = ndb.StringProperty()
     is_gce = ndb.BooleanProperty(default=False)
+    version = ndb.StringProperty()
     memory = ndb.StringProperty(default='256M')
     operator = ndb.StringProperty()
     address = ndb.StringProperty()
@@ -449,11 +480,18 @@ class Server(ndb.Model):
         return PlaySession.query_open(self.key).get() is not None
 
     @property
-    def admin(self):
-        return self.admin_key.get() if self.admin_key is not None else None
+    def minecraft_url(self):
+        if self.version:
+            download = ndb.Key(MinecraftDownload, self.version).get()
+            if download and download.verify():
+                return download.url
+        else:
+            return None
 
     def start(self):
         if self.is_gce and not (self.is_running or self.is_queued_start):
+            if self.minecraft_url is None:
+                raise Exception("No valid minecraft version specified for server")
             start_server(self)
             self.update_status(status=SERVER_QUEUED_START)
 
