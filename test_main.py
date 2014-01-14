@@ -11,7 +11,7 @@ from base_test import BaseTest
 from web_test import WebTest
 
 import gce
-from models import User, Server, Command
+from models import User, Server, Command, MinecraftDownload
 import main
 from oauth import Client
 
@@ -626,12 +626,14 @@ class ServerCreateGceTest(AdminAuthTest):
     URL = '/admin/server_create_gce'
 
     def test_post(self):
+        mc = MinecraftDownload.create('1.7.4', 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar')
         self.server.key.delete()
         self.log_in_admin()
         self.assertEqual(0, Server.query().count())
         self.assertEqual(0, Client.query().count())
         response = self.post(params={
             'name': 'new server',
+            'version': mc.version,
             'memory': '1G',
             'motd': 'Welcome',
             'white_list': True
@@ -671,6 +673,7 @@ class ServerKeyGceTest(AdminAuthTest):
     def setUp(self):
         super(ServerKeyGceTest, self).setUp()
         self.server.is_gce = True
+        self.server.put()
 
     @property
     def url(self):
@@ -678,7 +681,10 @@ class ServerKeyGceTest(AdminAuthTest):
 
     def test_post(self):
         self.log_in_admin()
-        response = self.post(params={'name': 'new name', 'memory': '1G'})
+        self.mc = MinecraftDownload.create('1.7.4', 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar')
+        self.server.version = self.mc.version
+        self.server.put()
+        response = self.post(params={'name': 'new name', 'version': self.server.version, 'memory': '1G'})
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
         server = self.server.key.get()
