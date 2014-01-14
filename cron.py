@@ -12,6 +12,7 @@ ON_SERVER = not os.environ.get('SERVER_SOFTWARE', 'Development').startswith('Dev
 
 class ServerStatusHandler(webapp2.RequestHandler):
     def get(self):
+        instance = Instance.singleton()
         gce_server_running = False
         servers = Server.query_all()
         for server in servers:
@@ -23,7 +24,9 @@ class ServerStatusHandler(webapp2.RequestHandler):
                 server.stop_if_idle()
                 if server.is_running or server.is_queued_start:
                     gce_server_running = True
-        instance = Instance.singleton()
+                    if instance.idle:
+                        instance.idle = None
+                        instance.put()
         if instance.is_running and not gce_server_running and not instance.idle:
             instance.idle = datetime.datetime.now()
             instance.put()

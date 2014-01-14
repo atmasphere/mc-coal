@@ -196,7 +196,6 @@ def ping_host(client, running, server_day, server_time, raining, thundering, com
             params['address'] = address
         response_json = client.post("/api/v1/agents/ping", params=params).json()
         commands = response_json['commands']
-        logger.debug(u"PING: {0}".format(commands))
         if commands:
             execute_commands(commandfifo, commands)
     except requests.exceptions.RequestException as e:
