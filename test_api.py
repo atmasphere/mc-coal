@@ -423,7 +423,7 @@ class LogLineTest(AgentApiTest):
         self.assertCreated(response)
         body = json.loads(response.body)
         self.assertLength(0, body)
-        self.assertEqual('1.3.2', models.Server.query().get().version)
+        self.assertEqual('1.3.2', models.Server.query().get().running_version)
         self.assertEqual(1, models.LogLine.query().count())
         log_line = models.LogLine.query().get()
         self.assertEqual(SERVER_START_LOG_LINE, log_line.line)

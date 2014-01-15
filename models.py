@@ -429,11 +429,11 @@ class Server(ndb.Model):
     name = ndb.StringProperty()
     is_gce = ndb.BooleanProperty(default=False)
     version = ndb.StringProperty()
+    running_version = ndb.StringProperty()
     memory = ndb.StringProperty(default='256M')
     operator = ndb.StringProperty()
     address = ndb.StringProperty()
     active = ndb.BooleanProperty(default=True)
-    version = ndb.StringProperty()
     status = ndb.StringProperty(default=SERVER_UNKNOWN)
     is_running = ndb.ComputedProperty(lambda self: self.status == SERVER_RUNNING)
     is_stopped = ndb.ComputedProperty(lambda self: self.status == SERVER_STOPPED)
@@ -506,8 +506,8 @@ class Server(ndb.Model):
 
     def update_version(self, server_version):
         if server_version is not None:
-            if self.version != server_version:
-                self.version = server_version
+            if self.running_version != server_version:
+                self.running_version = server_version
                 self.put()
 
     def update_status(

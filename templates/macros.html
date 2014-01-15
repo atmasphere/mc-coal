@@ -104,7 +104,7 @@
             <div class="right">
                 <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% endif %})</h4>
                 <strong>
-                    {{ status_text }} (v{{ server.version }})
+                    {{ status_text }} (v{{ server.running_version }})
                 </strong>
                 {% if server.is_running == True %}
                     <br/>(Problems?&nbsp;Check&nbsp;<strong><a href="http://xpaw.ru/mcstatus/">Minecraft's&nbsp;Status</a></strong>)

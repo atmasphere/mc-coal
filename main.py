@@ -579,7 +579,7 @@ class ServerEditHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
-            form = ServerForm(formdata=self.request.POST, obj=server)
+            form = ServerForm(formdata=self.request.POST)
             if form.validate():
                 server.name = form.name.data
                 server.put()
@@ -688,6 +688,7 @@ class ServerCreateGceHandler(UserHandler):
                 server = Server.create(
                     name=form.name.data,
                     is_gce=True,
+                    version=form.version.data,
                     memory=form.memory.data,
                     operator=form.operator.data or None
                 )
@@ -695,7 +696,7 @@ class ServerCreateGceHandler(UserHandler):
                 for prop in form:
                     if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
                         setattr(mc_properties, prop.name, int(prop.data))
-                    elif prop.name not in ['name', 'memory', 'operator']:
+                    elif prop.name not in ['name', 'version', 'memory', 'operator']:
                         setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()
                 self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
@@ -717,7 +718,11 @@ class ServerEditGceHandler(UserHandler):
             if not server.is_gce:
                 self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
             form = ServerGceForm(
-                obj=server.mc_properties, name=server.name, memory=server.memory, operator=server.operator or ''
+                obj=server.mc_properties,
+                name=server.name,
+                version=server.version,
+                memory=server.memory,
+                operator=server.operator or ''
             )
         except Exception, e:
             logging.error(u"Error GETting GCE server: {0}".format(e))
@@ -736,15 +741,11 @@ class ServerEditGceHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
-            form = ServerGceForm(
-                formdata=self.request.POST,
-                obj=server.mc_properties,
-                name=server.name,
-                memory=server.memory
-            )
+            form = ServerGceForm(formdata=self.request.POST)
             if form.validate():
-                server.name = form.name.data
                 server.is_gce = True
+                server.name = form.name.data
+                server.version = form.version.data
                 server.memory = form.memory.data
                 server.operator = form.operator.data or None
                 server.put()
@@ -752,7 +753,7 @@ class ServerEditGceHandler(UserHandler):
                 for prop in form:
                     if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
                         setattr(mc_properties, prop.name, int(prop.data))
-                    elif prop not in ['name', 'memory', 'operator']:
+                    elif prop not in ['name', 'version', 'memory', 'operator']:
                         setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()
                 self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
