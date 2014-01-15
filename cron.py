@@ -19,7 +19,7 @@ class ServerStatusHandler(webapp2.RequestHandler):
             server.update_status()
             if server.is_gce:
                 if server.is_running and not server.idle and not server.has_open_play_session:
-                    server.idle = datetime.datetime.now()
+                    server.idle = datetime.datetime.utcnow()
                     server.put()
                 server.stop_if_idle()
                 if server.is_running or server.is_queued_start:
@@ -28,7 +28,7 @@ class ServerStatusHandler(webapp2.RequestHandler):
                         instance.idle = None
                         instance.put()
         if instance.is_running and not gce_server_running and not instance.idle:
-            instance.idle = datetime.datetime.now()
+            instance.idle = datetime.datetime.utcnow()
             instance.put()
         instance.stop_if_idle()
 

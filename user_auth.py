@@ -193,7 +193,7 @@ class AuthHandler(UserHandler):
         if is_admin and not (user.active and user.admin):
             user.active = True
             user.admin = True
-        user.last_login = datetime.datetime.now()
+        user.last_login = datetime.datetime.utcnow()
         user.put()
         if ON_SERVER:
             time.sleep(2)

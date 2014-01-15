@@ -501,7 +501,7 @@ class Server(ndb.Model):
 
     def stop_if_idle(self):
         if self.is_gce and self.is_running and self.idle:
-            if datetime.datetime.now() > self.idle + datetime.timedelta(seconds=SERVER_MAX_IDLE_SECONDS):
+            if datetime.datetime.utcnow() > self.idle + datetime.timedelta(seconds=SERVER_MAX_IDLE_SECONDS):
                 self.stop()
 
     def update_version(self, server_version):
