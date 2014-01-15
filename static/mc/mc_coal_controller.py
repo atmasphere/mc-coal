@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import base64
+import httplib
 import fnmatch
 import json
 import logging
@@ -32,7 +33,7 @@ ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
 MINECRAFT_DIR = os.path.join(COAL_DIR, 'minecraft')
 NUM_RETRIES = 5
 CHUNKSIZE = 2 * 1024 * 1024
-RETRY_ERRORS = (httplib2.HttpLib2Error, IOError)
+RETRY_ERRORS = (httplib2.HttpLib2Error, IOError, httplib.ResponseNotReady)
 
 #Globals
 logger = None
@@ -75,9 +76,13 @@ def get_archive_file_path(server_key):
 
 
 def read_server_key(port):
+    server_key = None
     server_key_filename = os.path.join(SERVERS_DIR, port, 'server_key')
-    with open(server_key_filename, 'r') as f:
-        server_key = f.read()
+    try:
+        with open(server_key_filename, 'r') as f:
+            server_key = f.read()
+    except:
+        pass
     return server_key
 
 
@@ -262,18 +267,13 @@ def start_server(server_key, **kwargs):
     server_properties = kwargs.get('server_properties', {})
     servers = get_servers()
     if server_key in servers.keys():
-        return
+        return  # TODO: Handle partial startups/shutdowns
     port = get_free_port()
     address = external_ip
     if port != 25565:
         address += ':{0}'.format(port)
     server_dir = get_server_dir(port)
-    while os.path.exists(server_dir):
-        if read_server_key(port) == server_key:
-            break
-        port = get_free_port()
-        server_dir = get_server_dir(port)
-    if not os.path.exists(server_dir):
+    try:
         os.makedirs(server_dir)
         write_server_key(port, server_key)
         found = load_zip(server_key)
@@ -284,9 +284,12 @@ def start_server(server_key, **kwargs):
             with open(ops, "w") as f:
                 line = "{0}\n".format(operator)
                 f.write(line)
+    except Exception as e:
+        logger.error("Error ({0}) loading files for server {1}".format(e, server_key))
+        raise
     try:
         copy_server_files(port, minecraft_url, server_properties)
-    except Exception, e:
+    except Exception as e:
         logger.error("Error ({0}) copying files for server {1}".format(e, server_key))
         raise
     # Start Agent
@@ -303,8 +306,9 @@ def start_server(server_key, **kwargs):
         pid_filename = os.path.join(server_dir, 'agent.pid')
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
-    except Exception, e:
+    except Exception as e:
         logger.error("Error ({0}) starting agent process for server {1}".format(e, server_key))
+        raise
     # Start MC
     try:
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
@@ -321,6 +325,7 @@ def start_server(server_key, **kwargs):
             pid_file.write(str(pid))
     except Exception, e:
         logger.error("Error ({0}) starting MC process for server {1}".format(e, server_key))
+        raise
 
 
 def zip_server_dir(server_dir, archive_file):
@@ -403,19 +408,19 @@ def stop_server(server_key, **kwargs):
         with open(os.path.join(server_dir, 'server.pid'), 'r') as f:
             pid = f.read()
         os.waitpid(int(pid), 0)
-    except OSError, e:
+    except Exception as e:
         logger.error("Error ({0}) stopping MC process for server {1}".format(e, server_key))
     # Archive server_dir
     archive_successful = False
     archive = get_archive_file_path(server_key)
     try:
         zip_server_dir(server_dir, archive)
-    except Exception, e:
+        archive_successful = True
+    except Exception as e:
         logger.error("Error ({0}) archiving server {1}".format(e, server_key))
     try:
         upload_zip_to_gcs(server_key, archive)
-        archive_successful = True
-    except Exception, e:
+    except Exception as e:
         logger.error("Error ({0}) uploading archived server {1}".format(e, server_key))
     try:
         # Stop Agent
@@ -424,7 +429,7 @@ def stop_server(server_key, **kwargs):
             pid = f.read()
         os.kill(int(pid), signal.SIGTERM)
         os.waitpid(int(pid), 0)
-    except OSError, e:
+    except OSError as e:
         logger.error("Error ({0}) terminating agent process for server {1}".format(e, server_key))
     # Delete server_dir
     if archive_successful:
