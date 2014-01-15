@@ -6,10 +6,10 @@ apt-get -y install python-pip
 apt-get -y install python-psutil
 apt-get -y install git
 pip install --upgrade google-api-python-client
-pip install pytz
-pip install pyyaml
-pip install requests
-pip install git+https://github.com/twoolie/NBT@version-1.4.1#egg=NBT
+pip install --upgrade pytz
+pip install --upgrade pyyaml
+pip install --upgrade requests
+pip install --upgrade git+https://github.com/twoolie/NBT@version-1.4.1#egg=NBT
 
 mkdir /coal
 cd /coal
@@ -17,7 +17,6 @@ cd /coal
 PROJECT_ID=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/project-id)
 PROJECT_MC_URL="https://$PROJECT_ID.appspot.com/mc"
 echo $PROJECT_ID > project_id
-printf "PROJECT_ID: $PROJECT_ID"
 
 TIMEZONES_URL="$PROJECT_MC_URL/timezones.py"
 wget $TIMEZONES_URL -O timezones.py
