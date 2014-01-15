@@ -638,7 +638,7 @@ class ServerGceForm(ServerForm):
     def __init__(self, *args, **kwargs):
         super(ServerGceForm, self).__init__(*args, **kwargs)
         self.version.choices = [
-            (d.version, d.url) for d in MinecraftDownload.query().fetch(100)
+            (d.url, d.version) for d in MinecraftDownload.query().fetch(100)
         ]
         self.memory.choices = [
             ('256M', '256 Megabytes'),
