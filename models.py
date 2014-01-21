@@ -627,6 +627,7 @@ class ServerModel(ndb.Model):
 
 @ae_ndb_serializer
 class MinecraftProperties(ServerModel):
+    server_port = ndb.IntegerProperty()
     motd = ndb.StringProperty(default='An MC-COAL Minecraft Server')
     white_list = ndb.BooleanProperty(default=False)
     gamemode = ndb.IntegerProperty(default=0)
@@ -661,9 +662,10 @@ class MinecraftProperties(ServerModel):
         for prop in self._properties:
             mc_prop_name = prop.replace('_', '-')
             value = getattr(self, prop)
-            mc_props[mc_prop_name] = str(value) if value is not None else ''
-            if mc_props[mc_prop_name] in ['False', 'True']:
-                mc_props[mc_prop_name] = mc_props[mc_prop_name].lower()
+            if mc_prop_name != 'server-port' or value:
+                mc_props[mc_prop_name] = str(value) if value is not None else ''
+                if mc_props[mc_prop_name] in ['False', 'True']:
+                    mc_props[mc_prop_name] = mc_props[mc_prop_name].lower()
         return mc_props
 
     @classmethod

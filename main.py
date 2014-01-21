@@ -18,7 +18,8 @@ from wtforms import form, fields, validators, widgets
 from base_handler import uri_for_pagination
 from channel import ServerChannels
 import gce
-from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim, MinecraftDownload
+from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
+from models import MinecraftDownload, MinecraftProperties
 import search
 from user_auth import UserBase, UserHandler, authentication_required, authenticate, authenticate_admin
 
@@ -591,7 +592,33 @@ class ServerEditHandler(UserHandler):
         self.render_template('server.html', context=context)
 
 
+class UniquePort(object):
+    def __init__(self, server=None):
+        self.server = server
+
+    def __call__(self, form, field):
+        server = self.server or form.server
+        found_server = None
+        port = field.data
+        if port:
+            port = int(port)
+            for props in MinecraftProperties.query().filter(MinecraftProperties.server_port == port):
+                s = props.server
+                if server is None or s.key != server.key:
+                    if s.active:
+                        found_server = s
+                    break
+            if found_server:
+                raise validators.ValidationError(
+                    "Port {0} is already assigned to the server '{1}'".format(port, found_server.name)
+                )
+
+
 class ServerPropertiesForm(ServerForm):
+    server_port = fields.IntegerField(
+        u'The minecraft server port to use (leave blank for first available)',
+        validators=[validators.Optional(), validators.NumberRange(min=25565, max=25575), UniquePort()]
+    )
     version = fields.SelectField(u'Minecraft Version', validators=[validators.DataRequired()])
     memory = fields.SelectField(u'Server memory', validators=[validators.DataRequired()], default='256M')
     operator = fields.StringField(u'Initial operator username', default='')
@@ -635,8 +662,9 @@ class ServerPropertiesForm(ServerForm):
     )
     op_permission_level = fields.SelectField(u'Ops permission level', default='3')
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, server=None, *args, **kwargs):
         super(ServerPropertiesForm, self).__init__(*args, **kwargs)
+        self.server = server
         self.version.choices = [
             (d.version, d.version) for d in MinecraftDownload.query().fetch(100)
         ]
@@ -695,7 +723,8 @@ class ServerCreateGceHandler(UserHandler):
                 mc_properties = server.mc_properties
                 for prop in form:
                     if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
-                        setattr(mc_properties, prop.name, int(prop.data))
+                        if prop.data is not None:
+                            setattr(mc_properties, prop.name, int(prop.data))
                     elif prop.name not in ['name', 'version', 'memory', 'operator']:
                         setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()
@@ -741,7 +770,7 @@ class ServerEditGceHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
-            form = ServerPropertiesForm(formdata=self.request.POST)
+            form = ServerPropertiesForm(formdata=self.request.POST, server=server)
             if form.validate():
                 server.is_gce = True
                 server.name = form.name.data
@@ -752,7 +781,8 @@ class ServerEditGceHandler(UserHandler):
                 mc_properties = server.mc_properties
                 for prop in form:
                     if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
-                        setattr(mc_properties, prop.name, int(prop.data))
+                        if prop.data is not None:
+                            setattr(mc_properties, prop.name, int(prop.data))
                     elif prop not in ['name', 'version', 'memory', 'operator']:
                         setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()

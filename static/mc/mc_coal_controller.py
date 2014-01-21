@@ -268,7 +268,13 @@ def start_server(server_key, **kwargs):
     servers = get_servers()
     if server_key in servers.keys():
         return  # TODO: Handle partial startups/shutdowns
-    port = get_free_port()
+    port = server_properties.get('server-port', None)
+    if port:
+        port = int(port)
+    else:
+        port = get_free_port()
+    if port in get_ports_in_use():
+        raise Exception("Requested port {0} already in use".format(port))
     address = external_ip
     if port != 25565:
         address += ':{0}'.format(port)
