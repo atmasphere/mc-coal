@@ -190,9 +190,8 @@ def verify_address(region):
             response = execute_request(
                 get_gce_service().addresses().get(project=get_project_id(), region=region, address=ADDRESS_NAME)
             )
-        if response['status'] == 'RESERVED':
-            logging.info("RESPONSE: {0}".format(response))
-            address = response.get('address', None)
+            if response['status'] == 'RESERVED':
+                address = response.get('address', None)
         return address
     except HttpError:
         pass
@@ -209,7 +208,6 @@ def create_address(region):
             get_gce_service().addresses().get(project=get_project_id(), region=region, address=ADDRESS_NAME)
         )
         if response['status'] == 'RESERVED':
-            logging.info(response)
             address = response.get('address', None)
     return address
 
