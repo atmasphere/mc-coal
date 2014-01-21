@@ -200,7 +200,7 @@ def verify_address(region):
 
 def create_address(region):
     execute_request(
-        get_gce_service().addresses().insert(project=get_project_id(), body={'name': ADDRESS_NAME})
+        get_gce_service().addresses().insert(project=get_project_id(), region=region, body={'name': ADDRESS_NAME})
     )
     address = None
     while not address:
