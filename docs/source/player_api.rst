@@ -15,7 +15,7 @@ Players
     :Response Data: - **players** -- The list of players.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **players** is a dictionary of player information.
+    Each entry in **players** is an object of player information.
 
     .. _player_response_data:
 

@@ -14,24 +14,28 @@ Chats
   :query before: Return chats with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
   :status 200 OK: Successfully queried the chats.
+  
+    :Response Data:
+  
+      - **chats** -- The list of chats.
+      - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    :Response Data: - **chats** -- The list of chats.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
-
-    Each entry in **chats** is a dictionary of chat information.
+    Each entry in **chats** is an object of chat information.
 
     .. _chat_response_data:
 
-    :Chat: - **key** -- The chat log line key.
-           - **server_key** -- The chat's server key.
-           - **chat** -- The chat text. May be ``null``.
-           - **username** -- The minecraft username associated with the chat. May be ``null``.
-           - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
-           - **user_key** -- The user key. ``null`` if the username is not mapped to a player or the player is not mapped to a user.
-           - **timestamp** -- The timestamp of the chat. It will be reported in the agent's timezone.
-           - **line** -- The complete raw chat log line text.
-           - **created** -- The creation timestamp.
-           - **updated** -- The updated timestamp.
+    :Chat:
+  
+      - **key** -- The chat log line key.
+      - **server_key** -- The chat's server key.
+      - **chat** -- The chat text. May be ``null``.
+      - **username** -- The minecraft username associated with the chat. May be ``null``.
+      - **player_key** -- The player key. ``null`` if the username is not mapped to a player.
+      - **user_key** -- The user key. ``null`` if the username is not mapped to a player or the player is not mapped to a user.
+      - **timestamp** -- The timestamp of the chat. It will be reported in the agent's timezone.
+      - **line** -- The complete raw chat log line text.
+      - **created** -- The creation timestamp.
+      - **updated** -- The updated timestamp.
 
   **Example request**:
 
@@ -79,19 +83,21 @@ Chats
 
 .. http:post:: /api/v1/servers/(server_key)/chats
 
-  Queue a new chat on the server (`server_key`) from the authenticated user. In game, the chat will appear as a "Server" chat with the user's default minecraft username in angle brackets (much like a normal chat)::
+  Queue a new chat on the server (`server_key`) from the authenticated user. In game, the chat will appear as a "Server" chat with the user's default minecraft username in angle brackets (much like a normal chat):
+  ::
+  
+      [Server] <gumptionthomas> Hello world...
 
-    [Server] <gumptionthomas> Hello world...
-
-  If the API user does not have an associated minecraft username, the user's nickname or email will be used instead::
-
-    [Server] <t@gmail.com> Hello world...
+  If the API user does not have an associated minecraft username, the user's nickname or email will be used instead:
+  ::
+  
+      [Server] <t@gmail.com> Hello world...
 
   :arg server_key: The target server's key. (*required*)
 
   :formparam chat: The chat text.
 
-  :status 201 Created: Successfully queued the chat. It will be sent to the agent on the next ping.
+  :status 202 Accepted: Successfully queued the chat. It will be sent to the agent on the next ping.
 
   **Example request**:
 
@@ -107,7 +113,7 @@ Chats
 
   .. sourcecode:: http
 
-    HTTP/1.1 201 OK
+    HTTP/1.1 202 Accepted
     Content-Type: application/json
 
 .. http:get:: /api/v1/servers/(server_key)/chats/(key)
@@ -163,11 +169,13 @@ Chats
   :query before: Return log lines with a timestamp before this datetime (exclusive). This parameter should be of the form ``YYYY-MM-DD HH:MM:SS`` and is assumed to be UTC.
 
   :status 200 OK: Successfully queried the chats.
+  
+    :Response Data:
+  
+      - **chats** -- The list of the player's chats.
+      - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    :Response Data: - **chats** -- The list of the player's chats.
-                    - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
-
-    Each entry in **chats** is a dictionary of chat information. See :ref:`Chat response data <chat_response_data>`
+    Each entry in **chats** is an object of chat information. See :ref:`Chat response data <chat_response_data>`
 
   **Example request**:
 
@@ -215,16 +223,17 @@ Chats
 
 .. http:post:: /api/v1/servers/(server_key)/players/(key_username)/chats
 
-  Queue a new chat on the server (`server_key`) for the player (`key_username`) from the authenticated user. In game, the chat will appear as a "Server" chat with the username in angle brackets (much like a normal chat)::
-
-    [Server] <gumptionthomas> Hello world...
+  Queue a new chat on the server (`server_key`) for the player (`key_username`) from the authenticated user. In game, the chat will appear as a "Server" chat with the username in angle brackets (much like a normal chat):
+  ::
+  
+      [Server] <gumptionthomas> Hello world...
 
   :arg server_key: The target server's key. (*required*)
   :arg key_username: The requested player's key or minecraft username. (*required*)
 
   :formparam chat: The chat text.
 
-  :status 201 Created: Successfully queued the chat. It will be sent to the agent on the next ping.
+  :status 202 Accepted: Successfully queued the chat. It will be sent to the agent on the next ping.
 
   :status 403 Forbidden: The authenticated user has not claimed the requested player's username.
 
@@ -242,7 +251,7 @@ Chats
 
   .. sourcecode:: http
 
-    HTTP/1.1 201 OK
+    HTTP/1.1 202 Accepted
     Content-Type: application/json
 
 

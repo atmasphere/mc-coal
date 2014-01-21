@@ -407,13 +407,13 @@ class MinecraftDownload(ndb.Model):
         return True
 
     @classmethod
-    def create(cls, version, url):
+    def create(cls, version, url, verify=True):
         key = ndb.Key(cls, version)
         exists = key.get()
         if exists:
             raise Exception("Minecraft version ({0}) already exists".format(version))
         mc = cls(key=key, version=version, url=url)
-        if not mc.verify():
+        if verify and not mc.verify():
             raise Exception("Minecraft URL ({0}) is invalid".format(url))
         mc.put()
         return mc
@@ -495,7 +495,7 @@ class Server(ndb.Model):
             self.update_status(status=SERVER_QUEUED_START)
 
     def stop(self):
-        if self.is_gce:
+        if self.is_gce and not (self.is_stopped or self.is_queued_stop):
             stop_server(self)
             self.update_status(status=SERVER_QUEUED_STOP)
 
@@ -625,6 +625,7 @@ class ServerModel(ndb.Model):
         return cls.query(ancestor=server_key)
 
 
+@ae_ndb_serializer
 class MinecraftProperties(ServerModel):
     motd = ndb.StringProperty(default='An MC-COAL Minecraft Server')
     white_list = ndb.BooleanProperty(default=False)
@@ -649,6 +650,10 @@ class MinecraftProperties(ServerModel):
     snooper_enabled = ndb.BooleanProperty(default=True)
     resource_pack = ndb.StringProperty()
     op_permission_level = ndb.IntegerProperty(default=3)
+
+    @property
+    def server(self):
+        return self.key.parent().get()
 
     @property
     def server_properties(self):

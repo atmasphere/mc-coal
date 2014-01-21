@@ -74,7 +74,7 @@ Most client registration and configuration endpoints (:http:post:`/oauth/v1/regi
 
   .. sourcecode:: http
 
-    HTTP/1.1 200 OK
+    HTTP/1.1 201 Created
     Content-Type: application/json
 
   .. sourcecode:: javascript

@@ -45,7 +45,7 @@ Status Codes
 
 - :http:statuscode:`200`
 
-  The body will be a JSON dictionary whose contents are resource specific:
+  The body will be a JSON object whose contents are resource specific:
 
   .. sourcecode:: javascript
 
@@ -57,7 +57,7 @@ Status Codes
 
 - :http:statuscode:`201`
 
-  The body will be a JSON dictionary whose contents are resource specific:
+  The body will be a JSON object whose contents are resource specific:
 
   .. sourcecode:: javascript
 
@@ -69,7 +69,7 @@ Status Codes
 
 - :http:statuscode:`400`
 
-  The body will be a JSON dictionary of the form:
+  The body will be a JSON object of the form:
 
   .. sourcecode:: javascript
 
@@ -85,7 +85,7 @@ Status Codes
 
 - :http:statuscode:`500`
 
-  The body will be a JSON dictionary of the form:
+  The body will be a JSON object of the form:
 
   .. sourcecode:: javascript
 

@@ -13,10 +13,10 @@ from wtforms import form, fields, validators
 from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
 
-from models import Server, User, Player, PlaySession, LogLine, Command, ScreenShot
+from models import Server, MinecraftProperties, MinecraftDownload, User, Player, PlaySession, LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG, ACHIEVEMENT_TAG
-from models import SERVER_UNKNOWN, SERVER_RUNNING, SERVER_STOPPED
-from oauth import Client, authenticate_agent_oauth_required, authenticate_user_required
+from models import SERVER_UNKNOWN, SERVER_RUNNING, SERVER_STOPPED, SERVER_QUEUED_START, SERVER_QUEUED_STOP
+from oauth import Client, authenticate_agent_oauth_required, authenticate_user_required, authenticate_admin_required
 from user_auth import authentication_required
 
 
@@ -87,7 +87,15 @@ class JsonHandler(webapp2.RequestHandler):
         self.json_response({}, status_code=code, errors=errors)
 
 
-class OptionalBooleanField(fields.BooleanField):
+class RestfulStringField(fields.StringField):
+    def process_formdata(self, valuelist):
+        if valuelist:
+            self.data = valuelist[0]
+        else:
+            self.data = None
+
+
+class RestfulBooleanField(fields.BooleanField):
     def process_data(self, value):
         if value is not None:
             self.data = bool(value)
@@ -95,20 +103,41 @@ class OptionalBooleanField(fields.BooleanField):
             self.data = None
 
     def process_formdata(self, valuelist):
-        if not valuelist:
-            self.data = self.default
+        if valuelist:
+            b = valuelist[0].lower()
+            if b and (b[0] == 'n' or b[0] == 'f' or b[0] == '0'):
+                self.data = False
+            else:
+                self.data = bool(valuelist[0])
         else:
-            self.data = valuelist[0] == 'True'
+            self.data = self.default
+
+
+class RestfulSelectField(fields.SelectField):
+    def process_data(self, value):
+        try:
+            self.data = self.coerce(value)
+        except (ValueError, TypeError):
+            self.data = None
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            try:
+                self.data = self.coerce(valuelist[0])
+            except ValueError:
+                raise ValueError(self.gettext('Invalid Choice: could not coerce'))
+        else:
+            self.data = None
 
 
 class PingForm(form.Form):
     server_name = fields.StringField(validators=[validators.InputRequired(), validators.Length(max=500)])
-    is_server_running = OptionalBooleanField(validators=[validators.Optional()])
+    is_server_running = RestfulBooleanField(validators=[validators.Optional()])
     server_day = fields.IntegerField(validators=[validators.Optional()])
     server_time = fields.IntegerField(validators=[validators.Optional()])
-    is_raining = OptionalBooleanField(validators=[validators.Optional()])
-    is_thundering = OptionalBooleanField(validators=[validators.Optional()])
-    address = fields.StringField(validators=[validators.Optional()])
+    is_raining = RestfulBooleanField(validators=[validators.Optional()])
+    is_thundering = RestfulBooleanField(validators=[validators.Optional()])
+    address = RestfulStringField(validators=[validators.Optional()])
     timestamp = fields.DateTimeField(validators=[validators.Optional()])
 
 
@@ -274,14 +303,26 @@ class UserKeyHandler(JsonHandler):
         self.json_response(user, USER_STRATEGY)
 
 
-SERVER_FIELDS = ['name', 'version', 'status', 'server_day', 'server_time', 'is_raining', 'is_thundering']
+SERVER_FIELDS = [
+    'name', 'address', 'running_version', 'status',
+    'server_day', 'server_time', 'is_raining', 'is_thundering'
+]
 SERVER_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.urlsafe(),
+    'gce': lambda o: o.is_gce,
     'last_ping': lambda o: api_datetime(o.last_ping),
     'created': lambda o: api_datetime(o.created),
     'updated': lambda o: api_datetime(o.updated)
 }
 SERVER_STRATEGY = ModelStrategy(Server).include(*SERVER_FIELDS).include(**SERVER_FIELD_FUNCTIONS)
+
+
+class ServerForm(form.Form):
+    name = fields.StringField(validators=[validators.InputRequired()])
+
+
+class CreateServerForm(ServerForm):
+    gce = RestfulBooleanField(validators=[validators.InputRequired()])
 
 
 class ServersHandler(MultiPageJsonHandler):
@@ -290,8 +331,14 @@ class ServersHandler(MultiPageJsonHandler):
     def get(self):
         self.json_response(self.fetch_page(Server.query_all(), results_name='servers'), SERVER_STRATEGY)
 
+    @authentication_required(authenticate=authenticate_admin_required)
+    @validate_params(form_class=CreateServerForm)
+    def post(self):
+        server = Server.create(name=self.request.form.name.data, is_gce=self.request.form.gce.data)
+        self.json_response(server, SERVER_STRATEGY, status_code=201)
 
-class ServersKeyHandler(JsonHandler):
+
+class ServerBaseHandler(JsonHandler):
     def get_server_by_key(self, key, abort=True):
         try:
             server_key = ndb.Key(urlsafe=key)
@@ -304,9 +351,166 @@ class ServersKeyHandler(JsonHandler):
             self.abort(404)
         return server
 
+
+class ServerKeyHandler(ServerBaseHandler):
     @authentication_required(authenticate=authenticate_user_required)
     def get(self, key):
         self.json_response(self.get_server_by_key(key), SERVER_STRATEGY)
+
+    @authentication_required(authenticate=authenticate_admin_required)
+    @validate_params(form_class=ServerForm)
+    def post(self, key):
+        server = self.get_server_by_key(key)
+        server.name = self.request.form.name.data
+        server.put()
+        self.json_response(server, SERVER_STRATEGY, status_code=200)
+
+
+SERVER_PROPERTIES_FIELDS = [
+    'motd', 'white_list', 'gamemode', 'force_gamemode', 'level_type', 'level_seed', 'generator_settings',
+    'difficulty', 'pvp', 'hardcore', 'allow_flight', 'allow_nether', 'max_build_height', 'generate_structures',
+    'spawn_npcs', 'spawn_animals', 'spawn_monsters', 'player_idle_timeout', 'spawn_protection', 'enable_command_block',
+    'snooper_enabled', 'resource_pack', 'op_permission_level'
+]
+SERVER_PROPERTIES_FIELD_FUNCTIONS = {
+    'key': lambda o: o.key.parent().urlsafe(),
+    'version': lambda o: o.server.version,
+    'memory': lambda o: o.server.memory,
+    'operator': lambda o: o.server.operator
+}
+SERVER_PROPERTIES_STRATEGY = ModelStrategy(MinecraftProperties).include(*SERVER_PROPERTIES_FIELDS).include(**SERVER_PROPERTIES_FIELD_FUNCTIONS)
+
+
+class ServerPropertiesForm(form.Form):
+    version = RestfulSelectField(validators=[validators.Optional()])
+    memory = RestfulSelectField(
+        validators=[validators.Optional()],
+        choices=[
+            ('256M', '256 Megabytes'),
+            ('512M', '512 Megabytes'),
+            ('1G', '1 Gigabyte')
+        ]
+    )
+    operator = RestfulStringField(validators=[validators.Optional()])
+    motd = RestfulStringField(validators=[validators.Optional()])
+    white_list = RestfulBooleanField(validators=[validators.Optional()])
+    gamemode = RestfulSelectField(
+        validators=[validators.Optional()],
+        choices=[
+            ('0', 'Survival'),
+            ('1', 'Creative'),
+            ('2', 'Adventure')
+        ]
+    )
+    force_gamemode = RestfulBooleanField(validators=[validators.Optional()])
+    level_type = RestfulSelectField(
+        validators=[validators.Optional()],
+        choices=[
+            ('DEFAULT', 'Default: Standard world with hills, valleys, water, etc.'),
+            ('FLAT', 'Flat: A flat world with no features, meant for building.'),
+            ('LARGEBIOMES', 'Large Biomes: Same as default but all biomes are larger.'),
+            ('AMPLIFIED', 'Amplified: Same as default but world-generation height limit is increased.')
+        ]
+    )
+    level_seed = RestfulStringField(validators=[validators.Optional()])
+    generator_settings = RestfulStringField(validators=[validators.Optional()])
+    difficulty = RestfulSelectField(
+        validators=[validators.Optional()],
+        choices=[
+            ('0', 'Peaceful'),
+            ('1', 'Easy'),
+            ('2', 'Normal'),
+            ('3', 'Hard')
+        ]
+    )
+    pvp = RestfulBooleanField(validators=[validators.Optional()])
+    hardcore = RestfulBooleanField(validators=[validators.Optional()])
+    allow_flight = RestfulBooleanField(validators=[validators.Optional()])
+    allow_nether = RestfulBooleanField(validators=[validators.Optional()])
+    max_build_height = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=1024)])
+    generate_structures = RestfulBooleanField(validators=[validators.Optional()])
+    spawn_npcs = RestfulBooleanField(validators=[validators.Optional()])
+    spawn_animals = RestfulBooleanField(validators=[validators.Optional()])
+    spawn_monsters = RestfulBooleanField(validators=[validators.Optional()])
+    player_idle_timeout = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=60)])
+    spawn_protection = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=64)])
+    enable_command_block = RestfulBooleanField(validators=[validators.Optional()])
+    snooper_enabled = RestfulBooleanField(validators=[validators.Optional()])
+    resource_pack = RestfulStringField(validators=[validators.Optional()])
+    op_permission_level = RestfulSelectField(
+        validators=[validators.Optional()],
+        choices=[
+            ('1', 'Can bypass spawn protection'),
+            ('2', 'Can use /clear, /difficulty, /effect, /gamemode, /gamerule, /give, and /tp, and can edit command blocks'),
+            ('3', 'Can use /ban, /deop, /kick, and /op')
+        ]
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(ServerPropertiesForm, self).__init__(*args, **kwargs)
+        self.version.choices = [
+            (d.version, d.version) for d in MinecraftDownload.query().fetch(100)
+        ]
+
+
+class ServerPropertiesHander(ServerBaseHandler):
+    @authentication_required(authenticate=authenticate_user_required)
+    def get(self, key):
+        server = self.get_server_by_key(key)
+        if not server.is_gce:
+            self.abort(404)
+        self.json_response(server.mc_properties, SERVER_PROPERTIES_STRATEGY)
+
+    @authentication_required(authenticate=authenticate_admin_required)
+    @validate_params(form_class=ServerPropertiesForm)
+    def post(self, key):
+        server_put = properties_put = False
+        server = self.get_server_by_key(key)
+        if not server.is_gce:
+            self.abort(404)
+        server_properties = server.mc_properties
+        for prop in self.request.form:
+            if prop.data is not None:
+                if prop.name in ['version', 'memory', 'operator']:
+                    setattr(server, prop.name, prop.data)
+                    server_put = True
+                elif prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
+                    setattr(server_properties, prop.name, int(prop.data))
+                    properties_put = True
+                else:
+                    setattr(server_properties, prop.name, prop.data)
+                    properties_put = True
+        if server_put:
+            server.put()
+        if properties_put:
+            server_properties.put()
+        self.json_response(server_properties, SERVER_PROPERTIES_STRATEGY, status_code=200)
+
+
+class ServerPlayHandler(ServerBaseHandler):
+    @authentication_required(authenticate=authenticate_user_required)
+    def post(self, key):
+        server = self.get_server_by_key(key)
+        if not server.is_gce:
+            self.abort(404)
+        status_code = 200
+        if server.status not in [SERVER_RUNNING, SERVER_QUEUED_START]:
+            server.start()
+            status_code = 202
+        self.response.set_status(status_code)
+
+
+class ServerPauseHandler(ServerBaseHandler):
+    @authentication_required(authenticate=authenticate_admin_required)
+    def post(self, key):
+        server = self.get_server_by_key(key)
+        if not server.is_gce:
+            self.abort(404)
+        status_code = 200
+        if server.status not in [SERVER_STOPPED, SERVER_QUEUED_STOP]:
+            server.stop()
+            status_code = 202
+        self.response.set_status(status_code)
 
 
 PLAYER_FIELDS = ['username', 'is_playing']
@@ -366,7 +570,10 @@ class PlayersHandler(MultiPageServerModelHandler):
     @validate_params(form_class=MultiPageForm)
     def get(self, server_key):
         server_key = self.get_server(server_key).key
-        self.json_response(self.fetch_page(Player.query_by_username(server_key), results_name='players'), PLAYER_STRATEGY)
+        self.json_response(
+            self.fetch_page(Player.query_by_username(server_key), results_name='players'),
+            PLAYER_STRATEGY
+        )
 
 
 class PlayerKeyUsernameHandler(ServerModelHandler):
@@ -472,10 +679,28 @@ class ChatHandler(MultiPageServerModelHandler):
         if q:
             query_string = u"chat:{0}".format(q)
             cursor = self.request.form.cursor.data or None
-            results, next_cursor = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=CHAT_TAG, since=since, before=before, cursor=cursor)
+            results, next_cursor = LogLine.search_api(
+                server_key,
+                query_string,
+                size=self.size,
+                username=username,
+                tag=CHAT_TAG,
+                since=since,
+                before=before,
+                cursor=cursor
+            )
             response = {'chats': results}
             if next_cursor is not None:
-                results, _ = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=CHAT_TAG, since=since, before=before, cursor=next_cursor)
+                results, _ = LogLine.search_api(
+                    server_key,
+                    query_string,
+                    size=self.size,
+                    username=username,
+                    tag=CHAT_TAG,
+                    since=since,
+                    before=before,
+                    cursor=next_cursor
+                )
                 if results:
                     response['cursor'] = next_cursor
             self.json_response(response, CHAT_STRATEGY)
@@ -495,7 +720,7 @@ class ChatHandler(MultiPageServerModelHandler):
                 self.abort(403)
         chat = u"/say {0}".format(self.request.form.chat.data)
         Command.push(server_key, username, chat)
-        self.response.set_status(201)
+        self.response.set_status(202)
 
 
 class ChatKeyHandler(ServerModelHandler):
@@ -543,10 +768,28 @@ class DeathHandler(MultiPageServerModelHandler):
         if q:
             query_string = u"death_message:{0}".format(q)
             cursor = self.request.form.cursor.data or None
-            results, next_cursor = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=DEATH_TAG, since=since, before=before, cursor=cursor)
+            results, next_cursor = LogLine.search_api(
+                server_key,
+                query_string,
+                size=self.size,
+                username=username,
+                tag=DEATH_TAG,
+                since=since,
+                before=before,
+                cursor=cursor
+            )
             response = {'deaths': results}
             if next_cursor is not None:
-                results, _ = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=DEATH_TAG, since=since, before=before, cursor=next_cursor)
+                results, _ = LogLine.search_api(
+                    server_key,
+                    query_string,
+                    size=self.size,
+                    username=username,
+                    tag=DEATH_TAG,
+                    since=since,
+                    before=before,
+                    cursor=next_cursor
+                )
                 if results:
                     response['cursor'] = next_cursor
             self.json_response(response, DEATH_STRATEGY)
@@ -601,10 +844,28 @@ class AchievementHandler(MultiPageServerModelHandler):
         if q:
             query_string = u"achievement:{0}".format(q)
             cursor = self.request.form.cursor.data or None
-            results, next_cursor = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=ACHIEVEMENT_TAG, since=since, before=before, cursor=cursor)
+            results, next_cursor = LogLine.search_api(
+                server_key,
+                query_string,
+                size=self.size,
+                username=username,
+                tag=ACHIEVEMENT_TAG,
+                since=since,
+                before=before,
+                cursor=cursor
+            )
             response = {'achievements': results}
             if next_cursor is not None:
-                results, _ = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=ACHIEVEMENT_TAG, since=since, before=before, cursor=next_cursor)
+                results, _ = LogLine.search_api(
+                    server_key,
+                    query_string,
+                    size=self.size,
+                    username=username,
+                    tag=ACHIEVEMENT_TAG,
+                    since=since,
+                    before=before,
+                    cursor=next_cursor
+                )
                 if results:
                     response['cursor'] = next_cursor
             self.json_response(response, ACHIEVEMENT_STRATEGY)
@@ -659,10 +920,27 @@ class LogLinesHandler(MultiPageServerModelHandler):
         if q:
             query_string = u"line:{0}".format(q)
             cursor = self.request.form.cursor.data or None
-            results, next_cursor = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=tag, since=since, before=before, cursor=cursor)
+            results, next_cursor = LogLine.search_api(
+                server_key,
+                query_string,
+                size=self.size,
+                username=username,
+                tag=tag, since=since,
+                before=before,
+                cursor=cursor
+            )
             response = {'loglines': results}
             if next_cursor is not None:
-                results, _ = LogLine.search_api(server_key, query_string, size=self.size, username=username, tag=tag, since=since, before=before, cursor=next_cursor)
+                results, _ = LogLine.search_api(
+                    server_key,
+                    query_string,
+                    size=self.size,
+                    username=username,
+                    tag=tag,
+                    since=since,
+                    before=before,
+                    cursor=next_cursor
+                )
                 if results:
                     response['cursor'] = next_cursor
             self.json_response(response, LOG_LINE_STRATEGY)
@@ -750,26 +1028,30 @@ routes = [
     webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
     webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
     webapp2.Route('/api/v1/servers/<server_key>/players', 'api.PlayersHandler', name='api_data_players'),
-    
+
     webapp2.Route('/api/v1/servers/<server_key>/sessions/<key>', 'api.PlaySessionKeyHandler', name='api_data_session_key'),
     webapp2.Route('/api/v1/servers/<server_key>/sessions', 'api.PlaySessionsHandler', name='api_data_sessions'),
 
     webapp2.Route('/api/v1/servers/<server_key>/chats/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
     webapp2.Route('/api/v1/servers/<server_key>/chats', 'api.ChatHandler', name='api_data_chats'),
-    
+
     webapp2.Route('/api/v1/servers/<server_key>/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
     webapp2.Route('/api/v1/servers/<server_key>/deaths', 'api.DeathHandler', name='api_data_deaths'),
-    
+
     webapp2.Route('/api/v1/servers/<server_key>/achievements/<key>', 'api.AchievementKeyHandler', name='api_data_achievement_key'),
     webapp2.Route('/api/v1/servers/<server_key>/achievements', 'api.AchievementHandler', name='api_data_achievements'),
 
     webapp2.Route('/api/v1/servers/<server_key>/loglines/<key>', 'api.LogLineKeyHandler', name='api_data_logline_key'),
     webapp2.Route('/api/v1/servers/<server_key>/loglines', 'api.LogLinesHandler', name='api_data_loglines'),
-    
+
     webapp2.Route('/api/v1/servers/<server_key>/screenshots/<key>', 'api.ScreenShotKeyHandler', name='api_data_screenshot_key'),
     webapp2.Route('/api/v1/servers/<server_key>/screenshots', 'api.ScreenShotsHandler', name='api_data_screenshots'),
     webapp2.Route('/api/v1/servers/<server_key>/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),
 
-    webapp2.Route('/api/v1/servers/<key>', 'api.ServersKeyHandler', name='api_data_server_key'),
+    webapp2.Route('/api/v1/servers/<key>/properties', 'api.ServerPropertiesHander', name='api_data_server_properties'),
+    webapp2.Route('/api/v1/servers/<key>/queue/play', 'api.ServerPlayHandler', name='api_data_server_play'),
+    webapp2.Route('/api/v1/servers/<key>/queue/pause', 'api.ServerPauseHandler', name='api_data_server_pause'),
+
+    webapp2.Route('/api/v1/servers/<key>', 'api.ServerKeyHandler', name='api_data_server_key'),
     webapp2.Route('/api/v1/servers', 'api.ServersHandler', name='api_data_servers')
 ]

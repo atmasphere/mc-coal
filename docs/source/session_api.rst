@@ -17,7 +17,7 @@ Sessions
     :Response Data: - **sessions** -- The list of play sessions.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **sessions** is a dictionary of play session information.
+    Each entry in **sessions** is an object of play session information.
 
     .. _session_response_data:
 
@@ -140,7 +140,7 @@ Sessions
     :Response Data: - **sessions** -- The list of the player's play sessions.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **sessions** is a dictionary of play session information. See :ref:`Play session response data <session_response_data>`
+    Each entry in **sessions** is an object of play session information. See :ref:`Play session response data <session_response_data>`
 
   **Example request**:
 

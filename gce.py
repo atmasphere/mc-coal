@@ -35,7 +35,9 @@ class Instance(ndb.Model):
     updated = ndb.DateTimeProperty(auto_now=True)
 
     def start(self):
-        if not self.is_unprovisioned():
+        status = self.status()
+        if status != 'UNPROVISIONED':
+            logging.warning("Trying to start instance whose status is '{0}'".format(status))
             return
         project_id = get_project_id()
         project_url = '%s%s' % (GCE_URL, project_id)

@@ -35,7 +35,7 @@ Log Lines
     :Response Data: - **loglines** -- The list of log lines.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **loglines** is a dictionary of log line information.
+    Each entry in **loglines** is an object of log line information.
 
     .. _logline_response_data:
 
@@ -49,7 +49,7 @@ Log Lines
                - **log_level** -- The log level of the log line. May be ``null``.
                - **ip** -- The ip address recorded with the log line. May be ``null``.
                - **port** -- The port recorded with the log line. May be ``null``.
-               - **location** -- The location of the log line as a dictionary containing ``x``, ``y``, and ``z`` keys with float values. May be ``null``.
+               - **location** -- The location of the log line as an object containing ``x``, ``y``, and ``z`` keys with float values. May be ``null``.
                - **chat** -- The chat text of the log line. May be ``null``.
                - **tags** -- A list of the log line's tags. May be an empty list.
                - **created** -- The creation timestamp.
@@ -183,7 +183,7 @@ Log Lines
     :Response Data: - **loglines** -- The list of the player's log lines.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **loglines** is a dictionary of log line information. See :ref:`Log line response data <logline_response_data>`
+    Each entry in **loglines** is an object of log line information. See :ref:`Log line response data <logline_response_data>`
 
   **Example request**:
 

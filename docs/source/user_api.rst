@@ -13,7 +13,7 @@ Users
     :Response Data: - **users** -- The list of users.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **users** is a dictionary of user information.
+    Each entry in **users** is an object of user information.
 
     .. _user_response_data:
 

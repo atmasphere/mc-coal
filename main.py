@@ -591,7 +591,7 @@ class ServerEditHandler(UserHandler):
         self.render_template('server.html', context=context)
 
 
-class ServerGceForm(ServerForm):
+class ServerPropertiesForm(ServerForm):
     version = fields.SelectField(u'Minecraft Version', validators=[validators.DataRequired()])
     memory = fields.SelectField(u'Server memory', validators=[validators.DataRequired()], default='256M')
     operator = fields.StringField(u'Initial operator username', default='')
@@ -636,7 +636,7 @@ class ServerGceForm(ServerForm):
     op_permission_level = fields.SelectField(u'Ops permission level', default='3')
 
     def __init__(self, *args, **kwargs):
-        super(ServerGceForm, self).__init__(*args, **kwargs)
+        super(ServerPropertiesForm, self).__init__(*args, **kwargs)
         self.version.choices = [
             (d.version, d.version) for d in MinecraftDownload.query().fetch(100)
         ]
@@ -676,14 +676,14 @@ class ServerCreateGceHandler(UserHandler):
         usernames = self.request.user.usernames
         if usernames:
             username = usernames[0]
-        form = ServerGceForm(operator=username)
+        form = ServerPropertiesForm(operator=username)
         context = {'form': form, 'action': webapp2.uri_for('server_create_gce')}
         self.render_template('server_create.html', context=context)
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self):
         try:
-            form = ServerGceForm(formdata=self.request.POST)
+            form = ServerPropertiesForm(formdata=self.request.POST)
             if form.validate():
                 server = Server.create(
                     name=form.name.data,
@@ -717,7 +717,7 @@ class ServerEditGceHandler(UserHandler):
                 self.abort(404)
             if not server.is_gce:
                 self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
-            form = ServerGceForm(
+            form = ServerPropertiesForm(
                 obj=server.mc_properties,
                 name=server.name,
                 version=server.version,
@@ -741,7 +741,7 @@ class ServerEditGceHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
-            form = ServerGceForm(formdata=self.request.POST)
+            form = ServerPropertiesForm(formdata=self.request.POST)
             if form.validate():
                 server.is_gce = True
                 server.name = form.name.data

@@ -33,9 +33,21 @@ DISCONNECT_LOG_LINE = '2012-10-09 20:50:08 [INFO] gumptionthomas left the game'
 DISCONNECT_LOG_LINE_2 = '2013-03-13 23:03:39 [INFO] gumptionthomas left the game'
 CONNECT_LOG_LINE = '2012-10-09 19:52:55 [INFO] gumptionthomas[/192.168.11.198:59659] logged in with entity id 14698 at (221.41534292614716, 68.0, 239.43154415221068)'
 CONNECT_LOG_LINE_2 = '2013-03-08 21:06:34 [INFO] gumptionthomas[/192.168.11.205:50167] logged in with entity id 3583968 at (1168.5659371692745, 63.0, -779.6390153758603)'
-ALL_LOG_LINES = [LOG_LINE, TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, CHAT_LOG_LINE_2, CHAT_LOG_LINE_3, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
-TIMESTAMP_LOG_LINES = [TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE, CHAT_LOG_LINE, CHAT_LOG_LINE_2, CHAT_LOG_LINE_3, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE, CONNECT_LOG_LINE_2]
-TIMESTAMP_LOG_LINES_CRON = [CHAT_LOG_LINE_2, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE_2, OVERLOADED_LOG_LINE, SERVER_STOP_LOG_LINE, SERVER_START_LOG_LINE, DISCONNECT_LOG_LINE, CHAT_LOG_LINE, CHAT_LOG_LINE_3, CONNECT_LOG_LINE, TIME_STAMP_LOG_LINE]
+ALL_LOG_LINES = [
+    LOG_LINE, TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE,
+    CHAT_LOG_LINE, CHAT_LOG_LINE_2, CHAT_LOG_LINE_3, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2,
+    CONNECT_LOG_LINE, CONNECT_LOG_LINE_2
+]
+TIMESTAMP_LOG_LINES = [
+    TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE,
+    CHAT_LOG_LINE, CHAT_LOG_LINE_2, CHAT_LOG_LINE_3, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2,
+    CONNECT_LOG_LINE, CONNECT_LOG_LINE_2
+]
+TIMESTAMP_LOG_LINES_CRON = [
+    CHAT_LOG_LINE_2, DISCONNECT_LOG_LINE_2, CONNECT_LOG_LINE_2, OVERLOADED_LOG_LINE, SERVER_STOP_LOG_LINE,
+    SERVER_START_LOG_LINE, DISCONNECT_LOG_LINE, CHAT_LOG_LINE, CHAT_LOG_LINE_3, CONNECT_LOG_LINE,
+    TIME_STAMP_LOG_LINE
+]
 CHAT_LOG_LINES_CRON = [CHAT_LOG_LINE_2, CHAT_LOG_LINE, CHAT_LOG_LINE_3]
 ANVIL_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was squashed by a falling anvil'
 PRICKED_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was pricked to death'
@@ -153,11 +165,12 @@ DEATH_LOG_LINES = [
 
 ACHIEVEMENT_LOG_LINES = [ACHIEVEMENT_LOG_LINE]
 
-TEST_USER_EMAIL = 'admin@example.com'
+ADMIN_EMAIL = 'admin@example.com'
 
 NUM_PLAYER_FIELDS = 7
 NUM_USER_FIELDS = 9
-NUM_SERVER_FIELDS =11
+NUM_SERVER_FIELDS = 13
+NUM_SERVER_PROPERTIES_FIELDS = 27
 NUM_PLAY_SESSION_FIELDS = 12
 NUM_CHAT_FIELDS = 10
 NUM_DEATH_FIELDS = 10
@@ -185,20 +198,41 @@ class ApiTest(OauthTest):
         logging.disable(logging.NOTSET)
 
     def assertCreated(self, response):
-        error = u'Response did not return a 201 CREATED (status code was {0})\nBody: {1}'.format(response.status_int, response.body)
+        error = u'Response did not return a 201 CREATED (status code was {0})\nBody: {1}'.format(
+            response.status_int, response.body
+        )
         self.assertEqual(response.status_int, 201, error)
 
+    def assertAccepted(self, response):
+        error = u'Response did not return a 202 ACCEPTED (status code was {0})\nBody: {1}'.format(
+            response.status_int, response.body
+        )
+        self.assertEqual(response.status_int, 202, error)
+
     def assertMethodNotAllowed(self, response):
-        error = u'Response did not return a 405 METHOD NOT ALLOWED (status code was {0})\nBody: {1}'.format(response.status_int, response.body)
+        error = u'Response did not return a 405 METHOD NOT ALLOWED (status code was {0})\nBody: {1}'.format(
+            response.status_int, response.body
+        )
         self.assertEqual(response.status_int, 405, error)
 
     def get(self, url=None, params=None, headers=None, bearer_token=None):
         url = url or self.url
-        return super(ApiTest, self).get(url, params=params, headers=headers, bearer_token=bearer_token or getattr(self, 'access_token', None))
+        return super(ApiTest, self).get(
+            url,
+            params=params,
+            headers=headers,
+            bearer_token=bearer_token or getattr(self, 'access_token', None)
+        )
 
     def post(self, url=None, params='', headers=None, upload_files=None, bearer_token=None):
         url = url or self.url
-        return super(ApiTest, self).post(url, params=params, headers=headers, upload_files=upload_files, bearer_token=bearer_token or getattr(self, 'access_token', None))
+        return super(ApiTest, self).post(
+            url,
+            params=params,
+            headers=headers,
+            upload_files=upload_files,
+            bearer_token=bearer_token or getattr(self, 'access_token', None)
+        )
 
     def test_get_no_auth(self):
         if self.url:
@@ -332,7 +366,7 @@ class PingTest(AgentApiTest):
         self.assertEqual(10, server.last_server_day)
         self.assertEqual(1000, server.last_server_time)
         self.assertEqual(server.last_server_day, server.server_day)
-        self.assertLess(abs(server.server_time - server.last_server_time), 100) #Within 5 seconds
+        self.assertLess(abs(server.server_time - server.last_server_time), 100)  # Within 5 seconds
 
     def test_post_level_data_past(self):
         now = datetime.datetime.utcnow()
@@ -346,7 +380,7 @@ class PingTest(AgentApiTest):
 
     def test_post_level_data_day_past(self):
         now = datetime.datetime.utcnow()
-        self.post_level_data(now=now, timestamp=now - datetime.timedelta(seconds=1220)) #One game day + 400 ticks
+        self.post_level_data(now=now, timestamp=now - datetime.timedelta(seconds=1220))  # One game day + 400 ticks
         server = models.Server.query().get()
         self.assertTrue(server.is_running)
         self.assertEqual(10, server.last_server_day)
@@ -389,7 +423,9 @@ class LogLineTest(AgentApiTest):
         response = self.post()
         self.assertBadRequest(response)
         body = json.loads(response.body)
-        self.assertEqual({u'errors': {u'zone': [u'This field is required.'], u'line': [u'This field is required.']}}, body)
+        self.assertEqual(
+            {u'errors': {u'zone': [u'This field is required.'], u'line': [u'This field is required.']}}, body
+        )
 
     def test_post_log_line(self):
         params = {'line': LOG_LINE, 'zone': TIME_ZONE}
@@ -693,9 +729,21 @@ class DeathLogLineTest(AgentApiTest):
             self.assertEqual(TIME_ZONE, log_line.zone)
             self.assertEqual(datetime.datetime(2013, 4, 3, 15, 27, 55), log_line.timestamp)
             self.assertEqual('INFO', log_line.log_level)
-            self.assertEqual('gumptionthomas', log_line.username, msg="Incorrect death username: '{0}' [{1}]".format(log_line.username, log_line.line))
-            self.assertEqual(death_message, log_line.death_message, msg="Incorrect death message: '{0}' [{1}]".format(log_line.death_message, log_line.line))
-            self.assertEqual(username_mob, log_line.username_mob, msg="Incorrect username/mob: '{0}' [{1}]".format(log_line.username_mob, log_line.line))
+            self.assertEqual(
+                'gumptionthomas',
+                log_line.username,
+                msg="Incorrect death username: '{0}' [{1}]".format(log_line.username, log_line.line)
+            )
+            self.assertEqual(
+                death_message,
+                log_line.death_message,
+                msg="Incorrect death message: '{0}' [{1}]".format(log_line.death_message, log_line.line)
+            )
+            self.assertEqual(
+                username_mob,
+                log_line.username_mob,
+                msg="Incorrect username/mob: '{0}' [{1}]".format(log_line.username_mob, log_line.line)
+            )
             self.assertEqual(weapon, log_line.weapon)
             self.assertEqual(models.DEATH_TAGS, log_line.tags)
             self.assertEqual(1, models.Player.query().count())
@@ -719,9 +767,21 @@ class AchievementLogLineTest(AgentApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2013, 11, 10, 23, 19, 4), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
-        self.assertEqual('gumptionthomas', log_line.username, msg="Incorrect achievement username: '{0}' [{1}]".format(log_line.username, log_line.line))
-        self.assertEqual('Getting an Upgrade', log_line.achievement, msg="Incorrect achievement: '{0}' [{1}]".format(log_line.achievement, log_line.line))
-        self.assertEqual('has just earned the achievement [Getting an Upgrade]', log_line.achievement_message, msg="Incorrect achievement message: '{0}' [{1}]".format(log_line.achievement, log_line.line))
+        self.assertEqual(
+            'gumptionthomas',
+            log_line.username,
+            msg="Incorrect achievement username: '{0}' [{1}]".format(log_line.username, log_line.line)
+        )
+        self.assertEqual(
+            'Getting an Upgrade',
+            log_line.achievement,
+            msg="Incorrect achievement: '{0}' [{1}]".format(log_line.achievement, log_line.line)
+        )
+        self.assertEqual(
+            'has just earned the achievement [Getting an Upgrade]',
+            log_line.achievement_message,
+            msg="Incorrect achievement message: '{0}' [{1}]".format(log_line.achievement, log_line.line)
+        )
         self.assertEqual(models.ACHIEVEMENT_TAGS, log_line.tags)
         self.assertEqual(1, models.Player.query().count())
         player = models.Player.lookup(self.server.key, log_line.username)
@@ -855,9 +915,34 @@ class UserKeyTest(KeyApiTest):
         pass
 
 
-class ServersTest(MultiPageApiTest):
+class AdminApiTest(ApiTest):
+    def setUp(self):
+        super(AdminApiTest, self).setUp()
+        self.log_in_admin(email='admin@test.com')
+        self.access_token, self.refresh_token = self.get_tokens(email='admin@test.com')
+
+    def test_get_unauth(self):
+        if self.url:
+            self.access_token, self.refresh_token = self.get_tokens()
+            response = self.get()
+            if 'GET' in self.ALLOWED:
+                self.assertForbidden(response)
+            else:
+                self.assertMethodNotAllowed(response)
+
+    def test_post_unauth(self):
+        if self.url:
+            self.access_token, self.refresh_token = self.get_tokens()
+            response = self.post()
+            if 'POST' in self.ALLOWED:
+                self.assertForbidden(response)
+            else:
+                self.assertMethodNotAllowed(response)
+
+
+class ServersTest(AdminApiTest, MultiPageApiTest):
     URL = '/api/v1/servers'
-    ALLOWED = ['GET']
+    ALLOWED = ['GET', 'POST']
 
     def setUp(self):
         super(ServersTest, self).setUp()
@@ -876,6 +961,12 @@ class ServersTest(MultiPageApiTest):
             self.assertEqual(NUM_SERVER_FIELDS, len(server))
             self.assertEqual(models.SERVER_UNKNOWN, server['status'])
 
+    def test_get_unauth(self):
+        if self.url:
+            self.access_token, self.refresh_token = self.get_tokens()
+            response = self.get()
+            self.assertOK(response)
+
     def test_get_inactive(self):
         self.server.active = False
         self.server.put()
@@ -889,10 +980,127 @@ class ServersTest(MultiPageApiTest):
             self.assertEqual(NUM_SERVER_FIELDS, len(server))
             self.assertEqual(models.SERVER_UNKNOWN, server['status'])
 
+    def test_post(self):
+        name = 'Brave New World'
+        params = {'name': name, 'gce': False}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_FIELDS, body)
+        self.assertEqual(len(self.servers)+1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual(name, body['name'])
+        self.assertEqual(name, server.name)
+        self.assertFalse(body['gce'])
+        self.assertFalse(server.is_gce)
 
-class ServerKeyTest(KeyApiTest):
+    def test_post_boolean(self):
+        name = 'Brave New World'
+        params = {'name': name, 'gce': '0'}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_FIELDS, body)
+        self.assertEqual(len(self.servers)+1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual(name, body['name'])
+        self.assertEqual(name, server.name)
+        self.assertFalse(body['gce'])
+        self.assertFalse(server.is_gce)
+
+    def test_post_boolean_2(self):
+        name = 'Brave New World'
+        params = {'name': name, 'gce': 'no'}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_FIELDS, body)
+        self.assertEqual(len(self.servers)+1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual(name, body['name'])
+        self.assertEqual(name, server.name)
+        self.assertFalse(body['gce'])
+        self.assertFalse(server.is_gce)
+
+    def test_post_gce(self):
+        name = 'Brave New World'
+        params = {'name': name, 'gce': 't'}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_FIELDS, body)
+        self.assertEqual(len(self.servers)+1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual(name, body['name'])
+        self.assertEqual(name, server.name)
+        self.assertTrue(body['gce'])
+        self.assertTrue(server.is_gce)
+
+    def test_post_gce_boolean(self):
+        name = 'Brave New World'
+        params = {'name': name, 'gce': 'yes'}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_FIELDS, body)
+        self.assertEqual(len(self.servers)+1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual(name, body['name'])
+        self.assertEqual(name, server.name)
+        self.assertTrue(body['gce'])
+        self.assertTrue(server.is_gce)
+
+    def test_post_gce_boolean_2(self):
+        name = 'Brave New World'
+        params = {'name': name, 'gce': 'affirmative'}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_FIELDS, body)
+        self.assertEqual(len(self.servers)+1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual(name, body['name'])
+        self.assertEqual(name, server.name)
+        self.assertTrue(body['gce'])
+        self.assertTrue(server.is_gce)
+
+    def test_post_no_name(self):
+        params = {'gce': False}
+        logging.disable(logging.ERROR)
+        response = self.post(params=params)
+        logging.disable(logging.NOTSET)
+        self.assertBadRequest(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        error = body['errors']
+        self.assertLength(1, error)
+        self.assertEqual([u'This field is required.'], error['name'])
+        self.assertEqual(len(self.servers), models.Server.query().count())
+
+    def test_post_no_gce(self):
+        name = 'Brave New World'
+        params = {'name': name}
+        logging.disable(logging.ERROR)
+        response = self.post(params=params)
+        logging.disable(logging.NOTSET)
+        self.assertBadRequest(response)
+        body = json.loads(response.body)
+        self.assertLength(1, body)
+        error = body['errors']
+        self.assertLength(1, error)
+        self.assertEqual([u'This field is required.'], error['gce'])
+        self.assertEqual(len(self.servers), models.Server.query().count())
+
+
+class ServerKeyTest(AdminApiTest, KeyApiTest):
     URL = '/api/v1/servers'
-    ALLOWED = ['GET']
+    ALLOWED = ['GET', 'POST']
 
     @property
     def url(self):
@@ -909,6 +1117,154 @@ class ServerKeyTest(KeyApiTest):
         self.assertEqual(self.server.key.urlsafe(), server['key'])
         self.assertEqual(self.server.name, server['name'])
         self.assertEqual(models.SERVER_UNKNOWN, server['status'])
+
+    def test_get_unauth(self):
+        if self.url:
+            self.access_token, self.refresh_token = self.get_tokens()
+            response = self.get()
+            self.assertOK(response)
+
+    def test_post(self):
+        name = 'Not So Brave New World'
+        params = {'name': name}
+        response = self.post(params=params)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_FIELDS, body)
+        self.assertEqual(1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual(name, body['name'])
+        self.assertEqual(name, server.name)
+
+
+class ServerPropertiesTest(AdminApiTest):
+    URL = '/api/v1/servers'
+    ALLOWED = ['GET', 'POST']
+
+    @property
+    def url(self):
+        return "{0}/{1}/properties".format(self.URL, self.server.key.urlsafe())
+
+    def setUp(self):
+        super(ServerPropertiesTest, self).setUp()
+        self.server.is_gce = True
+        self.server.put()
+
+    def test_get(self):
+        response = self.get()
+        self.assertOK(response)
+        server_props = json.loads(response.body)
+        self.assertEqual(NUM_SERVER_PROPERTIES_FIELDS, len(server_props))
+        self.assertEqual(self.server.key.urlsafe(), server_props['key'])
+        self.assertEqual(self.server.memory, server_props['memory'])
+        self.assertEqual(self.server.mc_properties.difficulty, server_props['difficulty'])
+        self.assertEqual(self.server.mc_properties.pvp, server_props['pvp'])
+
+    def test_get_unauth(self):
+        if self.url:
+            self.access_token, self.refresh_token = self.get_tokens()
+            response = self.get()
+            self.assertOK(response)
+
+    def test_post(self):
+        params = {'memory': '1G', 'difficulty': '3', 'pvp': True}
+        response = self.post(params=params)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_PROPERTIES_FIELDS, body)
+        self.assertEqual(1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual('1G', body['memory'])
+        self.assertEqual('1G', server.memory)
+        self.assertEqual(3, body['difficulty'])
+        self.assertEqual(3, server.mc_properties.difficulty)
+        self.assertEqual(True, body['pvp'])
+        self.assertEqual(True, server.mc_properties.pvp)
+
+    def test_get_invalid_key(self):
+        if self.url:
+            url = "{0}/{1}/properties".format(self.URL, 'invalid_key')
+            response = self.get(url=url)
+            self.assertNotFound(response)
+
+
+class ServerPlayTest(AdminApiTest):
+    URL = '/api/v1/servers'
+    ALLOWED = ['POST']
+
+    @property
+    def url(self):
+        return "{0}/{1}/queue/play".format(self.URL, self.server.key.urlsafe())
+
+    def setUp(self):
+        super(ServerPlayTest, self).setUp()
+        self.testbed.init_taskqueue_stub(root_path=os.path.dirname(__file__))
+        models.MinecraftDownload.create(
+            '1.7.4',
+            'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar',
+            verify=False
+        )
+        self.server.is_gce = True
+        self.server.version = '1.7.4'
+        self.server.put()
+
+    def test_post(self):
+        logging.disable(logging.ERROR)
+        response = self.post()
+        self.assertAccepted(response)
+        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
+        tasks = taskqueue_stub.GetTasks('controller')
+        self.assertEqual(1, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(
+            len(tasks), 1)
+        )
+        taskqueue_stub.FlushQueue("controller")
+
+    def test_post_unauth(self):
+        if self.url:
+            logging.disable(logging.ERROR)
+            self.access_token, self.refresh_token = self.get_tokens()
+            response = self.post()
+            self.assertAccepted(response)
+
+    def test_post_invalid_key(self):
+        if self.url:
+            url = "{0}/{1}/queue/play".format(self.URL,  'invalid_key')
+            response = self.post(url=url)
+            self.assertNotFound(response)
+
+
+class ServerPauseTest(AdminApiTest):
+    URL = '/api/v1/servers'
+    ALLOWED = ['POST']
+
+    @property
+    def url(self):
+        return "{0}/{1}/queue/pause".format(self.URL, self.server.key.urlsafe())
+
+    def setUp(self):
+        super(ServerPauseTest, self).setUp()
+        self.testbed.init_taskqueue_stub(root_path=os.path.dirname(__file__))
+        self.server.is_gce = True
+        self.server.put()
+
+    def test_post(self):
+        logging.disable(logging.ERROR)
+        response = self.post()
+        self.assertAccepted(response)
+        taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
+        tasks = taskqueue_stub.GetTasks('controller')
+        self.assertEqual(1, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(
+            len(tasks), 1)
+        )
+        taskqueue_stub.FlushQueue("controller")
+
+    def test_post_invalid_key(self):
+        if self.url:
+            url = "{0}/{1}/queue/paly".format(self.URL,  'invalid_key')
+            response = self.post(url=url)
+            self.assertNotFound(response)
 
 
 class ServerModelTestBase(object):
@@ -1025,7 +1381,13 @@ class PlaySessionsTest(MultiPageApiTest, ServerModelTestBase):
         self.play_sessions = []
         for i in range(10):
             player = self.players[i % 2]
-            play_session = models.PlaySession.create(self.server.key, player.username, self.now - datetime.timedelta(seconds=10*i), TIME_ZONE, None)
+            play_session = models.PlaySession.create(
+                self.server.key,
+                player.username,
+                self.now - datetime.timedelta(seconds=10*i),
+                TIME_ZONE,
+                None
+            )
             self.play_sessions.append(play_session)
 
     def test_get_wrong_server(self):
@@ -1072,7 +1434,11 @@ class PlaySessionsTest(MultiPageApiTest, ServerModelTestBase):
             self.assertEqual(self.play_sessions[i+1].server_key.urlsafe(), play_session['server_key'])
             self.assertEqual(self.play_sessions[i+1].username, play_session['username'])
             self.assertIsNotNone(play_session['login_timestamp'])
-        url = "{0}?since={1}&before={2}".format(self.url, self.play_sessions[9].login_timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(
+            self.url,
+            self.play_sessions[9].login_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1085,7 +1451,9 @@ class PlaySessionsTest(MultiPageApiTest, ServerModelTestBase):
             self.assertEqual(self.play_sessions[i+1].server_key.urlsafe(), play_session['server_key'])
             self.assertEqual(self.play_sessions[i+1].username, play_session['username'])
             self.assertIsNotNone(play_session['login_timestamp'])
-        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1128,7 +1496,9 @@ class PlaySessionKeyTest(KeyApiTest, ServerModelTestBase):
         super(PlaySessionKeyTest, self).setUp()
         self.player = models.Player.get_or_create(self.server.key, "Test_Player")
         self.player.last_login_timestamp = datetime.datetime.utcnow()
-        self.play_session = models.PlaySession.create(self.server.key, self.player.username, datetime.datetime.utcnow(), TIME_ZONE, None)
+        self.play_session = models.PlaySession.create(
+            self.server.key, self.player.username, datetime.datetime.utcnow(), TIME_ZONE, None
+        )
 
     def test_get(self):
         response = self.get()
@@ -1197,7 +1567,11 @@ class ChatsTest(MultiPageApiTest, ServerModelTestBase):
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={2}".format(self.url, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(
+            self.url,
+            self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1206,7 +1580,9 @@ class ChatsTest(MultiPageApiTest, ServerModelTestBase):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1222,7 +1598,7 @@ class ChatsTest(MultiPageApiTest, ServerModelTestBase):
         chat = u'Hello world...'
         params = {'chat': chat}
         response = self.post(params=params)
-        self.assertCreated(response)
+        self.assertAccepted(response)
         self.assertEqual(1, models.Command.query().count())
         command = models.Command.query().get()
         self.assertEqual(username, command.username)
@@ -1234,7 +1610,7 @@ class ChatsTest(MultiPageApiTest, ServerModelTestBase):
         chat = u'Hello world...'
         params = {'chat': chat}
         response = self.post(params=params)
-        self.assertCreated(response)
+        self.assertAccepted(response)
         self.assertEqual(1, models.Command.query().count())
         command = models.Command.query().get()
         self.assertEqual('*{0}'.format(nickname), play_name)
@@ -1249,7 +1625,7 @@ class ChatsTest(MultiPageApiTest, ServerModelTestBase):
         chat = u'Hello world...'
         params = {'chat': chat}
         response = self.post(params=params)
-        self.assertCreated(response)
+        self.assertAccepted(response)
         self.assertEqual(1, models.Command.query().count())
         command = models.Command.query().get()
         self.assertEqual(email, play_name)
@@ -1370,7 +1746,9 @@ class ChatsQueryTest(ChatsTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?q=foobar&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&before={1}&size=50".format(
+            self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1379,7 +1757,11 @@ class ChatsQueryTest(ChatsTest):
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={2}".format(
+            self.url,
+            self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1388,7 +1770,9 @@ class ChatsQueryTest(ChatsTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1476,7 +1860,9 @@ class ChatsQueryPlayerTest(ChatsTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?q=foobar&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&before={1}&size=50".format(
+            self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1485,7 +1871,11 @@ class ChatsQueryPlayerTest(ChatsTest):
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={2}".format(
+            self.url,
+            self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1494,7 +1884,9 @@ class ChatsQueryPlayerTest(ChatsTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_CHAT_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1596,7 +1988,11 @@ class DeathsTest(MultiPageApiTest, ServerModelTestBase):
         self.assertLength(len(self.log_lines)-1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={2}".format(self.url, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(
+            self.url,
+            self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1605,7 +2001,9 @@ class DeathsTest(MultiPageApiTest, ServerModelTestBase):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1627,7 +2025,9 @@ class DeathsPlayerTest(DeathsTest):
     def setUp(self):
         super(DeathsPlayerTest, self).setUp()
         self.log_lines.pop(0)
-        death_log_line = '{0} [INFO] gumptionthomas tried to swim in lava'.format(self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        death_log_line = '{0} [INFO] gumptionthomas tried to swim in lava'.format(
+            self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         log_line = models.LogLine.create(self.server, death_log_line, TIME_ZONE)
         self.log_lines.insert(0, log_line)
 
@@ -1642,7 +2042,9 @@ class DeathsQueryTest(DeathsTest):
         self.log_lines = []
         for i in range(25):
             dt = self.now - datetime.timedelta(minutes=i)
-            death_log_line = '{0} [INFO] gumptionthomas was squashed by a falling anvil'.format(dt.strftime("%Y-%m-%d %H:%M:%S"))
+            death_log_line = '{0} [INFO] gumptionthomas was squashed by a falling anvil'.format(
+                dt.strftime("%Y-%m-%d %H:%M:%S")
+            )
             log_line = models.LogLine.create(self.server, death_log_line, TIME_ZONE)
             self.log_lines.append(log_line)
 
@@ -1697,7 +2099,9 @@ class DeathsQueryTest(DeathsTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?q=anvil&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=anvil&before={1}&size=50".format(
+            self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1706,7 +2110,11 @@ class DeathsQueryTest(DeathsTest):
         self.assertLength(len(self.log_lines)-1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?q=anvil&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=anvil&since={1}&before={2}".format(
+            self.url,
+            self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1715,7 +2123,9 @@ class DeathsQueryTest(DeathsTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_DEATH_FIELDS, len(log_line))
-        url = "{0}?q=anvil&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=anvil&since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1775,7 +2185,9 @@ class AchievementsTest(MultiPageApiTest, ServerModelTestBase):
             log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
             self.log_lines.append(log_line)
         log_line = models.LogLine.create(self.server, TIME_STAMP_LOG_LINE, TIME_ZONE)
-        achievement_log_line = '{0} [INFO] vesicular has just earned the achievement [Getting an Upgrade]'.format(self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        achievement_log_line = '{0} [INFO] vesicular has just earned the achievement [Getting an Upgrade]'.format(
+            self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
         self.log_lines.insert(0, log_line)
 
@@ -1812,7 +2224,11 @@ class AchievementsTest(MultiPageApiTest, ServerModelTestBase):
         self.assertLength(len(self.log_lines)-1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={2}".format(self.url, self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(
+            self.url,
+            self.log_lines[2].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.log_lines[0].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1821,7 +2237,9 @@ class AchievementsTest(MultiPageApiTest, ServerModelTestBase):
         self.assertLength(2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1843,7 +2261,9 @@ class AchievementsPlayerTest(AchievementsTest):
     def setUp(self):
         super(AchievementsPlayerTest, self).setUp()
         self.log_lines.pop(0)
-        achievement_log_line = '{0} [INFO] gumptionthomas has just earned the achievement [Getting an Upgrade]'.format(self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        achievement_log_line = '{0} [INFO] gumptionthomas has just earned the achievement [Getting an Upgrade]'.format(
+            self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
         self.log_lines.insert(0, log_line)
 
@@ -1862,7 +2282,9 @@ class AchievementsQueryTest(AchievementsTest):
             log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
             self.log_lines.append(log_line)
         dt = self.now - datetime.timedelta(minutes=25)
-        achievement_log_line = '{0} [INFO] gumptionthomas has just earned the achievement [The Lie]'.format(dt.strftime("%Y-%m-%d %H:%M:%S"))
+        achievement_log_line = '{0} [INFO] gumptionthomas has just earned the achievement [The Lie]'.format(
+            dt.strftime("%Y-%m-%d %H:%M:%S")
+        )
         log_line = models.LogLine.create(self.server, achievement_log_line, TIME_ZONE)
         self.log_lines.append(log_line)
 
@@ -1917,7 +2339,9 @@ class AchievementsQueryTest(AchievementsTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
-        url = "{0}?q=Inventory&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=Inventory&before={1}&size=50".format(
+            self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1926,7 +2350,11 @@ class AchievementsQueryTest(AchievementsTest):
         self.assertLength(len(self.log_lines)-3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
-        url = "{0}?q=Inventory&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=Inventory&since={1}&before={2}".format(
+            self.url,
+            self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1935,7 +2363,9 @@ class AchievementsQueryTest(AchievementsTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_ACHIEVEMENT_FIELDS, len(log_line))
-        url = "{0}?q=Inventory&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=Inventory&since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -2026,7 +2456,11 @@ class LogLinesTest(MultiPageApiTest, ServerModelTestBase):
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(
+            self.url,
+            self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -2035,7 +2469,9 @@ class LogLinesTest(MultiPageApiTest, ServerModelTestBase):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -2158,7 +2594,9 @@ class LogLinesQueryTest(LogLinesTest):
         self.assertLength(1, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?q=foobar&before={1}&size=50".format(self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&before={1}&size=50".format(
+            self.url, self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -2167,7 +2605,11 @@ class LogLinesQueryTest(LogLinesTest):
         self.assertLength(len(self.log_lines)-2, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={2}".format(self.url, self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"), self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={2}".format(
+            self.url,
+            self.log_lines[4].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            self.log_lines[1].timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -2176,7 +2618,9 @@ class LogLinesQueryTest(LogLinesTest):
         self.assertLength(3, log_lines)
         for i, log_line in enumerate(log_lines):
             self.assertEqual(NUM_LOG_LINE_FIELDS, len(log_line))
-        url = "{0}?q=foobar&since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?q=foobar&since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -2243,7 +2687,9 @@ class ScreenShotTestBase(object):
     def execute_tasks(self, expected_tasks=1):
         taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         tasks = taskqueue_stub.GetTasks('default')
-        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
+        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(
+            repr(tasks), expected_tasks)
+        )
         taskqueue_stub.FlushQueue("default")
         for task in tasks:
             url = task['url']
@@ -2289,7 +2735,12 @@ class ScreenShotTest(MultiPageApiTest, ScreenShotTestBase):
 
     def test_get(self):
         for i in range(5):
-            screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+            screenshot = models.ScreenShot.create(
+                self.server.key,
+                self.user,
+                blob_info=self.blob_info,
+                created=self.now - datetime.timedelta(minutes=1)
+            )
             self.screenshots.append(screenshot)
         self.assertEqual(10, models.ScreenShot.query().count())
         self.execute_tasks(expected_tasks=5)
@@ -2332,7 +2783,11 @@ class ScreenShotTest(MultiPageApiTest, ScreenShotTestBase):
         self.assertLength(len(self.screenshots)-2, screenshots)
         for i, screenshot in enumerate(screenshots):
             self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-        url = "{0}?since={1}&before={2}".format(self.url, self.screenshots[4].created.strftime("%Y-%m-%d %H:%M:%S"), self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={2}".format(
+            self.url,
+            self.screenshots[4].created.strftime("%Y-%m-%d %H:%M:%S"),
+            self.screenshots[1].created.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -2341,7 +2796,9 @@ class ScreenShotTest(MultiPageApiTest, ScreenShotTestBase):
         self.assertLength(3, screenshots)
         for i, screenshot in enumerate(screenshots):
             self.assertEqual(NUM_SCREENSHOT_FIELDS, len(screenshot))
-        url = "{0}?since={1}&before={1}".format(self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S"))
+        url = "{0}?since={1}&before={1}".format(
+            self.url, self.now.strftime("%Y-%m-%d %H:%M:%S"), self.now.strftime("%Y-%m-%d %H:%M:%S")
+        )
         response = self.get(url=url)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -2374,7 +2831,12 @@ class ScreenShotKeyTest(KeyApiTest, ScreenShotTestBase):
         self.now = datetime.datetime.utcnow()
         self.blob_info = self.create_blob_info(IMAGE_PATH)
         self.player = models.Player.get_or_create(self.server.key, "gumptionthomas")
-        self.screenshot = models.ScreenShot.create(self.server.key, self.user, blob_info=self.blob_info, created=self.now - datetime.timedelta(minutes=1))
+        self.screenshot = models.ScreenShot.create(
+            self.server.key,
+            self.user,
+            blob_info=self.blob_info,
+            created=self.now-datetime.timedelta(minutes=1)
+        )
         self.execute_tasks()
 
     def tearDown(self):

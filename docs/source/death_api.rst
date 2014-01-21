@@ -18,7 +18,7 @@ Deaths
     :Response Data: - **deaths** -- The list of deaths.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **deaths** is a dictionary of death information.
+    Each entry in **deaths** is an object of death information.
 
     .. _death_response_data:
 
@@ -134,7 +134,7 @@ Deaths
     :Response Data: - **deaths** -- The list of the player's deaths.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **deaths** is a dictionary of death information. See :ref:`Death response data <death_response_data>`
+    Each entry in **deaths** is an object of death information. See :ref:`Death response data <death_response_data>`
 
   **Example request**:
 

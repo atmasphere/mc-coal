@@ -17,7 +17,7 @@ Screenshots
     :Response Data: - **screenshots** -- The list of screenshots.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **screenshots** is a dictionary of screenshot information.
+    Each entry in **screenshots** is an object of screenshot information.
 
     .. _screenshot_response_data:
 
@@ -124,7 +124,7 @@ Screenshots
     :Response Data: - **screenshots** -- The list of the user's uploaded screenshots.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **screenshots** is a dictionary of the user's uploaded screenshot information. See :ref:`Screen shot response data <screenshot_response_data>`
+    Each entry in **screenshots** is an object of the user's uploaded screenshot information. See :ref:`Screen shot response data <screenshot_response_data>`
 
   **Example request**:
 

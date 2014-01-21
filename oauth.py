@@ -555,6 +555,13 @@ def authenticate_user_required(handler):
     return user
 
 
+def authenticate_admin_required(handler):
+    user = authenticate_user(handler)
+    if not (user and user.active and user.admin):
+        handler.abort(403)
+    return user
+
+
 routes = [
     RedirectRoute('/oauth/v1/auth', handler='oauth.AuthorizationCodeHandler', methods=['GET', 'POST'], name='oauth_auth'),
     RedirectRoute('/oauth/v1/token', handler='oauth.TokenHandler', methods=['POST'], name='oauth_token'),

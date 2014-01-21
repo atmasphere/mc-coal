@@ -18,7 +18,7 @@ Achievements
     :Response Data: - **achievements** -- The list of achievements.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **achievements** is a dictionary of achievement information.
+    Each entry in **achievements** is an object of achievement information.
 
     .. _achievement_response_data:
 
@@ -138,7 +138,7 @@ Achievements
     :Response Data: - **achievements** -- The list of the player's achievements.
                     - **cursor** -- If more results are available, this value will be the string to be passed back into this resource to query the next set of results. If no more results are available, this field will be absent.
 
-    Each entry in **achievements** is a dictionary of achievement information. See :ref:`Achievement response data <achievement_response_data>`
+    Each entry in **achievements** is an object of achievement information. See :ref:`Achievement response data <achievement_response_data>`
 
   **Example request**:
 

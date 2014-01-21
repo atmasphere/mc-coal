@@ -1,4 +1,5 @@
 import json
+import logging
 
 from google.appengine.api import taskqueue
 
@@ -11,26 +12,31 @@ def queue_controller_task(payload):
 
 
 def start_server(server):
-    instance = gce.Instance.singleton()
-    if not instance.is_running():
+    try:
+        instance = gce.Instance.singleton()
         instance.start()
-    elif instance.idle:
-        instance.idle = None
-        instance.put()
-    payload = {'event': 'START_SERVER'}
-    payload['server_key'] = server.key.urlsafe()
-    payload['agent_client_id'] = server.agent.client_id
-    payload['agent_secret'] = server.agent.secret
-    payload['minecraft_url'] = server.minecraft_url
-    payload['memory'] = server.memory
-    payload['server_properties'] = server.mc_properties.server_properties
-    operator = server.operator
-    if operator is not None:
-        payload['operator'] = operator
-    queue_controller_task(payload)
+        if instance.idle:
+            instance.idle = None
+            instance.put()
+        payload = {'event': 'START_SERVER'}
+        payload['server_key'] = server.key.urlsafe()
+        payload['agent_client_id'] = server.agent.client_id
+        payload['agent_secret'] = server.agent.secret
+        payload['minecraft_url'] = server.minecraft_url
+        payload['memory'] = server.memory
+        payload['server_properties'] = server.mc_properties.server_properties
+        operator = server.operator
+        if operator is not None:
+            payload['operator'] = operator
+        queue_controller_task(payload)
+    except Exception as e:
+        logging.exception(e)
 
 
 def stop_server(server):
-    payload = {'event': 'STOP_SERVER'}
-    payload['server_key'] = server.key.urlsafe()
-    queue_controller_task(payload)
+    try:
+        payload = {'event': 'STOP_SERVER'}
+        payload['server_key'] = server.key.urlsafe()
+        queue_controller_task(payload)
+    except Exception as e:
+        logging.exception(e)
