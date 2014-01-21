@@ -9,7 +9,7 @@
         <div class="box">
             <form action="{{ action }}" method="post">
             {% for field in form %}
-                <label>{{ field.label}} </label>
+                {{ field.label}}
                 {{ macros.with_errors(field, class="span3") }}
             {% endfor %}
                 <div class="form-actions">

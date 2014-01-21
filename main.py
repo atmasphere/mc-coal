@@ -622,6 +622,11 @@ class ServerPropertiesForm(ServerForm):
     version = fields.SelectField(u'Minecraft Version', validators=[validators.DataRequired()])
     memory = fields.SelectField(u'Server memory', validators=[validators.DataRequired()], default='256M')
     operator = fields.StringField(u'Initial operator username', default='')
+    idle_timeout = fields.IntegerField(
+        u'Number of minutes before an idle server is shutdown (zero means never)',
+        validators=[validators.InputRequired(), validators.NumberRange(min=0, max=60)],
+        default=300
+    )
     motd = fields.StringField(u'Message of the day', default='An MC-COAL Minecraft Server')
     white_list = fields.BooleanField(u'Enable whitelist', default=False)
     gamemode = fields.SelectField(u'Game mode', default='0')
@@ -718,15 +723,19 @@ class ServerCreateGceHandler(UserHandler):
                     is_gce=True,
                     version=form.version.data,
                     memory=form.memory.data,
-                    operator=form.operator.data or None
+                    operator=form.operator.data or None,
+                    idle_timeout=form.idle_timeout.data
                 )
                 mc_properties = server.mc_properties
                 for prop in form:
-                    if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
-                        if prop.data is not None:
-                            setattr(mc_properties, prop.name, int(prop.data))
-                    elif prop.name not in ['name', 'version', 'memory', 'operator']:
-                        setattr(mc_properties, prop.name, prop.data)
+                    if prop.name not in ['name', 'version', 'memory', 'operator', 'idle_timeout']:
+                        if prop.type == 'IntegerField' or prop.name in [
+                            'gamemode', 'difficulty', 'op_permission_level'
+                        ]:
+                            if prop.data is not None:
+                                setattr(mc_properties, prop.name, int(prop.data))
+                        else:
+                            setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()
                 self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
         except Exception, e:
@@ -751,7 +760,8 @@ class ServerEditGceHandler(UserHandler):
                 name=server.name,
                 version=server.version,
                 memory=server.memory,
-                operator=server.operator or ''
+                operator=server.operator or '',
+                idle_timeout=server.idle_timeout
             )
         except Exception, e:
             logging.error(u"Error GETting GCE server: {0}".format(e))
@@ -777,18 +787,22 @@ class ServerEditGceHandler(UserHandler):
                 server.version = form.version.data
                 server.memory = form.memory.data
                 server.operator = form.operator.data or None
+                server.idle_timeout = form.idle_timeout.data
                 server.put()
                 mc_properties = server.mc_properties
                 for prop in form:
-                    if prop.name == 'server_port':
-                        if prop.data is not None:
+                    if prop.name not in ['name', 'version', 'memory', 'operator', 'idle_timeout']:
+                        if prop.name == 'server_port':
+                            if prop.data is not None:
+                                setattr(mc_properties, prop.name, int(prop.data))
+                            else:
+                                setattr(mc_properties, prop.name, None)
+                        elif prop.type == 'IntegerField' or prop.name in [
+                            'gamemode', 'difficulty', 'op_permission_level'
+                        ]:
                             setattr(mc_properties, prop.name, int(prop.data))
                         else:
-                            setattr(mc_properties, prop.name, None)
-                    elif prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
-                        setattr(mc_properties, prop.name, int(prop.data))
-                    elif prop not in ['name', 'version', 'memory', 'operator']:
-                        setattr(mc_properties, prop.name, prop.data)
+                            setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()
                 self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
         except Exception, e:

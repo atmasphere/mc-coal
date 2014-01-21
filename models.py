@@ -433,6 +433,7 @@ class Server(ndb.Model):
     memory = ndb.StringProperty(default='256M')
     operator = ndb.StringProperty()
     address = ndb.StringProperty()
+    idle_timeout = ndb.IntegerProperty(default=300)
     active = ndb.BooleanProperty(default=True)
     status = ndb.StringProperty(default=SERVER_UNKNOWN)
     is_running = ndb.ComputedProperty(lambda self: self.status == SERVER_RUNNING)
@@ -500,8 +501,8 @@ class Server(ndb.Model):
             self.update_status(status=SERVER_QUEUED_STOP)
 
     def stop_if_idle(self):
-        if self.is_gce and self.is_running and self.idle:
-            if datetime.datetime.utcnow() > self.idle + datetime.timedelta(seconds=SERVER_MAX_IDLE_SECONDS):
+        if self.is_gce and self.is_running and self.idle and self.idle_timeout:
+            if datetime.datetime.utcnow() > self.idle + datetime.timedelta(seconds=self.idle_timeout*60):
                 self.stop()
 
     def update_version(self, server_version):

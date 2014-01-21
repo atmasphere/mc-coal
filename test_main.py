@@ -639,7 +639,8 @@ class ServerCreateGceTest(AdminAuthTest):
             'version': mc.version,
             'memory': '1G',
             'motd': 'Welcome',
-            'white_list': True
+            'white_list': True,
+            'idle_timeout': 10
         })
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
@@ -647,6 +648,7 @@ class ServerCreateGceTest(AdminAuthTest):
         self.assertEqual('new server', server.name)
         self.assertEqual(True, server.is_gce)
         self.assertEqual('1G', server.memory)
+        self.assertEqual(10, server.idle_timeout)
         mc_properties = server.mc_properties
         self.assertEqual('Welcome', mc_properties.motd)
         self.assertEqual(True, mc_properties.white_list)
@@ -668,7 +670,8 @@ class ServerCreateGceTest(AdminAuthTest):
             'memory': '1G',
             'motd': 'Welcome',
             'white_list': True,
-            'server_port': 25565
+            'server_port': 25565,
+            'idle_timeout': 10
         })
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
@@ -697,7 +700,8 @@ class ServerCreateGceTest(AdminAuthTest):
             'memory': '1G',
             'motd': 'Welcome',
             'white_list': True,
-            'server_port': 25565
+            'server_port': 25565,
+            'idle_timeout': 10
         })
         response = self.post(params={
             'name': 'new server',
@@ -705,11 +709,43 @@ class ServerCreateGceTest(AdminAuthTest):
             'memory': '1G',
             'motd': 'Welcome',
             'white_list': True,
-            'server_port': 25565
+            'server_port': 25565,
+            'idle_timeout': 10
         })
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
         self.assertOK(response)
+
+    def test_post_idle_timeout(self):
+        mc = MinecraftDownload.create(
+            '1.7.4',
+            'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
+        )
+        self.server.key.delete()
+        self.log_in_admin()
+        self.assertEqual(0, Server.query().count())
+        self.assertEqual(0, Client.query().count())
+        response = self.post(params={
+            'name': 'new server',
+            'version': mc.version,
+            'memory': '1G',
+            'motd': 'Welcome',
+            'white_list': True,
+            'server_port': 25565,
+            'idle_timeout': 0
+        })
+        self.assertEqual(1, Server.query().count())
+        self.assertEqual(1, Client.query().count())
+        server = Server.query().get()
+        self.assertEqual('new server', server.name)
+        self.assertEqual(True, server.is_gce)
+        self.assertEqual('1G', server.memory)
+        self.assertEqual(0, server.idle_timeout)
+        mc_properties = server.mc_properties
+        self.assertEqual('Welcome', mc_properties.motd)
+        self.assertEqual(True, mc_properties.white_list)
+        self.assertEqual(25565, mc_properties.server_port)
+        self.assertRedirects(response, '/servers/{0}'.format(server.key.urlsafe()))
 
 
 class ServerKeyTest(AdminAuthTest):
@@ -749,7 +785,13 @@ class ServerKeyGceTest(AdminAuthTest):
         self.server.version = self.mc.version
         self.server.put()
         response = self.post(
-            params={'name': 'new name', 'version': self.server.version, 'memory': '1G', 'server_port': 25565}
+            params={
+                'name': 'new name',
+                'version': self.server.version,
+                'memory': '1G',
+                'server_port': 25565,
+                'idle_timeout': 10
+            }
         )
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
@@ -769,7 +811,13 @@ class ServerKeyGceTest(AdminAuthTest):
         self.server.version = self.mc.version
         self.server.put()
         response = self.post(
-            params={'name': self.server.name, 'version': self.server.version, 'memory': '1G', 'server_port': 25565}
+            params={
+                'name': self.server.name,
+                'version': self.server.version,
+                'memory': '1G',
+                'server_port': 25565,
+                'idle_timeout': 10
+            }
         )
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
@@ -788,7 +836,13 @@ class ServerKeyGceTest(AdminAuthTest):
         self.server.version = self.mc.version
         self.server.put()
         response = self.post(
-            params={'name': self.server.name, 'version': self.server.version, 'memory': '1G', 'server_port': ''}
+            params={
+                'name': self.server.name,
+                'version': self.server.version,
+                'memory': '1G',
+                'server_port': '',
+                'idle_timeout': 10
+            }
         )
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
