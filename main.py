@@ -780,9 +780,13 @@ class ServerEditGceHandler(UserHandler):
                 server.put()
                 mc_properties = server.mc_properties
                 for prop in form:
-                    if prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
+                    if prop.name == 'server_port':
                         if prop.data is not None:
                             setattr(mc_properties, prop.name, int(prop.data))
+                        else:
+                            setattr(mc_properties, prop.name, None)
+                    elif prop.type == 'IntegerField' or prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
+                        setattr(mc_properties, prop.name, int(prop.data))
                     elif prop not in ['name', 'version', 'memory', 'operator']:
                         setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()

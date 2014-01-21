@@ -778,6 +778,25 @@ class ServerKeyGceTest(AdminAuthTest):
         self.assertEqual(25565, server.mc_properties.server_port)
         self.assertRedirects(response, '/servers/{0}'.format(server.key.urlsafe()))
 
+    def test_post_duplicate_none_port(self):
+        self.server.mc_properties.server_port = 25565
+        self.server.mc_properties.put()
+        self.log_in_admin()
+        self.mc = MinecraftDownload.create(
+            '1.7.4', 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
+        )
+        self.server.version = self.mc.version
+        self.server.put()
+        response = self.post(
+            params={'name': self.server.name, 'version': self.server.version, 'memory': '1G', 'server_port': ''}
+        )
+        self.assertEqual(1, Server.query().count())
+        self.assertEqual(1, Client.query().count())
+        server = self.server.key.get()
+        server = self.server.key.get()
+        self.assertIsNone(server.mc_properties.server_port)
+        self.assertRedirects(response, '/servers/{0}'.format(server.key.urlsafe()))
+
 
 class InstanceConfigureTest(AdminAuthTest):
     URL = '/admin/instance/configure'
