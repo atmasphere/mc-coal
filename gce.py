@@ -208,7 +208,8 @@ def create_address(region):
             get_gce_service().addresses().get(project=get_project_id(), region=region, address=ADDRESS_NAME)
         )
         if response['status'] == 'RESERVED':
-            address = response['address']
+            logging.info(response)
+            address = response.get('address', None)
     return address
 
 
