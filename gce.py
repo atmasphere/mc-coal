@@ -20,6 +20,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/compute',
     'https://www.googleapis.com/auth/taskqueue'
 ]
+ADDRESS_NAME = 'coal-address'
 FIREWALL_NAME = 'minecraft-firewall'
 DISK_NAME = 'coal-boot-disk'
 MINECRAFT_JAR_URL = 'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar'
@@ -30,6 +31,7 @@ class Instance(ndb.Model):
     name = ndb.StringProperty(required=False, default='coal-instance')
     zone = ndb.StringProperty(required=False, default='us-central1-a')
     machine_type = ndb.StringProperty(required=False, default='n1-standard-1')
+    reserved_ip = ndb.BooleanProperty(required=False, default=False)
     idle = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
@@ -42,20 +44,29 @@ class Instance(ndb.Model):
         project_id = get_project_id()
         project_url = '%s%s' % (GCE_URL, project_id)
         network_url = '%s/global/networks/%s' % (project_url, 'default')
+        region = get_region(self.zone)
+        address = None
+        if self.reserved_ip:
+            address = verify_address(region)
+            if not address:
+                address = create_address(region)
         verify_minecraft_firewall(network_url)
         if not verify_boot_disk(DISK_NAME, self.zone):
             create_boot_disk(DISK_NAME, self.zone)
         disk_url = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
         machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, self.machine_type)
+        access_configs = [{
+            'type': 'ONE_TO_ONE_NAT',
+            'name': 'External NAT'
+        }]
+        if address:
+            access_configs[0]['natIP'] = address
         instance = {
             'name': self.name,
             'machineType': machine_type_url,
             'disks': [{'source': disk_url, 'type': 'PERSISTENT', 'boot': True}],
             'networkInterfaces': [{
-                'accessConfigs': [{
-                    'type': 'ONE_TO_ONE_NAT',
-                    'name': 'External NAT'
-                }],
+                'accessConfigs': access_configs,
                 'network': network_url
             }],
             'serviceAccounts': [
@@ -172,13 +183,38 @@ def execute_request(request, block=False):
     return response
 
 
+def verify_address(region):
+    try:
+        address = None
+        while not address:
+            response = execute_request(
+                get_gce_service().addresses().get(project=get_project_id(), region=region, address=ADDRESS_NAME)
+            )
+        if response['status'] == 'RESERVED':
+            address = response['address']
+        return address
+    except HttpError:
+        pass
+    return None
+
+
+def create_address(region):
+    execute_request(
+        get_gce_service().addresses().insert(project=get_project_id(), body={'name': ADDRESS_NAME})
+    )
+    address = None
+    while not address:
+        response = execute_request(
+            get_gce_service().addresses().get(project=get_project_id(), region=region, address=ADDRESS_NAME)
+        )
+        if response['status'] == 'RESERVED':
+            address = response['address']
+    return address
+
+
 def verify_minecraft_firewall(network):
     try:
-        execute_request(
-            get_gce_service().firewalls().get(
-                firewall=FIREWALL_NAME, project=get_project_id()
-            )
-        )
+        execute_request(get_gce_service().firewalls().get(firewall=FIREWALL_NAME, project=get_project_id()))
     except HttpError as e:
         if e.resp.status == 404:
             create_minecraft_firewall(network)
@@ -233,6 +269,19 @@ def get_zones():
         logging.error("Error ({0}) getting zones".format(e.resp))
         if e.resp.status != 404 and e.resp.status != 401:
             raise
+    return None
+
+
+def get_region(zone):
+    try:
+        zone = execute_request(
+            get_gce_service().zones().get(project=get_project_id(), zone=zone)
+        )
+        region = zone['region']
+        region = region.split('/')[-1]
+        return region
+    except HttpError:
+        pass
     return None
 
 

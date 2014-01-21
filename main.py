@@ -852,6 +852,7 @@ class MinecraftDownloadCreateHandler(UserHandler):
 class InstanceForm(form.Form):
     zone = fields.SelectField(u'Zone', validators=[validators.DataRequired()])
     machine_type = fields.SelectField(u'Machine Type', validators=[validators.DataRequired()])
+    reserved_ip = fields.BooleanField(u'Use Reserved IP Address')
 
     def __init__(self, *args, **kwargs):
         super(InstanceForm, self).__init__(*args, **kwargs)
@@ -884,6 +885,7 @@ class InstanceConfigureHandler(UserHandler):
             instance = gce.Instance.singleton()
             instance.zone = form.zone.data
             instance.machine_type = form.machine_type.data
+            instance.reserved_ip = form.reserved_ip.data
             instance.put()
             self.redirect(webapp2.uri_for('admin'))
         context = {'form': form}
