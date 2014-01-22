@@ -80,7 +80,7 @@ def get_archive_file_path(server_key):
 
 def read_server_key(port):
     server_key = None
-    server_key_filename = os.path.join(SERVERS_DIR, port, 'server_key')
+    server_key_filename = os.path.join(SERVERS_DIR, str(port), 'server_key')
     try:
         with open(server_key_filename, 'r') as f:
             server_key = f.read()
@@ -141,7 +141,7 @@ def copy_server_properties(port, server_properties):
     default_properties = os.path.join(COAL_DIR, 'server.properties')
     server_dir = get_server_dir(port)
     new_properties = os.path.join(server_dir, 'server.properties')
-    server_properties['server-port'] = port
+    server_properties['server-port'] = str(port)
     with open(new_properties, "w") as fout:
         with open(default_properties, "r") as fin:
             for line in fin:
