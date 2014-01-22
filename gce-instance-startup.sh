@@ -11,8 +11,6 @@ pip install --upgrade pyyaml
 pip install --upgrade requests
 pip install --upgrade git+https://github.com/twoolie/NBT@version-1.4.1#egg=NBT
 
-useradd _coal
-
 mkdir /coal
 cd /coal
 
@@ -37,6 +35,4 @@ wget $MC_PROP_URL -O server.properties
 LOG4J2_URL="$PROJECT_MC_URL/log4j2.xml"
 wget $LOG4J2_URL -O log4j2.xml
 
-chown -R _coal /coal
-
-sudo -u _coal ./mc_coal_controller.py &
+./mc_coal_controller.py &
