@@ -54,7 +54,7 @@ def init_external_ip():
 
 def get_ports_in_use():
     _, port_dirs, _ = os.walk(SERVERS_DIR).next()
-    ports = [port for port in port_dirs if fnmatch.fnmatch(port, '[0-9]*')]
+    ports = [int(port) for port in port_dirs if fnmatch.fnmatch(port, '[0-9]*')]
     ports.sort()
     return ports
 
@@ -64,9 +64,8 @@ def get_free_port(reserved_ports=None):
     unavailable_ports = ports_in_use
     if reserved_ports is not None:
         unavailable_ports.extend(reserved_ports)
-    logging.info("unavailable_ports={0}".format(unavailable_ports))
     port = 25565
-    while str(port) in unavailable_ports:
+    while port in unavailable_ports:
         port += 1
     return port
 
@@ -269,7 +268,6 @@ def start_server(server_key, **kwargs):
     server_memory = kwargs.get('memory', '256M')
     operator = kwargs.get('operator', None)
     reserved_ports = kwargs.get('reserved_ports', list())
-    logging.info("reserved_ports={0}".format(reserved_ports))
     server_properties = kwargs.get('server_properties', {})
     servers = get_servers()
     if server_key in servers.keys():
