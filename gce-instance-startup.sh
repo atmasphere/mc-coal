@@ -39,4 +39,4 @@ wget $LOG4J2_URL -O log4j2.xml
 
 chown -R _coal /coal
 
-sudo -u _coal "./mc_coal_controller.py &"
+sudo -u _coal ./mc_coal_controller.py &
