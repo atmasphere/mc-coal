@@ -40,7 +40,11 @@ class ScreenShotTestBase(object):
     def execute_tasks(self, expected_tasks=1):
         taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         tasks = taskqueue_stub.GetTasks('default')
-        self.assertEqual(expected_tasks, len(tasks), "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks))
+        self.assertEqual(
+            expected_tasks,
+            len(tasks),
+            "Incorrect number of tasks: was {0}, should be {1}".format(repr(tasks), expected_tasks)
+        )
         taskqueue_stub.FlushQueue("default")
         for task in tasks:
             url = task['url']
@@ -170,6 +174,21 @@ class ServerTest(BaseTest):
         self.assertTrue(self.server.is_running)
         self.assertEqual(ping_time, self.server.last_ping)
 
+    def test_reserved_ports(self):
+        self.server2 = models.Server.create()
+        self.server.mc_properties.server_port = 25565
+        self.server.mc_properties.put()
+        self.server2.mc_properties.server_port = 25566
+        self.server2.mc_properties.put()
+        self.assertEqual([25565, 25566],  models.Server.reserved_ports())
+        self.server3 = models.Server.create()
+        self.server3.mc_properties.server_port = 25567
+        self.server3.mc_properties.put()
+        self.assertEqual([25565, 25567],  models.Server.reserved_ports(ignore_server=self.server2))
+        self.server2.active = False
+        self.server2.put()
+        self.assertEqual([25567],  models.Server.reserved_ports(ignore_server=self.server))
+
 
 class LogLineTest(BaseTest):
     def setUp(self):
@@ -185,7 +204,9 @@ class LogLineTest(BaseTest):
         minimock.mock('channel.ServerChannels.get_client_ids', returns=['client_id'], tracker=None)
         minimock.mock('channel.ServerChannels.send_message', tracker=tracker)
         log_line = models.LogLine.create(self.server, LOG_LINE, TIME_ZONE)
-        minimock.assert_same_trace(tracker, """Called channel.ServerChannels.send_message({0}, u'chat')""".format(log_line))
+        minimock.assert_same_trace(
+            tracker, """Called channel.ServerChannels.send_message({0}, u'chat')""".format(log_line)
+        )
 
 
 class ServerChannelsTest(BaseTest):

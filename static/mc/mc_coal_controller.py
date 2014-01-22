@@ -59,9 +59,12 @@ def get_ports_in_use():
     return ports
 
 
-def get_free_port(reserved_ports=[]):
+def get_free_port(reserved_ports=None):
     ports_in_use = get_ports_in_use()
-    unavailable_ports = ports_in_use + reserved_ports
+    unavailable_ports = ports_in_use
+    if reserved_ports is not None:
+        unavailable_ports.extend(reserved_ports)
+    logging.info("unavailable_ports={0}".format(unavailable_ports))
     port = 25565
     while str(port) in unavailable_ports:
         port += 1
@@ -265,7 +268,8 @@ def start_server(server_key, **kwargs):
     minecraft_url = kwargs['minecraft_url']
     server_memory = kwargs.get('memory', '256M')
     operator = kwargs.get('operator', None)
-    reserved_ports = kwargs.get('reserved_ports', [])
+    reserved_ports = kwargs.get('reserved_ports', list())
+    logging.info("reserved_ports={0}".format(reserved_ports))
     server_properties = kwargs.get('server_properties', {})
     servers = get_servers()
     if server_key in servers.keys():
@@ -545,7 +549,7 @@ def main(argv):
                 finally:
                     delete_tasks(service, completed_tasks)
             else:
-                time.sleep(5.0)
+                time.sleep(10.0)
     except KeyboardInterrupt:
         logger.info(u"Canceled")
     except SystemExit:
