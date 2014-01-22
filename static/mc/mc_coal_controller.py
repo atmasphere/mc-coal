@@ -59,10 +59,11 @@ def get_ports_in_use():
     return ports
 
 
-def get_free_port():
+def get_free_port(reserved_ports=[]):
     ports_in_use = get_ports_in_use()
+    unavailable_ports = ports_in_use + reserved_ports
     port = 25565
-    while str(port) in ports_in_use:
+    while str(port) in unavailable_ports:
         port += 1
     return port
 
@@ -264,6 +265,7 @@ def start_server(server_key, **kwargs):
     minecraft_url = kwargs['minecraft_url']
     server_memory = kwargs.get('memory', '256M')
     operator = kwargs.get('operator', None)
+    reserved_ports = kwargs.get('reserved_ports', [])
     server_properties = kwargs.get('server_properties', {})
     servers = get_servers()
     if server_key in servers.keys():
@@ -272,7 +274,7 @@ def start_server(server_key, **kwargs):
     if port:
         port = int(port)
     else:
-        port = get_free_port()
+        port = get_free_port(reserved_ports=reserved_ports)
     if port in get_ports_in_use():
         raise Exception("Requested port {0} already in use".format(port))
     address = external_ip
@@ -447,18 +449,18 @@ def complete_tasks(tasks):
     for task in tasks:
         try:
             task_id = task['id']
-            logger.info("Working task {0}: {1}".format(task_id, task))
             payload = task['payload']
             event = payload.pop('event')
+            logger.info("Working task {0}: {1}".format(task_id, event))
             server_key = payload.pop('server_key')
             if event == 'START_SERVER':
                 start_server(server_key, **payload)
             if event == 'STOP_SERVER':
                 stop_server(server_key, **payload)
             completed_tasks.append(task)
-            logger.info(u"Completed task {0}".format(task_id))
+            logger.info(u"Completed task {0}: {1}".format(task_id, event))
         except Exception, e:
-            logger.error(u"Error ({0}: {1}) completing task {2}".format(type(e).__name__, e, task))
+            logger.error(u"Error ({0}: {1}) completing task {2}".format(type(e).__name__, e, task['id']))
     return completed_tasks
 
 
@@ -474,7 +476,7 @@ def lease_tasks(service):
             try:
                 task['payload'] = json.loads(base64.b64decode(task['payloadBase64']))
             except Exception, e:
-                logger.error(u"Error ({0}: {1}) parsing task".format(type(e).__name__, e, task))
+                logger.error(u"Error ({0}: {1}) parsing task {2}".format(type(e).__name__, e, task['id']))
     except Exception, e:
         logger.error(u"Error ({0}: {1}) leasing tasks".format(type(e).__name__, e))
     return tasks

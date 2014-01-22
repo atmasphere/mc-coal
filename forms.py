@@ -4,7 +4,7 @@ from pytz.gae import pytz
 
 from wtforms import fields, validators, widgets
 
-from models import User, MinecraftProperties, MinecraftDownload
+from models import Server, User, MinecraftDownload
 
 
 class StringListField(fields.Field):
@@ -80,20 +80,11 @@ class UniquePort(object):
 
     def __call__(self, form, field):
         server = self.server or form.server
-        found_server = None
         port = field.data
         if port:
             port = int(port)
-            for props in MinecraftProperties.query().filter(MinecraftProperties.server_port == port):
-                s = props.server
-                if server is None or s.key != server.key:
-                    if s.active:
-                        found_server = s
-                    break
-            if found_server:
-                raise validators.ValidationError(
-                    "Port {0} is already assigned to the server '{1}'".format(port, found_server.name)
-                )
+            if port in Server.reserved_ports(ignore_server=server):
+                raise validators.ValidationError("Port {0} is already reserved for another server".format(port))
 
 
 class UniqueVersion(object):
