@@ -239,9 +239,11 @@ Servers
     :Server Properties:
   
       - **key** -- The server key.
+      - **server_port** -- The minecraft server port to use (``null`` indicates first available).
       - **version** -- The minecraft server version.
       - **memory** -- The amount of memory dedicated to the server. Possible values are ``256M``, ``512M``, and ``1G``.
       - **operator** -- The minecraft username of the initial operator of the server.
+      - **idle_timeout** -- Number of idle minutes before the server is automatically paused (zero means never)
       - **motd** -- The message of the day.
       - **white_list** -- A boolean indicating whether the server whitelist is enabled.
       - **gamemode** -- An integer indicating the game mode. Possible values are ``0`` (Survival), ``1`` (Creative), and ``2`` (Adventure).
@@ -283,9 +285,11 @@ Servers
 
     {
       "key": "bbhd871bXB0aW9uLW1pbmVj26GhY",
+      server_port: null,
       "version": "1.7.4",
       "memory": "256M",
       "operator": "gumptionthomas",
+      "idle_timeout": 5,
       "motd": "It's a brave new world out there",
       "white_list": true,
       "gamemode": 0,
@@ -318,9 +322,11 @@ Servers
 
   :arg key: The requested server's key. (*required*)
 
+  :formparam server_port: The minecraft server port to use (``''`` [empty string] indicates first available).
   :formparam version: The minecraft version to use for the server.
   :formparam memory: The amount of memory to dedicate to the server. Possible values are ``256M``, ``512M``, and ``1G``.
   :formparam operator: The minecraft username of the initial operator for the server.
+  :formparam idle_timeout: The number of idle minutes before the server is automatically paused (zero means never)
   :formparam motd: The message of the day.
   :formparam white_list: A boolean indicating whether the server whitelist should be enabled.
   :formparam gamemode: An integer indicating the game mode. Possible values are ``0`` (Survival), ``1`` (Creative), and ``2`` (Adventure).
@@ -370,9 +376,11 @@ Servers
 
     {
       "key": "bbhd871bXB0aW9uLW1pbmVj26GhY",
+      server_port: null,
       "version": "1.7.4",
       "memory": "1G",
       "operator": "gumptionthomas",
+      "idle_timeout": 5,
       "motd": "Maybe not that brave",
       "white_list": true,
       "gamemode": 1,

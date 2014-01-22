@@ -1,7 +1,7 @@
 import logging
 import os
 
-from google.appengine.api import lib_config, urlfetch
+from google.appengine.api import lib_config
 from google.appengine.ext import blobstore
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import Cursor
@@ -13,13 +13,15 @@ import webapp2
 
 from webapp2_extras.routes import RedirectRoute
 
-from wtforms import form, fields, validators, widgets
+from wtforms import form, fields, validators
 
 from base_handler import uri_for_pagination
 from channel import ServerChannels
+from forms import StringListField, AtLeastOneAdmin, UniqueUsername, UniqueUsernames, ValidTimezone
+from forms import UniquePort, UniqueVersion, VersionUrlExists
 import gce
 from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
-from models import MinecraftDownload, MinecraftProperties
+from models import MinecraftDownload
 import search
 from user_auth import UserBase, UserHandler, authentication_required, authenticate, authenticate_admin
 
@@ -158,7 +160,12 @@ class ChatsHandler(PagingHandler):
             if cursor and cursor.startswith('PAGE_'):
                 page = int(cursor.strip()[5:])
             offset = page*RESULTS_PER_PAGE
-            results, number_found, _ = search.search_log_lines('chat:{0}'.format(query_string), server_key=server.key, limit=RESULTS_PER_PAGE, offset=offset)
+            results, number_found, _ = search.search_log_lines(
+                'chat:{0}'.format(query_string),
+                server_key=server.key,
+                limit=RESULTS_PER_PAGE,
+                offset=offset
+            )
             previous_cursor = next_cursor = None
             if page > 0:
                 previous_cursor = u'PAGE_{0}&q={1}'.format(page - 1 if page > 0 else 0, query_string)
@@ -345,56 +352,6 @@ class AdminHandler(PagingHandler):
         self.render_template('admin.html', context=context)
 
 
-class StringListField(fields.Field):
-    widget = widgets.TextInput()
-
-    def __init__(self, label='', validators=None, remove_duplicates=True, **kwargs):
-        super(StringListField, self).__init__(label, validators, **kwargs)
-        self.remove_duplicates = remove_duplicates
-
-    def _value(self):
-        if self.data:
-            return u', '.join(self.data)
-        else:
-            return u''
-
-    def process_formdata(self, valuelist):
-        if valuelist:
-            self.data = [x.strip() for x in valuelist[0].split(',')]
-        else:
-            self.data = []
-        if self.remove_duplicates:
-            self.data = list(self._remove_duplicates(self.data))
-
-    @classmethod
-    def _remove_duplicates(cls, seq):
-        d = {}
-        for item in seq:
-            if item and item not in d:
-                d[item] = True
-                yield item
-
-
-class UniqueUsernames(object):
-    def __init__(self, user=None):
-        self.user = user
-
-    def __call__(self, form, field):
-        user = self.user or form.user
-        usernames = field.data
-        for username in usernames:
-            u = User.lookup(username=username)
-            if u is not None:
-                if user is None or u.key != user.key:
-                    raise validators.ValidationError("Username '{0}' is already assigned to a user".format(username))
-
-
-class AtLeastOneAdmin(object):
-    def __call__(self, form, field):
-        if not field.data and form.user.admin and User.is_single_admin():
-            raise validators.ValidationError("Can't demote this user. There must always be at least one admin user.")
-
-
 class UserForm(form.Form):
     active = fields.BooleanField(u'Active', [validators.Optional()])
     admin = fields.BooleanField(u'Admin', [AtLeastOneAdmin()])
@@ -467,27 +424,12 @@ class UserRemoveHandler(MainHandlerBase):
         self.redirect(webapp2.uri_for('users'))
 
 
-class ValidTimezone(object):
-    def __call__(self, form, field):
-        timezone = field.data
-        try:
-            pytz.timezone(timezone)
-        except:
-            raise validators.ValidationError("Not a valid timezone".format(timezone))
-
-
 class UserProfileForm(form.Form):
-    email = fields.StringField(u'Email', validators=[validators.Optional(), validators.Email(message=u'Invalid email address.')])
+    email = fields.StringField(
+        u'Email', validators=[validators.Optional(), validators.Email(message=u'Invalid email address.')]
+    )
     nickname = fields.StringField(u'Nickname', validators=[validators.Optional()])
     timezone_name = fields.SelectField(u'Timezone', choices=TIMEZONE_CHOICES, validators=[ValidTimezone()])
-
-
-class UniqueUsername(object):
-    def __call__(self, form, field):
-        username = field.data
-        u = User.lookup(username=username)
-        if u is not None:
-            raise validators.ValidationError("Username '{0}' is already assigned to a user".format(username))
 
 
 class UsernameClaimForm(form.Form):
@@ -592,28 +534,6 @@ class ServerEditHandler(UserHandler):
         self.render_template('server.html', context=context)
 
 
-class UniquePort(object):
-    def __init__(self, server=None):
-        self.server = server
-
-    def __call__(self, form, field):
-        server = self.server or form.server
-        found_server = None
-        port = field.data
-        if port:
-            port = int(port)
-            for props in MinecraftProperties.query().filter(MinecraftProperties.server_port == port):
-                s = props.server
-                if server is None or s.key != server.key:
-                    if s.active:
-                        found_server = s
-                    break
-            if found_server:
-                raise validators.ValidationError(
-                    "Port {0} is already assigned to the server '{1}'".format(port, found_server.name)
-                )
-
-
 class ServerPropertiesForm(ServerForm):
     server_port = fields.IntegerField(
         u'The minecraft server port to use (leave blank for first available)',
@@ -623,9 +543,9 @@ class ServerPropertiesForm(ServerForm):
     memory = fields.SelectField(u'Server memory', validators=[validators.DataRequired()], default='256M')
     operator = fields.StringField(u'Initial operator username', default='')
     idle_timeout = fields.IntegerField(
-        u'Number of minutes before an idle server is shutdown (zero means never)',
+        u'Number of minutes before an idle server is automatically paused (zero means never)',
         validators=[validators.InputRequired(), validators.NumberRange(min=0, max=60)],
-        default=300
+        default=5
     )
     motd = fields.StringField(u'Message of the day', default='An MC-COAL Minecraft Server')
     white_list = fields.BooleanField(u'Enable whitelist', default=False)
@@ -856,22 +776,6 @@ class ServerStopHandler(MainHandlerBase):
         except Exception, e:
             logging.error(u"Error stopping server: {0}".format(e))
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
-
-
-class UniqueVersion(object):
-    def __call__(self, form, field):
-        version = field.data
-        md = MinecraftDownload.lookup(version)
-        if md is not None:
-            raise validators.ValidationError("Minecraft version '{0}' is already assigned".format(version))
-
-
-class VersionUrlExists(object):
-    def __call__(self, form, field):
-        url = field.data
-        result = urlfetch.fetch(url=url, method=urlfetch.HEAD)
-        if result.status_code >= 400:
-            raise validators.ValidationError("Error ({0}) fetching url".format(result.status_code))
 
 
 class MinecraftDownloadForm(form.Form):

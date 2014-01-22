@@ -433,7 +433,7 @@ class Server(ndb.Model):
     memory = ndb.StringProperty(default='256M')
     operator = ndb.StringProperty()
     address = ndb.StringProperty()
-    idle_timeout = ndb.IntegerProperty(default=300)
+    idle_timeout = ndb.IntegerProperty(default=5)
     active = ndb.BooleanProperty(default=True)
     status = ndb.StringProperty(default=SERVER_UNKNOWN)
     is_running = ndb.ComputedProperty(lambda self: self.status == SERVER_RUNNING)

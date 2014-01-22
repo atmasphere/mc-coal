@@ -13,7 +13,9 @@ from wtforms import form, fields, validators
 from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
 
-from models import Server, MinecraftProperties, MinecraftDownload, User, Player, PlaySession, LogLine, Command, ScreenShot
+from forms import RestfulStringField, RestfulBooleanField, RestfulSelectField, UniquePort
+from models import Server, MinecraftProperties, MinecraftDownload, User, Player, PlaySession
+from models import LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG, ACHIEVEMENT_TAG
 from models import SERVER_UNKNOWN, SERVER_RUNNING, SERVER_STOPPED, SERVER_QUEUED_START, SERVER_QUEUED_STOP
 from oauth import Client, authenticate_agent_oauth_required, authenticate_user_required, authenticate_admin_required
@@ -85,49 +87,6 @@ class JsonHandler(webapp2.RequestHandler):
             code = 500
             logging.error(errors)
         self.json_response({}, status_code=code, errors=errors)
-
-
-class RestfulStringField(fields.StringField):
-    def process_formdata(self, valuelist):
-        if valuelist:
-            self.data = valuelist[0]
-        else:
-            self.data = None
-
-
-class RestfulBooleanField(fields.BooleanField):
-    def process_data(self, value):
-        if value is not None:
-            self.data = bool(value)
-        else:
-            self.data = None
-
-    def process_formdata(self, valuelist):
-        if valuelist:
-            b = valuelist[0].lower()
-            if b and (b[0] == 'n' or b[0] == 'f' or b[0] == '0'):
-                self.data = False
-            else:
-                self.data = bool(valuelist[0])
-        else:
-            self.data = self.default
-
-
-class RestfulSelectField(fields.SelectField):
-    def process_data(self, value):
-        try:
-            self.data = self.coerce(value)
-        except (ValueError, TypeError):
-            self.data = None
-
-    def process_formdata(self, valuelist):
-        if valuelist:
-            try:
-                self.data = self.coerce(valuelist[0])
-            except ValueError:
-                raise ValueError(self.gettext('Invalid Choice: could not coerce'))
-        else:
-            self.data = None
 
 
 class PingForm(form.Form):
@@ -367,7 +326,7 @@ class ServerKeyHandler(ServerBaseHandler):
 
 
 SERVER_PROPERTIES_FIELDS = [
-    'motd', 'white_list', 'gamemode', 'force_gamemode', 'level_type', 'level_seed', 'generator_settings',
+    'server_port', 'motd', 'white_list', 'gamemode', 'force_gamemode', 'level_type', 'level_seed', 'generator_settings',
     'difficulty', 'pvp', 'hardcore', 'allow_flight', 'allow_nether', 'max_build_height', 'generate_structures',
     'spawn_npcs', 'spawn_animals', 'spawn_monsters', 'player_idle_timeout', 'spawn_protection', 'enable_command_block',
     'snooper_enabled', 'resource_pack', 'op_permission_level'
@@ -376,12 +335,16 @@ SERVER_PROPERTIES_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.parent().urlsafe(),
     'version': lambda o: o.server.version,
     'memory': lambda o: o.server.memory,
-    'operator': lambda o: o.server.operator
+    'operator': lambda o: o.server.operator,
+    'idle_timeout': lambda o: o.server.idle_timeout
 }
 SERVER_PROPERTIES_STRATEGY = ModelStrategy(MinecraftProperties).include(*SERVER_PROPERTIES_FIELDS).include(**SERVER_PROPERTIES_FIELD_FUNCTIONS)
 
 
 class ServerPropertiesForm(form.Form):
+    server_port = fields.IntegerField(
+        validators=[validators.Optional(), validators.NumberRange(min=25565, max=25575), UniquePort()]
+    )
     version = RestfulSelectField(validators=[validators.Optional()])
     memory = RestfulSelectField(
         validators=[validators.Optional()],
@@ -392,6 +355,7 @@ class ServerPropertiesForm(form.Form):
         ]
     )
     operator = RestfulStringField(validators=[validators.Optional()])
+    idle_timeout = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=60)])
     motd = RestfulStringField(validators=[validators.Optional()])
     white_list = RestfulBooleanField(validators=[validators.Optional()])
     gamemode = RestfulSelectField(
@@ -446,8 +410,9 @@ class ServerPropertiesForm(form.Form):
         ]
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, server=None, *args, **kwargs):
         super(ServerPropertiesForm, self).__init__(*args, **kwargs)
+        self.server = server
         self.version.choices = [
             (d.version, d.version) for d in MinecraftDownload.query().fetch(100)
         ]
@@ -462,29 +427,58 @@ class ServerPropertiesHander(ServerBaseHandler):
         self.json_response(server.mc_properties, SERVER_PROPERTIES_STRATEGY)
 
     @authentication_required(authenticate=authenticate_admin_required)
-    @validate_params(form_class=ServerPropertiesForm)
     def post(self, key):
-        server_put = properties_put = False
         server = self.get_server_by_key(key)
         if not server.is_gce:
             self.abort(404)
-        server_properties = server.mc_properties
-        for prop in self.request.form:
-            if prop.data is not None:
-                if prop.name in ['version', 'memory', 'operator']:
-                    setattr(server, prop.name, prop.data)
-                    server_put = True
-                elif prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
-                    setattr(server_properties, prop.name, int(prop.data))
-                    properties_put = True
-                else:
-                    setattr(server_properties, prop.name, prop.data)
-                    properties_put = True
-        if server_put:
-            server.put()
-        if properties_put:
-            server_properties.put()
-        self.json_response(server_properties, SERVER_PROPERTIES_STRATEGY, status_code=200)
+        valid = False
+        try:
+            self.request.form = ServerPropertiesForm(formdata=self.request.params, server=server)
+            valid = self.request.form.validate()
+        except Exception, e:
+            errors = u"Unhandled form parsing exception: {0}".format(e)
+            self.json_response({}, status_code=400, errors=errors)
+            logging.error(errors)
+            try:
+                logging.error(self.request)
+            except Exception, e:
+                logging.error(u"Can't log the request: {0}".format(e))
+        if valid:
+            server_put = properties_put = False
+            server = self.get_server_by_key(key)
+            if not server.is_gce:
+                self.abort(404)
+            server_properties = server.mc_properties
+            for prop in self.request.form:
+                if prop.name == 'server_port':
+                    if prop.data is not None:
+                        setattr(server_properties, prop.name, int(prop.data))
+                    else:
+                        setattr(server_properties, prop.name, None)
+                elif prop.data is not None:
+                    if prop.name in ['version', 'memory', 'operator', 'idle_timeout']:
+                        setattr(server, prop.name, prop.data)
+                        server_put = True
+                    elif prop.name in ['gamemode', 'difficulty', 'op_permission_level']:
+                        setattr(server_properties, prop.name, int(prop.data))
+                        properties_put = True
+                    else:
+                        setattr(server_properties, prop.name, prop.data)
+                        properties_put = True
+            if server_put:
+                server.put()
+            if properties_put:
+                server_properties.put()
+            self.json_response(server_properties, SERVER_PROPERTIES_STRATEGY, status_code=200)
+            return
+        else:
+            try:
+                message = form.errors
+            except:
+                message = u"Exception creating Form"
+            self.json_response({}, status_code=400, errors=message)
+            logging.error(message)
+            return
 
 
 class ServerPlayHandler(ServerBaseHandler):

@@ -170,7 +170,7 @@ ADMIN_EMAIL = 'admin@example.com'
 NUM_PLAYER_FIELDS = 7
 NUM_USER_FIELDS = 9
 NUM_SERVER_FIELDS = 13
-NUM_SERVER_PROPERTIES_FIELDS = 27
+NUM_SERVER_PROPERTIES_FIELDS = 29
 NUM_PLAY_SESSION_FIELDS = 12
 NUM_CHAT_FIELDS = 10
 NUM_DEATH_FIELDS = 10
@@ -1160,6 +1160,7 @@ class ServerPropertiesTest(AdminApiTest):
         self.assertEqual(self.server.memory, server_props['memory'])
         self.assertEqual(self.server.mc_properties.difficulty, server_props['difficulty'])
         self.assertEqual(self.server.mc_properties.pvp, server_props['pvp'])
+        self.assertIsNone(server_props['server_port'])
 
     def test_get_unauth(self):
         if self.url:
@@ -1168,7 +1169,7 @@ class ServerPropertiesTest(AdminApiTest):
             self.assertOK(response)
 
     def test_post(self):
-        params = {'memory': '1G', 'difficulty': '3', 'pvp': True}
+        params = {'memory': '1G', 'difficulty': '3', 'pvp': True, 'server_port': 25566}
         response = self.post(params=params)
         self.assertOK(response)
         body = json.loads(response.body)
@@ -1182,6 +1183,28 @@ class ServerPropertiesTest(AdminApiTest):
         self.assertEqual(3, server.mc_properties.difficulty)
         self.assertEqual(True, body['pvp'])
         self.assertEqual(True, server.mc_properties.pvp)
+        self.assertEqual(25566, body['server_port'])
+        self.assertEqual(25566, server.mc_properties.server_port)
+
+    def test_post_empty_port(self):
+        self.server.server_port = 25565
+        self.server.put()
+        params = {'memory': '1G', 'difficulty': '3', 'pvp': True, 'server_port': ''}
+        response = self.post(params=params)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_PROPERTIES_FIELDS, body)
+        self.assertEqual(1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual('1G', body['memory'])
+        self.assertEqual('1G', server.memory)
+        self.assertEqual(3, body['difficulty'])
+        self.assertEqual(3, server.mc_properties.difficulty)
+        self.assertEqual(True, body['pvp'])
+        self.assertEqual(True, server.mc_properties.pvp)
+        self.assertIsNone(body['server_port'])
+        self.assertIsNone(server.mc_properties.server_port)
 
     def test_get_invalid_key(self):
         if self.url:
