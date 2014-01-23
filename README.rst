@@ -1,9 +1,3 @@
-*******
-MC COAL
-*******
-
-Minecraft Community On-line Activity Log
-
 =================
 COAL Installation
 =================
