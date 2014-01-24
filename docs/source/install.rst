@@ -39,7 +39,7 @@ Deploy and Configure COAL
 
     .. note:: Due to a `bug in Google's push-to-deploy feature <https://code.google.com/p/googleappengine/issues/detail?id=10139>`_, if you are planning on hosting your worlds on Google Compute Engine you must also update your application's task queue configuration by using the App Engine developer tool ``appcfg``. See `The Development Environment <https://developers.google.com/appengine/docs/python/gettingstartedpython27/devenvironment>`_ for information on how to download and install the developer tools and `Updating Task Queue Configuration <https://developers.google.com/appengine/docs/python/tools/uploadinganapp#Python_Updating_Task_Queue_configuration>`_ for information on running ``appcfg`` to update the configuration.
 
-8. Browse to ``https://[my-project-id].appspot.com/admin``.
+8. Browse to your COAL administrator page at ``https://[my-project-id].appspot.com/admin``.
 
   .. warning:: For bootstrapping purposes, the first user to request this page is made an administrator, so make sure to do this right away.
 
@@ -47,19 +47,21 @@ Deploy and Configure COAL
 World Hosting
 =============
 
-Next, you'll set up your minecraft world(s). There are two options: let COAL host your world on Google Compute Engine (easy!) or host your world elsewhere (more work for you!). You can mix both kinds of hosted worlds on a single COAL instance.
+Next, you'll set up your minecraft world(s). There are two options: let your COAL host your world on Google Compute Engine (easy!) or host your world elsewhere (more work for you!). You can mix both kinds of hosted worlds on a single COAL install.
 
 ----------------------------------------
 Hosting Worlds On Google Compute Engine
 ----------------------------------------
 
-1. Create a new world by clicking the ``Admin/Create New GCE-Hosted Server`` link to set up a new world and then hit the play button to start the server. This can take a few minutes if a GCE instance has to be started up for the first time.
+1. Create a new server by clicking your COAL ``Admin/Create GCE-Hosted World`` link to set up a new world and then hit the play button to start the server. This can take a few minutes if a GCE instance has to be started up for the first time.
 2. When the world status is "Playing" the IP address of the server will be shown. Use this IP address to connect your minecraft client to the new world.
 3. Play! No additional infrastructure set up needed.
 
----------------------------------------------------
-Hosting Worlds Elesewhere (UNIX-based servers only)
----------------------------------------------------
+-------------------------------
+Hosting Worlds On Other Servers
+-------------------------------
+
+If you already have a Minecraft multi-player world running on a UNIX-based server you can connect it to your COAL.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Hosting Server Prerequisites
@@ -79,14 +81,14 @@ Agent Installation
 ^^^^^^^^^^^^^^^^^^
 
 1. Create a new directory called ``mc-coal`` in your minecraft server's directory (the one with ``server.properties``).
-2. Download the following files from your COAL installation into the new ``mc-coal`` directory:
+2. Download the following files from your COAL into the new ``mc-coal`` directory:
 
   ::
     
     wget https://[my-project-id].appspot.com/mc/timezones.py -o timezones.py
     wget https://[my-project-id].appspot.com/mc/mc_coal_agent.py -o mc_coal_agent.py
 
-3. Download the following files from your COAL installation into your minecraft server's directory
+3. Download the following files from your COAL into your minecraft server's directory
 
   ::
     
@@ -98,8 +100,8 @@ Agent Installation
 Run Agent
 ^^^^^^^^^
 
-1. Create a new world by clicking the ``Admin/Create New Server`` link to set up a new world and note the ``Agent Client ID`` and ``Agent Secret`` for that server.
-2. In the ``mc-coal`` directory, run ``mc_coal_agent.py`` with the ``coal_host``, ``agent_client_id``, and ``agent_secret`` for your server:
+1. Create a new COAL world by clicking the ``Admin/Create External-Server-Hosted World`` and note the ``Agent Client ID`` and ``Agent Secret``.
+2. On your Minecraft server host, in the ``mc-coal`` directory, run ``mc_coal_agent.py`` with the ``coal_host``, ``agent_client_id``, and ``agent_secret`` for your server:
 
   ::
     
