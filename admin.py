@@ -12,7 +12,7 @@ from forms import UniquePort, UniqueVersion, VersionUrlExists
 import gce
 from models import Server, User, MinecraftDownload
 from server_handler import ServerHandlerBase, PagingHandler
-from user_auth import UserHandler, authentication_required, authenticate, authenticate_admin
+from user_auth import ON_SERVER, UserHandler, authentication_required, authenticate, authenticate_admin
 
 
 RESULTS_PER_PAGE = 50
@@ -500,6 +500,44 @@ class InstanceStopHandler(UserHandler):
         self.redirect(webapp2.uri_for('admin'))
 
 
+class ServerLogHandler(UserHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None or ON_SERVER:
+                self.abort(404)
+        except Exception:
+            self.abort(404)
+        context = {'edit_server': server, 'action': webapp2.uri_for('server_upload_log', key=server.key.urlsafe())}
+        self.render_template('server_log.html', context=context)
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None or ON_SERVER:
+                self.abort(404)
+            file = self.request.POST['file']
+            import StringIO
+            from models import LogLine
+            buf = StringIO.StringIO(file.value)
+            for raw_line in buf.readlines():
+                line = raw_line.decode('ISO-8859-2', errors='ignore')
+                line = line.strip()
+                existing_line = LogLine.lookup_line(server.key, line)
+                if existing_line is None:
+                    log_line = LogLine.create(server, line, 'UTC')
+                    logging.info(log_line.line)
+        except Exception, e:
+            logging.error(u"Error POSTing server: {0}".format(e))
+            self.abort(404)
+        context = {'edit_server': server, 'form': form, 'action': webapp2.uri_for('server_upload_log', key=server.key.urlsafe())}
+        self.render_template('server_log.html', context=context)
+
+
 routes = [
     RedirectRoute('/admin', handler=AdminHandler, strict_slash=True, name="admin"),
     RedirectRoute('/admin/users', handler=UsersHandler, strict_slash=True, name="users"),
@@ -512,6 +550,7 @@ routes = [
     RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
     RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
     RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
+    RedirectRoute('/admin/servers/<key>/upload_log', handler=ServerLogHandler, strict_slash=True, name="server_upload_log"),
     RedirectRoute('/admin/minecraft_create', handler=MinecraftDownloadCreateHandler, strict_slash=True, name="minecraft_create"),
     RedirectRoute('/admin/instance/configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure"),
     RedirectRoute('/admin/instance/start', handler=InstanceStartHandler, strict_slash=True, name="instance_start"),

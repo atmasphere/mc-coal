@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% set nav="Admin" %}
+
+{% block title %}Upload Server Log{% endblock %}
+
+{% block content %}
+    <div class="title box wrap">
+        Upload Server Log
+        <form action="{{ action }}" enctype="multipart/form-data" method="post">
+            <input type="file" name="file">
+            <div class="form-actions">
+                <input type="submit" class="btn btn-primary">
+            </div>
+        </form>
+    </div>
+{% endblock %}

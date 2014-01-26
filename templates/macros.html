@@ -97,6 +97,9 @@
                     <div><strong>AGENT SECRET:</strong> {{ server.agent.secret }}</div>
                     <h3><a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a></h3>
                 {% endif %}
+                {% if not ON_SERVER %}
+                    <h3><a href="{{ uri_for('server_upload_log', key=server.key.urlsafe()) }}">Upload Log File</a></h3>
+                {% endif %}
             {% endif %}
        </div>
         <div class="status wrap {{ status }}">
