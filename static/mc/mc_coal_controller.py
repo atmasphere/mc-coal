@@ -302,9 +302,19 @@ def start_server(server_key, **kwargs):
     except Exception as e:
         logger.error("Error ({0}) copying files for server {1}".format(e, server_key))
         raise
-    # Start Agent
     try:
         fifo = make_fifo(server_dir)
+    except Exception as e:
+        logger.error("Error ({0}) making fifo for server {1}".format(e, server_key))
+        raise
+    try:
+        args = ['chown', '-R', '_minecraft', server_dir]
+        subprocess.Popen(args, cwd=server_dir).check_call()
+    except Exception as e:
+        logger.error("Error ({0}) chmodding files for server {1}".format(e, server_key))
+        raise
+    # Start Agent
+    try:
         mc_coal_dir = os.path.join(server_dir, 'mc_coal')
         agent = os.path.join(mc_coal_dir, 'mc_coal_agent.py')
         args = [agent]
@@ -323,7 +333,7 @@ def start_server(server_key, **kwargs):
     try:
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
         log4j = os.path.join(server_dir, 'log4j2.xml')
-        args = ['java', '-Xms{0}'.format(server_memory), '-Xmx{0}'.format(server_memory)]
+        args = ['sudo', '-u', '_minecraft', 'java', '-Xms{0}'.format(server_memory), '-Xmx{0}'.format(server_memory)]
         args.append('-Dlog4j.configurationFile={0}'.format(log4j))
         args.append('-jar')
         args.append(mc_jar)
