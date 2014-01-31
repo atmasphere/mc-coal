@@ -178,7 +178,7 @@ def execute_request(request, block=False):
                     status = response['status']
     except HttpError as e:
         if e.resp.status != 404 and e.resp.status != 401:
-            logging.error("Error ({0}) calling {1}".format(e.resp, e.operationType))
+            logging.error("Error ({0}) calling {1}".format(e.resp, getattr(e, 'operationType', None)))
         raise
     return response
 

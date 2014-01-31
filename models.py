@@ -519,16 +519,23 @@ class Server(ndb.Model):
         put_server = False
         now = datetime.datetime.utcnow()
         timeout = now - datetime.timedelta(minutes=5)
+        previous_status = self.status
         # Set queued datetime
         if status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP]:
             self.queued = datetime.datetime.utcnow()
             if self.idle:
                 self.idle = None
             put_server = True
-        elif status is not None and self.queued:
-            self.queued = None
-            put_server = True
-        previous_status = self.status
+        elif status is not None and self.queued is not None:
+            # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually
+            if (
+                (previous_status == SERVER_QUEUED_START and status is not SERVER_RUNNING) or
+                (previous_status == SERVER_QUEUED_STOP and status is not SERVER_STOPPED)
+            ):
+                status = previous_status
+            else:
+                self.queued = None
+                put_server = True
         # No status provided, check for timeout
         if status is None:
             status = previous_status
@@ -538,13 +545,6 @@ class Server(ndb.Model):
             elif self.queued < timeout:
                 self.queued = None
                 status = SERVER_UNKNOWN
-        else:
-            # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually
-            if self.queued is not None:
-                if previous_status == SERVER_QUEUED_START and status is not SERVER_RUNNING:
-                    status = previous_status
-                if previous_status == SERVER_QUEUED_STOP and status is not SERVER_STOPPED:
-                    status = previous_status
         # Update address
         address = address or self.address
         if status is SERVER_STOPPED and not self.mc_properties.server_port:
