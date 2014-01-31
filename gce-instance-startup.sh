@@ -16,9 +16,6 @@ useradd -m _minecraft
 mkdir /coal
 cd /coal
 
-mkdir servers
-chown -R _minecraft servers
-
 PROJECT_ID=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/project-id)
 PROJECT_MC_URL="https://$PROJECT_ID.appspot.com/mc"
 echo $PROJECT_ID > project_id
