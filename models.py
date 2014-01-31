@@ -448,6 +448,7 @@ class Server(ndb.Model):
     is_raining = ndb.BooleanProperty()
     is_thundering = ndb.BooleanProperty()
     timestamp = ndb.DateTimeProperty()
+    queued = ndb.DateTimeProperty()
     idle = ndb.DateTimeProperty()
     agent_key = ndb.KeyProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
@@ -515,18 +516,43 @@ class Server(ndb.Model):
         self, status=None, last_ping=None, server_day=None, server_time=None,
         is_raining=None, is_thundering=None, address=None, timestamp=None
     ):
+        put_server = False
+        now = datetime.datetime.utcnow()
+        timeout = now - datetime.timedelta(minutes=5)
+        # Set queued datetime
+        if status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP]:
+            self.queued = datetime.datetime.utcnow()
+            if self.idle:
+                self.idle = None
+            put_server = True
+        elif status is not None and self.queued:
+            self.queued = None
+            put_server = True
         previous_status = self.status
+        # No status provided, check for timeout
         if status is None:
             status = previous_status
-            if self.last_ping is None or self.last_ping < datetime.datetime.utcnow() - datetime.timedelta(minutes=5):
-                if not self.is_queued:
+            if self.queued is None:
+                if self.last_ping is None or self.last_ping < timeout:
                     status = SERVER_UNKNOWN
-        record_ping = False
-        if status not in [SERVER_RUNNING, SERVER_UNKNOWN]:
+            elif self.queued < timeout:
+                self.queued = None
+                status = SERVER_UNKNOWN
+        else:
+            # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually
+            if self.queued is not None:
+                if previous_status == SERVER_QUEUED_START and status is not SERVER_RUNNING:
+                    status = previous_status
+                if previous_status == SERVER_QUEUED_STOP and status is not SERVER_STOPPED:
+                    status = previous_status
+        # Update address
+        address = address or self.address
+        if status is SERVER_STOPPED and not self.mc_properties.server_port:
             address = None
         if address != self.address:
             self.address = address
-            record_ping = True
+            put_server = True
+        # Update server day/time
         if (
             (server_day is not None and server_day != self.last_server_day) or
             (server_time is not None and server_time != self.last_server_time)
@@ -536,23 +562,24 @@ class Server(ndb.Model):
                 self.last_server_day = server_day
             if server_time is not None:
                 self.last_server_time = server_time
-            record_ping = True
+            put_server = True
+        # Update server weather
         if is_raining != self.is_raining or is_thundering != self.is_thundering:
             self.is_raining = is_raining
             self.is_thundering = is_thundering
-            record_ping = True
+            put_server = True
+        # Record pings every minute, even if nothing changed
         if last_ping is not None:
             if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):
-                record_ping = True
-        if record_ping or (previous_status != status):
-            if previous_status != SERVER_QUEUED_STOP or status != SERVER_RUNNING:
-                self.status = status
-            if status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP] and self.idle:
-                self.idle = None
+                put_server = True
+        # Put server changes
+        if put_server or (previous_status != status):
+            self.status = status
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
-            if not self.is_gce and previous_status != status:
+            # Email admins
+            if previous_status != status:
                 for admin in User.query_admin():
                     if admin.email:
                         body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
