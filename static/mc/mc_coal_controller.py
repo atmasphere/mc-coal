@@ -309,7 +309,7 @@ def start_server(server_key, **kwargs):
         raise
     try:
         args = ['chown', '-R', '_minecraft', server_dir]
-        subprocess.Popen(args, cwd=server_dir).check_call()
+        subprocess.check_call(args, cwd=server_dir)
     except Exception as e:
         logger.error("Error ({0}) chmodding files for server {1}".format(e, server_key))
         raise
