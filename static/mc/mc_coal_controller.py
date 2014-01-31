@@ -336,7 +336,7 @@ def start_server(server_key, **kwargs):
         mc_command = '"/usr/bin/java -Xms{0} -Xmx{1} -Dlog4j.configurationFile={2} -jar {3} nogui"'.format(
             server_memory, server_memory, log4j_config, mc_jar
         )
-        args = ['sudo', '-u', '_minecraft', mc_command]
+        args = ['sudo', 'su' '-c', mc_command, '-s', '/bin/sh', '_minecraft']
         logger.info("Running command: {0}".format(args))
         with open(fifo, 'w+') as fifo_file:
             pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file, shell=True).pid
