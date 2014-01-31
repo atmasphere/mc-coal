@@ -578,8 +578,13 @@ class Server(ndb.Model):
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
+            send_email = previous_status != status
+            if status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP]:
+                send_email = False
+            if previous_status == SERVER_STOPPED and status == SERVER_UNKNOWN:
+                send_email = False
             # Email admins
-            if previous_status != status:
+            if send_email:
                 for admin in User.query_admin():
                     if admin.email:
                         body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
