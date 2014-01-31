@@ -337,8 +337,9 @@ def start_server(server_key, **kwargs):
             server_memory, server_memory, log4j_config, mc_jar
         )
         args = ['sudo', '-u', '_minecraft', mc_command]
+        logger.info("Running command: {0}".format(args))
         with open(fifo, 'w+') as fifo_file:
-            pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file).pid
+            pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file, shell=True).pid
         pid_filename = os.path.join(server_dir, 'server.pid')
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
