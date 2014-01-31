@@ -13,6 +13,15 @@ pip install --upgrade git+https://github.com/twoolie/NBT@version-1.4.1#egg=NBT
 
 useradd -m _minecraft
 
+if [ -z "$1" ]; then
+  echo "Starting up visudo with this script as first parameter"
+  export EDITOR=$0 && sudo -E visudo
+else
+  echo "Changing sudoers"
+  echo "root ALL=(_minecraft) NOPASSWD: /usr/bin/java" >> $1
+  exit
+fi
+
 mkdir /coal
 cd /coal
 

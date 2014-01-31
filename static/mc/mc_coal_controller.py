@@ -333,10 +333,10 @@ def start_server(server_key, **kwargs):
     try:
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
         log4j_config = os.path.join(server_dir, 'log4j2.xml')
-        mc_command = 'java -Xms{0} -Xmx{1} -Dlog4j.configurationFile={2} -jar {3} nogui'.format(
+        mc_command = '/usr/bin/java -Xms{0} -Xmx{1} -Dlog4j.configurationFile={2} -jar {3} nogui'.format(
             server_memory, server_memory, log4j_config, mc_jar
         )
-        args = ['su', '-c', '"{0}"'.format(mc_command), '-s', '/bin/sh', '_minecraft']
+        args = ['su', '-c', '"{0}"'.format(mc_command), '_minecraft']
         with open(fifo, 'w+') as fifo_file:
             pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file).pid
         pid_filename = os.path.join(server_dir, 'server.pid')
