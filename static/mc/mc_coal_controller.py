@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import base64
+import errno
 import httplib
 import fnmatch
 import json
@@ -51,6 +52,15 @@ def init_external_ip():
         ).stdout.read()
     )
     external_ip = results['networkInterfaces'][0]['accessConfigs'][0]['natIP']
+
+
+def pid_exists(pid):
+    try:
+        os.kill(pid, 0)
+    except OSError as err:
+        if err.errno == errno.ESRCH:
+            return False
+    return True
 
 
 def get_ports_in_use():
@@ -177,6 +187,23 @@ def make_fifo(server_dir):
         pass
     os.mkfifo(fifo, 0666)
     return fifo
+
+
+def make_run_server_script(server_dir, server_memory, fifo):
+    mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
+    log4j_config = os.path.join(server_dir, 'log4j2.xml')
+    pid_filename = os.path.join(server_dir, 'server.pid')
+    run_filename = os.path.join(server_dir, 'run_server.sh')
+    run_script = '#!/bin/bash\n'
+    run_script += '/usr/bin/java -Xms{0} -Xmx{1} -Dlog4j.configurationFile={2} -jar {3} nogui <> {4} &\n'.format(
+        server_memory, server_memory, log4j_config, mc_jar, fifo
+    )
+    run_script += 'echo $! >| {0}\n'.format(pid_filename)
+    with open(run_filename, 'w') as run_file:
+        run_file.write(run_script)
+    st = os.stat(run_filename)
+    os.chmod(run_filename, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    return run_filename
 
 
 def verify_bucket(service):
@@ -316,7 +343,6 @@ def start_server(server_key, **kwargs):
         raise
     # Start Agent
     try:
-        logger.info("Starting agent...")
         mc_coal_dir = os.path.join(server_dir, 'mc_coal')
         agent = os.path.join(mc_coal_dir, 'mc_coal_agent.py')
         args = [agent]
@@ -333,25 +359,9 @@ def start_server(server_key, **kwargs):
         raise
     # Start MC
     try:
-        mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
-        log4j_config = os.path.join(server_dir, 'log4j2.xml')
-        mc_command = '/usr/bin/java -Xms{0} -Xmx{1} -Dlog4j.configurationFile={2} -jar {3} nogui'.format(
-            server_memory, server_memory, log4j_config, mc_jar
-        )
-        run_filename = os.path.join(server_dir, 'run.sh')
-        with open(run_filename, 'w') as run_file:
-            run_file.write("#!/bin/sh\n")
-            run_file.write(mc_command+'\n')
-        st = os.stat(run_file)
-        os.chmod(run_file, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        args = ['sudo', '-u', '_minecraft', run_filename]
-        logger.error("Running command: {0}".format(args))
-        # with open(fifo, 'w+') as fifo_file:
-        #     pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file).pid
-        pid = subprocess.Popen(args, cwd=server_dir).pid
-        pid_filename = os.path.join(server_dir, 'server.pid')
-        with open(pid_filename, 'w') as pid_file:
-            pid_file.write(str(pid))
+        run_server_script = make_run_server_script(server_dir, server_memory, fifo)
+        args = ['sudo', '-u', '_minecraft', run_server_script]
+        subprocess.Popen(args, cwd=server_dir).wait()
     except Exception, e:
         logger.error("Error ({0}) starting MC process for server {1}".format(e, server_key))
         raise
@@ -369,7 +379,7 @@ def zip_server_dir(server_dir, archive_file):
         'server_key',
         'agent.pid',
         'server.pid',
-        'run.sh'
+        'run_server.sh'
     ]
     abs_src = os.path.abspath(server_dir)
     with zipfile.ZipFile(archive_file, "w") as zf:
@@ -437,7 +447,8 @@ def stop_server(server_key, **kwargs):
             fifo_file.write('stop\n')
         with open(os.path.join(server_dir, 'server.pid'), 'r') as f:
             pid = f.read()
-        os.waitpid(int(pid), 0)
+        while pid_exists(int(pid)):
+            time.sleep(0.5)
     except Exception as e:
         logger.error("Error ({0}) stopping MC process for server {1}".format(e, server_key))
     # Archive server_dir
