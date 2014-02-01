@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import errno
 import logging
 import os
 import pytz
@@ -13,11 +14,6 @@ from nbt import nbt
 import requests
 import timezones
 import yaml
-
-try:
-    import psutil
-except ImportError:
-    psutil = None
 
 
 DEFAULT_AGENT_LOGFILE = 'agent.log'
@@ -152,17 +148,20 @@ def read_pid(pidfile):
     return None
 
 
+def pid_exists(pid):
+    try:
+        os.kill(pid, 0)
+    except OSError as err:
+        if err.errno == errno.ESRCH:
+            return False
+    return True
+
+
 def is_server_running(pidfile):
     is_running = False
     pid = read_pid(pidfile)
     if pid:
-        is_running = True
-        try:
-            if psutil is not None:
-                pid = int(pid)
-                psutil.Process(pid)
-        except:
-            is_running = False
+        is_running = pid_exists(int(pid))
     return is_running
 
 

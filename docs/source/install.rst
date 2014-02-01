@@ -74,7 +74,6 @@ The following libraries are required to be installed on the server that is hosti
 * `pyyaml <http://pyyaml.org/>`_
 * `requests <http://docs.python-requests.org/>`_
 * `NBT <https://github.com/twoolie/NBT>`_
-* `psutil <https://code.google.com/p/psutil/>`_ (Optional: Needed by the agent to report server status)
 
 ^^^^^^^^^^^^^^^^^^
 Agent Installation
