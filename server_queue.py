@@ -32,6 +32,7 @@ def start_server(server, reserved_ports=None):
         queue_controller_task(payload)
     except Exception as e:
         logging.exception(e)
+        raise
 
 
 def stop_server(server):
@@ -41,3 +42,4 @@ def stop_server(server):
         queue_controller_task(payload)
     except Exception as e:
         logging.exception(e)
+        raise
