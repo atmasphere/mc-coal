@@ -465,7 +465,6 @@ def stop_server(server_key, **kwargs):
         logger.error("Error ({0}) uploading archived server {1}".format(e, server_key))
     try:
         # Stop Agent
-        time.sleep(10)
         with open(os.path.join(server_dir, 'agent.pid'), 'r') as f:
             pid = f.read()
         os.kill(int(pid), signal.SIGTERM)

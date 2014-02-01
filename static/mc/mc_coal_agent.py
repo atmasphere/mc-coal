@@ -7,6 +7,7 @@ import logging
 import os
 import pytz
 import re
+import signal
 import sys
 import time
 
@@ -21,6 +22,17 @@ DEFAULT_MC_LOGFILE = '../server.log'
 DEFAULT_MC_LEVELFILE = '../world/level.dat'
 DEFAULT_MC_PIDFILE = '../server.pid'
 DEFAULT_MC_COMMAND_FIFO = '../command-fifo'
+
+#Globals
+client = None
+mc_pidfile = None
+mc_logfile = None
+mc_levelfile = None
+mc_commandfile = None
+zone = None
+parse_mc_history = False
+skip_chat_history = False
+address = None
 
 
 class AgentException(Exception):
@@ -165,8 +177,8 @@ def is_server_running(pidfile):
     return is_running
 
 
-def execute_commands(commandfifo, commands):
-    with open(commandfifo, "a") as command_fifo:
+def execute_commands(commandfile, commands):
+    with open(commandfile, "a") as command_fifo:
         for command in commands:
             c = command.get('command', None)
             u = command.get('username', None)
@@ -180,7 +192,7 @@ def execute_commands(commandfifo, commands):
                 command_fifo.write(c.encode('ISO-8859-2', errors='ignore'))
 
 
-def ping_host(client, running, server_day, server_time, raining, thundering, commandfifo, address):
+def ping_host(running, server_day, server_time, raining, thundering):
     logger = logging.getLogger('ping')
     try:
         params = {'server_name': client.host}
@@ -196,7 +208,7 @@ def ping_host(client, running, server_day, server_time, raining, thundering, com
         response_json = client.post("/api/v1/agents/ping", params=params).json()
         commands = response_json['commands']
         if commands:
-            execute_commands(commandfifo, commands)
+            execute_commands(mc_commandfile, commands)
     except requests.exceptions.RequestException as e:
         logger.error(u"UNEXPECTED RESPONSE {0}".format(e))
 
@@ -213,7 +225,7 @@ def is_chat(line):
     return re.search(ur"([\w-]+) ([\w:]+) \[(\w+)\] \<(\w+)\> (.+)", line)
 
 
-def post_line(client, line, zone, skip_chat):
+def post_line(line, skip_chat):
     logger = logging.getLogger('log_line')
     if is_moved_wrongly_warning(line):
         logger.debug(u"SKIPPING '{0}'".format(line))
@@ -239,7 +251,7 @@ def post_line(client, line, zone, skip_chat):
         time.sleep(timeout)
 
 
-def get_lastline(client):
+def get_lastline():
     logger = logging.getLogger('log_line')
     try:
         response_json = client.get("/api/v1/agents/lastline").json()
@@ -250,13 +262,13 @@ def get_lastline(client):
         raise NoPingException()
 
 
-def line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo, address):
+def line_reader(logfile, last_ping, last_time):
     while True:
         if datetime.datetime.now() > last_ping + datetime.timedelta(seconds=5):
-            running = is_server_running(pidfile)
-            server_day, server_time, raining, thundering = read_level(levelfile)
+            running = is_server_running(mc_pidfile)
+            server_day, server_time, raining, thundering = read_level(mc_levelfile)
             last_time = datetime.datetime.now()
-            ping_host(client, running, server_day, server_time, raining, thundering, commandfifo, address)
+            ping_host(running, server_day, server_time, raining, thundering)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
         raw_line = logfile.readline()
@@ -269,31 +281,26 @@ def line_reader(logfile, last_ping, last_time, client, levelfile, pidfile, comma
             yield line, last_ping, last_time
 
 
-def tail(
-    client, filename, zone, parse_history, skip_chat,
-    last_line, last_ping, last_time, levelfile, pidfile, commandfifo,
-    address
-):
+def tail(last_line, last_ping, last_time):
     logger = logging.getLogger('main')
+    skip_chat = skip_chat_history
     while True:
         try:
-            with open(filename, 'r') as logfile:
-                st_results = os.stat(filename)
+            with open(mc_logfile, 'r') as logfile:
+                st_results = os.stat(mc_logfile)
                 st_size = st_results[6]
-                if parse_history:
+                if parse_mc_history:
                     read_last_line = False if last_line is not None else True
                     if last_line is not None:
                         logger.debug(u"Skipping ahead to line '{0}'".format(last_line))
                 else:
-                    st_results = os.stat(filename)
+                    st_results = os.stat(mc_logfile)
                     st_size = st_results[6]
                     logfile.seek(st_size)
                     read_last_line = True
-                for line, last_ping, last_time in line_reader(
-                    logfile, last_ping, last_time, client, levelfile, pidfile, commandfifo, address
-                ):
+                for line, last_ping, last_time in line_reader(logfile, last_ping, last_time):
                     if read_last_line:
-                        post_line(client, line, zone, skip_chat)
+                        post_line(line, skip_chat)
                         if skip_chat:
                             where = logfile.tell()
                             if where >= st_size:
@@ -360,7 +367,28 @@ def init_loggers(debug=False, logfile='agent.log'):
     log_line_logger.addHandler(ch)
 
 
+def shutdown_handler(signum=None, frame=None):
+    logger = logging.getLogger('main')
+    logger.info('Shutdown handler called with signal {0}'.format(signum))
+    params = {'server_name': client.host}
+    params['is_server_running'] = is_server_running(mc_pidfile)
+    if address:
+        params['address'] = address
+    client.post("/api/v1/agents/ping", params=params).json()
+    sys.exit(0)
+
+
 def main(argv):
+    global client
+    global mc_pidfile
+    global mc_logfile
+    global mc_levelfile
+    global mc_commandfile
+    global zone
+    global parse_mc_history
+    global skip_chat_history
+    global address
+
     parser = argparse.ArgumentParser(description="The MC COAL minecraft server log monitoring and reporting agent.")
     parser.add_argument(
         '-v',
@@ -440,6 +468,8 @@ def main(argv):
     init_loggers(debug=args.verbose, logfile=args.agent_logfile)
     logger = logging.getLogger('main')
     try:
+        for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
+            signal.signal(sig, shutdown_handler)
         coal_host = args.coal_host
         if not coal_host:
             raise NoHostException()
@@ -457,6 +487,7 @@ def main(argv):
         skip_chat_history = args.skip_chat_history
         mc_timezone = args.mc_timezone
         tz = pytz.timezone(mc_timezone)
+        zone = tz.zone
         client = AgentClient(coal_host, agent_client_id, agent_secret)
         last_line = get_lastline(client)
         parse_all = args.parse_all
@@ -466,20 +497,7 @@ def main(argv):
         last_ping = datetime.datetime.now()
         last_time = datetime.datetime.now()
         logger.info(u"Monitoring '{0}' and reporting to '{1}'...".format(mc_logfile, coal_host))
-        tail(
-            client,
-            mc_logfile,
-            tz.zone,
-            parse_mc_history,
-            skip_chat_history,
-            last_line,
-            last_ping,
-            last_time,
-            mc_levelfile,
-            mc_pidfile,
-            mc_commandfile,
-            address
-        )
+        tail(last_line, last_ping, last_time)
     except NoPingException:
         logger.error(u"Unable to ping '{0}'".format(coal_host))
     except pytz.UnknownTimeZoneError:
