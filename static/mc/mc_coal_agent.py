@@ -489,7 +489,7 @@ def main(argv):
         tz = pytz.timezone(mc_timezone)
         zone = tz.zone
         client = AgentClient(coal_host, agent_client_id, agent_secret)
-        last_line = get_lastline(client)
+        last_line = get_lastline()
         parse_all = args.parse_all
         if parse_all:
             last_line = None
