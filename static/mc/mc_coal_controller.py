@@ -10,6 +10,7 @@ import random
 import shutil
 import signal
 import socket
+import stat
 import string
 import subprocess
 import sys
@@ -311,10 +312,11 @@ def start_server(server_key, **kwargs):
         args = ['chown', '-R', '_minecraft', server_dir]
         subprocess.check_call(args, cwd=server_dir)
     except Exception as e:
-        logger.error("Error ({0}) chmodding files for server {1}".format(e, server_key))
+        logger.error("Error ({0}) chowning files for server {1}".format(e, server_key))
         raise
     # Start Agent
     try:
+        logger.info("Starting agent...")
         mc_coal_dir = os.path.join(server_dir, 'mc_coal')
         agent = os.path.join(mc_coal_dir, 'mc_coal_agent.py')
         args = [agent]
@@ -333,13 +335,20 @@ def start_server(server_key, **kwargs):
     try:
         mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
         log4j_config = os.path.join(server_dir, 'log4j2.xml')
-        mc_command = '"/usr/bin/java -Xms{0} -Xmx{1} -Dlog4j.configurationFile={2} -jar {3} nogui"'.format(
+        mc_command = '/usr/bin/java -Xms{0} -Xmx{1} -Dlog4j.configurationFile={2} -jar {3} nogui'.format(
             server_memory, server_memory, log4j_config, mc_jar
         )
-        args = ['sudo', 'su', '-c', mc_command, '-s', '/bin/sh', '_minecraft']
-        logger.info("Running command: {0}".format(args))
-        with open(fifo, 'w+') as fifo_file:
-            pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file).pid
+        run_filename = os.path.join(server_dir, 'run.sh')
+        with open(run_filename, 'w') as run_file:
+            run_file.write("#!/bin/sh\n")
+            run_file.write(mc_command+'\n')
+        st = os.stat(run_file)
+        os.chmod(run_file, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        args = ['sudo', '-u', '_minecraft', run_filename]
+        logger.error("Running command: {0}".format(args))
+        # with open(fifo, 'w+') as fifo_file:
+        #     pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file).pid
+        pid = subprocess.Popen(args, cwd=server_dir).pid
         pid_filename = os.path.join(server_dir, 'server.pid')
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
@@ -359,7 +368,8 @@ def zip_server_dir(server_dir, archive_file):
         'log4j2.xml',
         'server_key',
         'agent.pid',
-        'server.pid'
+        'server.pid',
+        'run.sh'
     ]
     abs_src = os.path.abspath(server_dir)
     with zipfile.ZipFile(archive_file, "w") as zf:
