@@ -340,7 +340,6 @@ def start_server(server_key, **kwargs):
         logger.info("Running command: {0}".format(args))
         with open(fifo, 'w+') as fifo_file:
             pid = subprocess.Popen(args, cwd=server_dir, stdin=fifo_file).pid
-            os.wait()
         pid_filename = os.path.join(server_dir, 'server.pid')
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
