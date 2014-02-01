@@ -572,18 +572,22 @@ class Server(ndb.Model):
         if last_ping is not None:
             if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):
                 put_server = True
+        # Should we log out logged in users?
+        if status in [SERVER_RUNNING, SERVER_STOPPED]:
+            if status != previous_status and previous_status != SERVER_UNKNOWN:
+                PlaySession.close_all_current(self.key, now)
         # Put server changes
         if put_server or (previous_status != status):
             self.status = status
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
+            # Email admins
             send_email = previous_status != status
             if status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP]:
                 send_email = False
             if previous_status == SERVER_STOPPED and status == SERVER_UNKNOWN:
                 send_email = False
-            # Email admins
             if send_email:
                 for admin in User.query_admin():
                     if admin.email:
@@ -897,9 +901,7 @@ class LogLine(UsernameModel):
         if LOGOUT_TAG in log_line.tags:
             PlaySession.close_current(log_line.server_key, log_line.username, log_line.timestamp, log_line.key)
         if STARTING_TAG in log_line.tags or STOPPING_TAG in log_line.tags:
-            open_sessions_query = PlaySession.query_open(log_line.server_key)
-            for session in open_sessions_query:
-                session.close(log_line.timestamp, log_line.key)
+            PlaySession.close_all_current(server.key, log_line.timestamp, log_line.key)
         if CLAIM_TAG in log_line.tags:
             if UsernameClaim.authenticate(log_line.username, log_line.code):
                 message = "Username claim succeeded."
@@ -1045,7 +1047,7 @@ class PlaySession(UsernameModel):
         logout_timestamp = self.logout_timestamp or datetime.datetime.utcnow()
         return logout_timestamp - login_timestamp
 
-    def close(self, timestamp, logout_log_line_key):
+    def close(self, timestamp, logout_log_line_key=None):
         self.logout_timestamp = timestamp
         self.logout_log_line_key = logout_log_line_key
         self.put()
@@ -1080,6 +1082,12 @@ class PlaySession(UsernameModel):
         if current:
             current.close(timestamp, logout_log_line_key)
         return current
+
+    @classmethod
+    def close_all_current(cls, server_key, timestamp, logout_log_line_key=None):
+        open_sessions_query = cls.query_open(server_key)
+        for session in open_sessions_query:
+            session.close(timestamp, logout_log_line_key=logout_log_line_key)
 
     @classmethod
     def query_open(cls, server_key):
