@@ -14,7 +14,7 @@ pip install --upgrade git+https://github.com/twoolie/NBT@version-1.4.1#egg=NBT
 useradd -m _minecraft
 
 if [ -z "$1" ]; then
-    if grep -Fxq "root ALL=(_minecraft) NOPASSWD: /usr/bin/java" /etc/sudoers
+    if grep -Fxq "root ALL=(_minecraft) NOPASSWD: ALL" /etc/sudoers
     then
         echo "sudoers up to date"
     else
@@ -23,7 +23,7 @@ if [ -z "$1" ]; then
     fi
 else
     echo "Changing sudoers"
-    echo "root ALL=(_minecraft) NOPASSWD: /usr/bin/java" >> $1
+    echo "root ALL=(_minecraft) NOPASSWD: ALL" >> $1
     exit
 fi
 
