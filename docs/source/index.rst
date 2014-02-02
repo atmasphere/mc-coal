@@ -4,7 +4,7 @@ MC COAL
 
 `MC COAL <http://mc-coal.org/>`_ is an open-source project aimed at helping to build and maintain community around multi-player `Minecraft <http://minecraft.net>`_ worlds. It can also optionally provide powerful and simple Minecraft multi-player server hosting and management.
 
-`COAL <https://github.com/gumptionthomas/mc-coal>`_ is a web application. It is written in python and runs on the `Google Cloud Platform <https://cloud.google.com/>`_. It is licensed under the `GNU AFFERO GENERAL PUBLIC LICENSE Version 3 <https://github.com/gumptionthomas/mc-coal/blob/master/LICENSE.txt>`_
+`COAL <https://github.com/mc-coal/mc-coal>`_ is a web application. It is written in python and runs on the `Google Cloud Platform <https://cloud.google.com/>`_. It is licensed under the `GNU AFFERO GENERAL PUBLIC LICENSE Version 3 <https://github.com/mc-coal/mc-coal/blob/master/LICENSE.txt>`_
 
 --------
 Features

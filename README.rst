@@ -4,7 +4,7 @@ MC COAL - Minecraft Community Online Activity Log
 
 `MC COAL <http://mc-coal.org/>`_ is an open-source project aimed at helping to build and maintain community around multi-player `Minecraft <http://minecraft.net>`_ worlds. It can also optionally provide powerful and simple Minecraft multi-player server hosting and management.
 
-`COAL <https://github.com/gumptionthomas/mc-coal>`_ is a web application. It is written in python and runs on the `Google Cloud Platform <https://cloud.google.com/>`_. It is licensed under the `GNU AFFERO GENERAL PUBLIC LICENSE Version 3 <https://github.com/gumptionthomas/mc-coal/blob/master/LICENSE.txt>`_
+`COAL <https://github.com/mc-coal/mc-coal>`_ is a web application. It is written in python and runs on the `Google Cloud Platform <https://cloud.google.com/>`_. It is licensed under the `GNU AFFERO GENERAL PUBLIC LICENSE Version 3 <https://github.com/mc-coal/mc-coal/blob/master/LICENSE.txt>`_
 
 --------
 Features
@@ -34,7 +34,7 @@ Deploy and Configure COAL
 -------------------------
 1. `Create a Google Cloud Project <https://cloud.google.com/console/project>`_ for your new COAL installation. Take note of the Project ID you select (e.g. `[my-project-id]`).
 2. Optionally, in ``Settings``, enable billing. COAL should be able to run comfortably under the daily free App Engine quota for most relatively small, lightly-populated worlds.
-3. Clone, fork, or download the `MC COAL code repository <https://github.com/gumptionthomas/mc-coal>`_. Make sure any new clone or fork is a private repository as it will contain sensitive information (like the ``COAL_SECRET_KEY``).
+3. Clone, fork, or download the `MC COAL code repository <https://github.com/mc-coal/mc-coal>`_. Make sure any new clone or fork is a private repository as it will contain sensitive information (like the ``COAL_SECRET_KEY``).
 4. Change the application name (i.e. ``mc-coal``) in the first line of `app.yaml <app.yaml>`_ to the Project ID you created above.
 5. Change the ``COAL_SECRET_KEY`` value in `appengine_config.py <appengine_config.py>`_ to a unique random value. You can use this `random.org link <http://www.random.org/strings/?num=1&len=20&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new>`_ to generate a unique string value.
 6. Complete the sub-steps below if you intend to host worlds on Google Compute Engine:
