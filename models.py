@@ -516,7 +516,7 @@ class Server(ndb.Model):
         self, status=None, last_ping=None, server_day=None, server_time=None,
         is_raining=None, is_thundering=None, address=None, timestamp=None
     ):
-        put_server = False
+        changed = False
         now = datetime.datetime.utcnow()
         timeout = now - datetime.timedelta(minutes=5)
         previous_status = self.status
@@ -525,7 +525,7 @@ class Server(ndb.Model):
             self.queued = datetime.datetime.utcnow()
             if self.idle:
                 self.idle = None
-            put_server = True
+            changed = True
         elif status is not None and self.queued is not None:
             # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually
             if (
@@ -535,7 +535,7 @@ class Server(ndb.Model):
                 status = previous_status
             else:
                 self.queued = None
-                put_server = True
+                changed = True
         # No status provided, check for timeout
         if status is None:
             status = previous_status
@@ -545,13 +545,15 @@ class Server(ndb.Model):
             elif self.queued < timeout:
                 self.queued = None
                 status = SERVER_UNKNOWN
+        if status != previous_status:
+            changed = True
         # Update address
         address = address or self.address
         if status is SERVER_STOPPED and not self.mc_properties.server_port:
             address = None
         if address != self.address:
             self.address = address
-            put_server = True
+            changed = True
         # Update server day/time
         if (
             (server_day is not None and server_day != self.last_server_day) or
@@ -562,22 +564,22 @@ class Server(ndb.Model):
                 self.last_server_day = server_day
             if server_time is not None:
                 self.last_server_time = server_time
-            put_server = True
+            changed = True
         # Update server weather
         if is_raining != self.is_raining or is_thundering != self.is_thundering:
             self.is_raining = is_raining
             self.is_thundering = is_thundering
-            put_server = True
+            changed = True
         # Record pings every minute, even if nothing changed
         if last_ping is not None:
             if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):
-                put_server = True
-        # Should we log out logged in users?
-        if status in [SERVER_RUNNING, SERVER_STOPPED]:
+                changed = True
+        # Close all open play sessions if newly running or stopped
+        if status == SERVER_STOPPED:
             if status != previous_status and previous_status != SERVER_UNKNOWN:
                 PlaySession.close_all_current(self.key, now)
         # Put server changes
-        if put_server or (previous_status != status):
+        if changed:
             self.status = status
             if last_ping is not None:
                 self.last_ping = last_ping
@@ -586,7 +588,7 @@ class Server(ndb.Model):
             send_email = previous_status != status
             if status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP]:
                 send_email = False
-            if previous_status == SERVER_STOPPED and status == SERVER_UNKNOWN:
+            if status == SERVER_UNKNOWN and previous_status == SERVER_STOPPED:
                 send_email = False
             if send_email:
                 for admin in User.query_admin():
