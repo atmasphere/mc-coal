@@ -443,7 +443,6 @@ def stop_server(server_key, **kwargs):
     try:
         fifo = os.path.join(server_dir, 'command-fifo')
         with open(fifo, 'a+') as fifo_file:
-            fifo_file.write('save-all\n')
             fifo_file.write('stop\n')
         with open(os.path.join(server_dir, 'server.pid'), 'r') as f:
             pid = f.read()
