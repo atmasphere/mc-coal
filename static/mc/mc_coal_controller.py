@@ -195,8 +195,8 @@ def make_run_server_script(server_dir, server_memory, fifo):
     pid_filename = os.path.join(server_dir, 'server.pid')
     run_filename = os.path.join(server_dir, 'run_server.sh')
     run_script = '#!/bin/bash\n'
-    run_script += '/usr/bin/java -Xms{0} -Xmx{1} -Dlog4j.configurationFile={2} -jar {3} nogui <> {4} &\n'.format(
-        server_memory, server_memory, log4j_config, mc_jar, fifo
+    run_script += '/usr/bin/java -Xincgc -Xmx{0} -Dlog4j.configurationFile={1} -jar {2} nogui <> {3} &\n'.format(
+        server_memory, log4j_config, mc_jar, fifo
     )
     run_script += 'echo $! >| {0}\n'.format(pid_filename)
     with open(run_filename, 'w') as run_file:
@@ -361,7 +361,7 @@ def start_server(server_key, **kwargs):
     try:
         run_server_script = make_run_server_script(server_dir, server_memory, fifo)
         args = ['sudo', '-u', '_minecraft', run_server_script]
-        subprocess.Popen(args, cwd=server_dir).wait()
+        subprocess.check_call(args, cwd=server_dir)
     except Exception, e:
         logger.error("Error ({0}) starting MC process for server {1}".format(e, server_key))
         raise
