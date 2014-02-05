@@ -8,7 +8,11 @@
     <div class="player_list players">
         <div class="box">
             <div class="wrap">
-                <div class="name">{{ edit_server.name }}</div>
+                <div class="name">{{ edit_server.name }}</div><br/><br/>
+                {% if not edit_server.is_gce %}
+                    <div><strong>AGENT CLIENT ID:</strong> {{ edit_server.agent.client_id }}</div>
+                    <div><strong>AGENT SECRET:</strong> {{ edit_server.agent.secret }}</div>
+                {% endif %}
             </div>
         </div>
 

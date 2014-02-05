@@ -58,14 +58,6 @@ class HomeHandler(MainHandlerBase):
         if server is None:
             self.redirect_to_server('home')
             return
-        open_sessions_query = PlaySession.query_latest_open(server.key)
-        # Get open sessions
-        playing_usernames = []
-        open_sessions = []
-        for open_session in open_sessions_query:
-            if open_session.username and open_session.username not in playing_usernames:
-                playing_usernames.append(open_session.username)
-                open_sessions.append(open_session)
         # Get new chats
         new_chats_query = LogLine.query_latest_events(server.key)
         last_chat_view = self.request.user.last_chat_view
@@ -76,7 +68,7 @@ class HomeHandler(MainHandlerBase):
             self.request.user.record_chat_view(new_chats[0].timestamp)
         # Render with context
         context = {
-            'open_sessions': open_sessions,
+            'open_sessions': server.open_sessions,
             'new_chats': new_chats,
             'chats_cursor': chats_cursor
         }

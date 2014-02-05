@@ -6,7 +6,7 @@
 
 {% block content %}
     {% for server in servers %}
-        {{ macros.server_status(server, user) }}
+        {{ macros.server_status(server, user, open_sessions=server.open_sessions) }}
         <br/>
     {% endfor %}
 {% endblock %}

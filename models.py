@@ -489,6 +489,17 @@ class Server(ndb.Model):
         else:
             return None
 
+    @property
+    def open_sessions(self):
+        playing_usernames = []
+        open_sessions = []
+        open_sessions_query = PlaySession.query_latest_open(self.key)
+        for open_session in open_sessions_query:
+            if open_session.username and open_session.username not in playing_usernames:
+                playing_usernames.append(open_session.username)
+                open_sessions.append(open_session)
+        return open_sessions
+
     def start(self):
         if self.is_gce and not (self.is_running or self.is_queued_start):
             if self.minecraft_url is None:
