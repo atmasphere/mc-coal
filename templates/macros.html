@@ -73,10 +73,7 @@
     {% endif %}
     <div class="title box wrap">
         <div class="left">
-            <h1>
-                <a href="{{ uri_for('home', server_key=server.key.urlsafe()) }}">{{ server.name }}</a>
-                {% if server.address %}({{ server.address }}){% endif %}
-            </h1>
+            <h1><a href="{{ uri_for('home', server_key=server.key.urlsafe()) }}">{{ server.name }}</a></h1>
             <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
             {% if server.is_raining != None %}
                 {% if server.is_raining %}
@@ -89,6 +86,19 @@
                 {% endif %}
             {% endif %}
             </h4>
+            {% if server.address %}<h4>Address: {{ server.address }}</h4>{% endif %}
+            {% if user.admin %}
+                <h4>Admin Tools: &nbsp;
+                {% if server.is_gce %}
+                    <a href="{{ uri_for('server_gce', key=server.key.urlsafe()) }}">Edit</a>
+                {% else %}
+                    <a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a>
+                {% endif %}
+                {% if not ON_SERVER %}
+                    &nbsp; | &nbsp; <a href="{{ uri_for('server_upload_log', key=server.key.urlsafe()) }}">Upload Log File</a>
+                {% endif %}
+                </h4>
+            {% endif %}
             {% if open_sessions %}
                 <div class="player_list left">
                     <h3 class="box">Currently Playing</h3>
@@ -103,19 +113,6 @@
                             </div>
                         </div>
                     {% endfor %}
-                </div>
-            {% endif %}
-            {% if user.admin %}
-                <br/>
-                <div class="left">
-                    {% if server.is_gce %}
-                        <h3><a href="{{ uri_for('server_gce', key=server.key.urlsafe()) }}">Edit</a></h3>
-                    {% else %}
-                        <h3><a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a></h3>
-                    {% endif %}
-                    {% if not ON_SERVER %}
-                        <h3><a href="{{ uri_for('server_upload_log', key=server.key.urlsafe()) }}">Upload Log File</a></h3>
-                    {% endif %}
                 </div>
             {% endif %}
        </div>
