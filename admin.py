@@ -452,13 +452,13 @@ class InstanceForm(form.Form):
         self.machine_type.choices = [
             ('f1-micro', '1 vCPU (shared physical core) and 0.6 GB RAM @ $0.019/Hour'),
             ('g1-small', '1 vCPU (shared physical core) and 1.7 GB RAM @ $0.054/Hour'),
-            ('n1-standard-1', '1 vCPU, 3.75 GB RAM @ $0.104/Hour'),
-            ('n1-standard-2', '2 vCPUs, 7.5 GB RAM @ $0.207/Hour'),
-            ('n1-standard-4', '4 vCPUs, 15 GB RAM @ $0.415/Hour'),
-            ('n1-standard-8', '8 vCPUs, 30 GB RAM @ $0.829/Hour'),
-            ('n1-highmem-2', '2 vCPUs, 13 GB RAM @ $0.244/Hour'),
-            ('n1-highmem-4', '4 vCPUs, 26 GB RAM @ $0.488/Hour'),
-            ('n1-highmem-8', '8 vCPUs, 52 GB RAM @ $0.975/Hour')
+            ('n1-standard-1', '1 vCPU, 3.75 GB RAM'),
+            ('n1-highcpu-2', '2 vCPUs, 1.8 GB RAM'),
+            ('n1-standard-2', '2 vCPUs, 7.5 GB RAM'),
+            ('n1-highcpu-4', '4 vCPUs, 3.6 GB RAM'),
+            ('n1-standard-4', '4 vCPUs, 15 GB RAM'),
+            ('n1-highcpu-8', '8 vCPUs, 7.2 GB RAM'),
+            ('n1-standard-8', '8 vCPUs, 30 GB RAM')
         ]
 
 
