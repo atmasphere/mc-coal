@@ -351,7 +351,11 @@ class ServerPropertiesForm(form.Form):
         choices=[
             ('256M', '256 Megabytes'),
             ('512M', '512 Megabytes'),
-            ('1G', '1 Gigabyte')
+            ('1G', '1 Gigabyte'),
+            ('2G', '2 Gigabytes'),
+            ('3G', '3 Gigabytes'),
+            ('4G', '4 Gigabytes')
+
         ]
     )
     operator = RestfulStringField(validators=[validators.Optional()])

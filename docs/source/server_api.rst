@@ -241,7 +241,7 @@ Servers
       - **key** -- The server key.
       - **server_port** -- The minecraft server port to use (``null`` indicates first available).
       - **version** -- The minecraft server version.
-      - **memory** -- The amount of memory dedicated to the server. Possible values are ``256M``, ``512M``, and ``1G``.
+      - **memory** -- The amount of memory dedicated to the server. Possible values are ``256M``, ``512M``, ``1G``, ``2G``, ``3G``, or ``4G``.
       - **operator** -- The minecraft username of the initial operator of the server.
       - **idle_timeout** -- Number of idle minutes before the server is automatically paused (zero means never)
       - **motd** -- The message of the day.
@@ -324,7 +324,7 @@ Servers
 
   :formparam server_port: The minecraft server port to use (``''`` [empty string] indicates first available).
   :formparam version: The minecraft version to use for the server.
-  :formparam memory: The amount of memory to dedicate to the server. Possible values are ``256M``, ``512M``, and ``1G``.
+  :formparam memory: The amount of memory to dedicate to the server. Possible values are ``256M``, ``512M``, ``1G``, ``2G``, ``3G``, or ``4G``.
   :formparam operator: The minecraft username of the initial operator for the server.
   :formparam idle_timeout: The number of idle minutes before the server is automatically paused (zero means never)
   :formparam motd: The message of the day.

@@ -236,7 +236,10 @@ class ServerPropertiesForm(ServerForm):
         self.memory.choices = [
             ('256M', '256 Megabytes'),
             ('512M', '512 Megabytes'),
-            ('1G', '1 Gigabyte')
+            ('1G', '1 Gigabyte'),
+            ('2G', '2 Gigabytes'),
+            ('3G', '3 Gigabytes'),
+            ('4G', '4 Gigabytes')
         ]
         self.gamemode.choices = [
             ('0', 'Survival'),
@@ -428,7 +431,7 @@ class MinecraftDownloadCreateHandler(UserHandler):
     def get(self):
         form = MinecraftDownloadForm()
         context = {'form': form}
-        self.render_template('version.html', context=context)
+        self.render_template('version_create.html', context=context)
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self):
@@ -438,7 +441,7 @@ class MinecraftDownloadCreateHandler(UserHandler):
             download.put()
             self.redirect(webapp2.uri_for('admin'))
         context = {'form': form}
-        self.render_template('version.html', context=context)
+        self.render_template('version_create.html', context=context)
 
 
 class InstanceForm(form.Form):
