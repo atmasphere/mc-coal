@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+{% set nav="Admin" %}
+
+{% block title %}Minecraft Versions{% endblock %}
+
+{% block content %}
+    <h2 class="box">Minecraft Versions</h2>
+    {% for d in downloads %}
+        <div class="box">
+            <div class="data">Version: {{ d.version }}</div>
+            <div class="data">Download URL: <a href="{{ d.url }}">{{ d.url }}</a></div>
+        </div>
+        <h3 class="box"><a href="{{ uri_for('minecraft_version_remove', key=d.key.urlsafe()) }}">Remove</a></h3>
+    {% endfor %}
+
+    <form class="box" action="{{ uri_for('minecraft_versions') }}" method="post">
+        <h2>Create New Version</h2>
+        <label>Version</label>
+        {{ macros.with_errors(form.version, class="span3") }}
+        <label>URL</label>
+        {{ macros.with_errors(form.url, size="60") }}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+    </form>
+{% endblock %}

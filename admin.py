@@ -1,4 +1,5 @@
 import logging
+import time
 
 from google.appengine.ext import ndb
 
@@ -99,6 +100,26 @@ class UserEditHandler(AdminHandlerBase):
 
 class UserRemoveHandler(AdminHandlerBase):
     @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            user_key = ndb.Key(urlsafe=key)
+            user = user_key.get()
+            if user is None:
+                self.abort(404)
+            if user.admin:
+                raise Exception(u"Can't delete an administrator")
+            context = {}
+            context['question'] = u'Delete user "{0}"?'.format(user.nickname or user.email)
+            context['confirmed_url'] = webapp2.uri_for('user_remove', key=user.key.urlsafe())
+            context['cancelled_url'] = webapp2.uri_for('user', key=user.key.urlsafe())
+            self.render_template('confirm.html', context=context)
+        except Exception, e:
+            message = u'User "{0}" could not be deleted (Reason: {1}).'.format(user.nickname or user.email, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+            self.redirect(webapp2.uri_for('users'))
+
+    @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
         try:
             user_key = ndb.Key(urlsafe=key)
@@ -106,10 +127,16 @@ class UserRemoveHandler(AdminHandlerBase):
             if user is None:
                 self.abort(404)
             if user.admin:
-                self.abort(405)  # Method Not Allowed
+                raise Exception(u"Can't delete an administrator")
             user.key.delete()
+            message = u'User "{0}" deleted.'.format(user.nickname or user.email)
+            logging.info(message)
+            self.session.add_flash(message, level='info')
+            time.sleep(1)
         except Exception, e:
-            logging.error(u"Error removing user: {0}".format(e))
+            message = u'User "{0}" could not be deleted (Reason: {1}).'.format(user.nickname or user.email, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
         self.redirect(webapp2.uri_for('users'))
 
 
@@ -381,6 +408,26 @@ class ServerEditGceHandler(UserHandler):
 
 class ServerDeactivateHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.abort(404)
+            context = {}
+            context['question'] = u'Deactivate server "{0}"?'.format(server.name)
+            context['confirmed_url'] = webapp2.uri_for('server_deactivate', key=server.key.urlsafe())
+            context['cancelled_url'] = webapp2.uri_for('server', key=server.key.urlsafe())
+            self.render_template('confirm.html', context=context)
+        except webapp2.HttpException:
+            pass
+        except Exception as e:
+            message = u'Server "{0}" could not be deactivated (Reason: {1}).'.format(server.name, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+            self.redirect(webapp2.uri_for('admin'))
+
+    @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
         try:
             server_key = ndb.Key(urlsafe=key)
@@ -388,8 +435,16 @@ class ServerDeactivateHandler(UserHandler):
             if server is None:
                 self.abort(404)
             server.deactivate()
-        except Exception, e:
-            logging.error(u"Error deactivating server: {0}".format(e))
+            message = u'Server "{0}" deactivated.'.format(server.name)
+            logging.info(message)
+            self.session.add_flash(message, level='info')
+            time.sleep(1)
+        except webapp2.HttpException:
+            pass
+        except Exception as e:
+            message = u'Error deactivating server "{0}": {1}'.format(server.name, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
         self.redirect(webapp2.uri_for('admin'))
 
 
@@ -402,13 +457,38 @@ class ServerStartHandler(AdminHandlerBase):
             return
         try:
             server.start()
+            message = u'Server "{0}" started.'.format(server.name)
+            logging.info(message)
+            self.session.add_flash(message, level='info')
+            time.sleep(1)
         except Exception, e:
             logging.error(u"Error starting server: {0}".format(e))
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
 class ServerStopHandler(AdminHandlerBase):
-    @authentication_required(authenticate=authenticate)
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.redirect_to_server('home')
+                return
+            context = {}
+            context['question'] = u'Pause server "{0}"?'.format(server.name)
+            context['confirmed_url'] = webapp2.uri_for('server_stop', key=server.key.urlsafe())
+            context['cancelled_url'] = webapp2.uri_for('home', server_key=server.key.urlsafe())
+            self.render_template('confirm.html', context=context)
+        except webapp2.HttpException:
+            pass
+        except Exception as e:
+            message = u'Server "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+            self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+
+    @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
         server = self.get_server_by_key(key, abort=False)
         if server is None:
@@ -416,8 +496,16 @@ class ServerStopHandler(AdminHandlerBase):
             return
         try:
             server.stop()
+            message = u'Server "{0}" paused.'.format(server.name)
+            logging.info(message)
+            self.session.add_flash(message, level='info')
+            time.sleep(1)
+        except webapp2.HttpException:
+            pass
         except Exception, e:
-            logging.error(u"Error stopping server: {0}".format(e))
+            message = u'Server "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
@@ -426,22 +514,73 @@ class MinecraftDownloadForm(form.Form):
     url = fields.StringField(u'Download URL', validators=[validators.URL(), VersionUrlExists()])
 
 
-class MinecraftDownloadCreateHandler(UserHandler):
+class MinecraftDownloadHandler(AdminHandlerBase):
     @authentication_required(authenticate=authenticate_admin)
     def get(self):
         form = MinecraftDownloadForm()
-        context = {'form': form}
-        self.render_template('version_create.html', context=context)
+        downloads = MinecraftDownload.query().fetch(100)
+        context = {'form': form, 'downloads': downloads}
+        self.render_template('versions.html', context=context)
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self):
         form = MinecraftDownloadForm(self.request.POST)
         if form.validate():
-            download = MinecraftDownload.create(form.version.data, form.url.data)
-            download.put()
-            self.redirect(webapp2.uri_for('admin'))
-        context = {'form': form}
-        self.render_template('version_create.html', context=context)
+            try:
+                download = MinecraftDownload.create(form.version.data, form.url.data)
+                download.put()
+                message = u'Minecraft version "{0}" created.'.format(download.version)
+                logging.info(message)
+                self.session.add_flash(message, level='info')
+                time.sleep(1)
+                self.redirect(webapp2.uri_for('minecraft_versions'))
+            except webapp2.HttpException:
+                pass
+            except Exception, e:
+                message = u'Minecraft version "{0}" could not be created (Reason: {1}).'.format(form.version.data, e)
+                logging.error(message)
+                self.session.add_flash(message, level='error')
+        downloads = MinecraftDownload.query().fetch(100)
+        context = {'form': form, 'downloads': downloads}
+        self.render_template('versions.html', context=context)
+
+
+class MinecraftDownloadRemoveHandler(AdminHandlerBase):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            version_key = ndb.Key(urlsafe=key)
+            version = version_key.get()
+            if version is None:
+                self.abort(404)
+            context = {}
+            context['question'] = u'Delete version "{0}"?'.format(version.version)
+            context['confirmed_url'] = webapp2.uri_for('minecraft_version_remove', key=version.key.urlsafe())
+            context['cancelled_url'] = webapp2.uri_for('minecraft_versions')
+            self.render_template('confirm.html', context=context)
+        except Exception, e:
+            message = u'Version "{0}" could not be deleted (Reason: {1}).'.format(version.version, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+            self.redirect(webapp2.uri_for('minecraft_versions'))
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        try:
+            version_key = ndb.Key(urlsafe=key)
+            version = version_key.get()
+            if version is None:
+                self.abort(404)
+            version.key.delete()
+            message = u'Version "{0}" deleted.'.format(version.version)
+            logging.info(message)
+            self.session.add_flash(message, level='info')
+            time.sleep(1)
+        except Exception, e:
+            message = u'Version "{0}" could not be deleted (Reason: {1}).'.format(version.version, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+        self.redirect(webapp2.uri_for('minecraft_versions'))
 
 
 class InstanceForm(form.Form):
@@ -497,9 +636,37 @@ class InstanceStartHandler(UserHandler):
 
 class InstanceStopHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            instance = gce.Instance.singleton()
+            context = {}
+            context['question'] = u'Kill the GCE instance?'
+            context['confirmed_url'] = webapp2.uri_for('instance_stop')
+            context['cancelled_url'] = webapp2.uri_for('admin')
+            self.render_template('confirm.html', context=context)
+        except webapp2.HttpException:
+            pass
+        except Exception as e:
+            message = u'GCE instance could not be killed (Reason: {0}).'.format(e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+            self.redirect(webapp2.uri_for('admin'))
+
+    @authentication_required(authenticate=authenticate_admin)
     def post(self):
-        instance = gce.Instance.singleton()
-        instance.stop()
+        try:
+            instance = gce.Instance.singleton()
+            instance.stop()
+            message = u'GCE instance killed.'.format(server.name)
+            logging.info(message)
+            self.session.add_flash(message, level='info')
+            time.sleep(1)
+        except webapp2.HttpException:
+            pass
+        except Exception, e:
+            message = u'GCE instance could not be killed (Reason: {0}).'.format(e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
         self.redirect(webapp2.uri_for('admin'))
 
 
@@ -537,7 +704,11 @@ class ServerLogHandler(UserHandler):
         except Exception, e:
             logging.error(u"Error POSTing server: {0}".format(e))
             self.abort(404)
-        context = {'edit_server': server, 'form': form, 'action': webapp2.uri_for('server_upload_log', key=server.key.urlsafe())}
+        context = {
+            'edit_server': server,
+            'form': form,
+            'action': webapp2.uri_for('server_upload_log', key=server.key.urlsafe())
+        }
         self.render_template('server_log.html', context=context)
 
 
@@ -554,7 +725,8 @@ routes = [
     RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
     RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
     RedirectRoute('/admin/servers/<key>/upload_log', handler=ServerLogHandler, strict_slash=True, name="server_upload_log"),
-    RedirectRoute('/admin/minecraft_create', handler=MinecraftDownloadCreateHandler, strict_slash=True, name="minecraft_create"),
+    RedirectRoute('/admin/versions', handler=MinecraftDownloadHandler, strict_slash=True, name="minecraft_versions"),
+    RedirectRoute('/admin/versions/<key>/remove', handler=MinecraftDownloadRemoveHandler, strict_slash=True, name="minecraft_version_remove"),
     RedirectRoute('/admin/instance/configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure"),
     RedirectRoute('/admin/instance/start', handler=InstanceStartHandler, strict_slash=True, name="instance_start"),
     RedirectRoute('/admin/instance/stop', handler=InstanceStopHandler, strict_slash=True, name="instance_stop"),

@@ -36,7 +36,7 @@
         </div>
         {% if not edit_user.admin %}
             <div class="box">
-                <form action="{{ uri_for('user_remove', key=edit_user.key.urlsafe()) }}" method="POST">
+                <form action="{{ uri_for('user_remove', key=edit_user.key.urlsafe()) }}">
                     <input type="submit" name="submit" value="Remove">
                 </form>
             </div>

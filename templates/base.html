@@ -36,6 +36,13 @@
     </header>
 
     <div id="main">
+        {% if flashes %}
+            {% block flashes %}
+                {% for flash in flashes %}
+                    <div class="flashes {{ flash[1] or 'info' }}">{{ flash[0] }}</div>
+                {% endfor %}
+            {% endblock %}
+        {% endif %}
         <div id="content">
             {% block content %}{% endblock %}
         </div>

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% set nav="Admin" %}
+
+{% block title %}Confirm{% endblock %}
+
+{% block content %}
+    <div class="box">
+        <h1>Are you sure?</h1>
+        &nbsp;&nbsp;&nbsp;{{ question }}
+        <h3>
+        <form action="{{ confirmed_url }}" method="POST">
+            <input type="submit" name="submit" value="Confirm"> <a href="{{ cancelled_url }}">Cancel</a>
+        </form>
+        </h3>
+    </div>
+{% endblock %}

@@ -18,7 +18,7 @@
             <h2 class="box"><a href="{{ uri_for('server_create_gce') }}">Create CE-Hosted World</a></h2>
             <h2 class="box"><a href="{{ uri_for('minecraft_create') }}">Define New Minecraft Version/URL</a></h2>
             {% if status == 'RUNNING' %}
-                <form action="{{ uri_for('instance_stop') }}" method="post">
+                <form action="{{ uri_for('instance_stop') }}">
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Kill Instance</button>
                     </div>
