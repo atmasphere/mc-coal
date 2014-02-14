@@ -419,7 +419,7 @@ class ServerDeactivateHandler(UserHandler):
             context['confirmed_url'] = webapp2.uri_for('server_deactivate', key=server.key.urlsafe())
             context['cancelled_url'] = webapp2.uri_for('server', key=server.key.urlsafe())
             self.render_template('confirm.html', context=context)
-        except webapp2.HttpException:
+        except webapp2.HTTPException:
             pass
         except Exception as e:
             message = u'Server "{0}" could not be deactivated (Reason: {1}).'.format(server.name, e)
@@ -439,7 +439,7 @@ class ServerDeactivateHandler(UserHandler):
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
-        except webapp2.HttpException:
+        except webapp2.HTTPException:
             pass
         except Exception as e:
             message = u'Error deactivating server "{0}": {1}'.format(server.name, e)
@@ -480,7 +480,7 @@ class ServerRestartHandler(AdminHandlerBase):
             context['confirmed_url'] = webapp2.uri_for('server_restart', key=server.key.urlsafe())
             context['cancelled_url'] = webapp2.uri_for('home', server_key=server.key.urlsafe())
             self.render_template('confirm.html', context=context)
-        except webapp2.HttpException:
+        except webapp2.HTTPException:
             pass
         except Exception as e:
             message = u'Server "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
@@ -500,7 +500,7 @@ class ServerRestartHandler(AdminHandlerBase):
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
-        except webapp2.HttpException:
+        except webapp2.HTTPException:
             pass
         except Exception, e:
             message = u'Server "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
@@ -523,7 +523,7 @@ class ServerStopHandler(AdminHandlerBase):
             context['confirmed_url'] = webapp2.uri_for('server_stop', key=server.key.urlsafe())
             context['cancelled_url'] = webapp2.uri_for('home', server_key=server.key.urlsafe())
             self.render_template('confirm.html', context=context)
-        except webapp2.HttpException:
+        except webapp2.HTTPException:
             pass
         except Exception as e:
             message = u'Server "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
@@ -543,7 +543,7 @@ class ServerStopHandler(AdminHandlerBase):
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
-        except webapp2.HttpException:
+        except webapp2.HTTPException:
             pass
         except Exception, e:
             message = u'Server "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
@@ -577,7 +577,7 @@ class MinecraftDownloadHandler(AdminHandlerBase):
                 self.session.add_flash(message, level='info')
                 time.sleep(1)
                 self.redirect(webapp2.uri_for('minecraft_versions'))
-            except webapp2.HttpException:
+            except webapp2.HTTPException:
                 pass
             except Exception, e:
                 message = u'Minecraft version "{0}" could not be created (Reason: {1}).'.format(form.version.data, e)
@@ -686,7 +686,7 @@ class InstanceStopHandler(UserHandler):
             context['confirmed_url'] = webapp2.uri_for('instance_stop')
             context['cancelled_url'] = webapp2.uri_for('admin')
             self.render_template('confirm.html', context=context)
-        except webapp2.HttpException:
+        except webapp2.HTTPException:
             pass
         except Exception as e:
             message = u'GCE instance could not be killed (Reason: {0}).'.format(e)
@@ -703,7 +703,7 @@ class InstanceStopHandler(UserHandler):
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
-        except webapp2.HttpException:
+        except webapp2.HTTPException:
             pass
         except Exception, e:
             message = u'GCE instance could not be killed (Reason: {0}).'.format(e)
