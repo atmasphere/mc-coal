@@ -679,7 +679,7 @@ class InstanceStartHandler(UserHandler):
 
 class InstanceStopHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
-    def get(self, key):
+    def get(self):
         try:
             context = {}
             context['question'] = u'Kill the GCE instance?'
