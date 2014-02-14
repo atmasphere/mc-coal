@@ -466,6 +466,49 @@ class ServerStartHandler(AdminHandlerBase):
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
+class ServerRestartHandler(AdminHandlerBase):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.redirect_to_server('home')
+                return
+            context = {}
+            context['question'] = u'Restart server "{0}"?'.format(server.name)
+            context['confirmed_url'] = webapp2.uri_for('server_restart', key=server.key.urlsafe())
+            context['cancelled_url'] = webapp2.uri_for('home', server_key=server.key.urlsafe())
+            self.render_template('confirm.html', context=context)
+        except webapp2.HttpException:
+            pass
+        except Exception as e:
+            message = u'Server "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+            self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        server = self.get_server_by_key(key, abort=False)
+        if server is None:
+            self.redirect_to_server('home')
+            return
+        try:
+            server.restart()
+            message = u'Server "{0}" restarted.'.format(server.name)
+            logging.info(message)
+            self.session.add_flash(message, level='info')
+            time.sleep(1)
+        except webapp2.HttpException:
+            pass
+        except Exception, e:
+            message = u'Server "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+
+
 class ServerStopHandler(AdminHandlerBase):
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
@@ -638,7 +681,6 @@ class InstanceStopHandler(UserHandler):
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
         try:
-            instance = gce.Instance.singleton()
             context = {}
             context['question'] = u'Kill the GCE instance?'
             context['confirmed_url'] = webapp2.uri_for('instance_stop')
@@ -657,7 +699,7 @@ class InstanceStopHandler(UserHandler):
         try:
             instance = gce.Instance.singleton()
             instance.stop()
-            message = u'GCE instance killed.'.format(server.name)
+            message = u'GCE instance killed.'
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
@@ -723,6 +765,7 @@ routes = [
     RedirectRoute('/admin/servers/<key>/gce', handler=ServerEditGceHandler, strict_slash=True, name="server_gce"),
     RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
     RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
+    RedirectRoute('/admin/servers/<key>/restart', handler=ServerRestartHandler, strict_slash=True, name="server_restart"),
     RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
     RedirectRoute('/admin/servers/<key>/upload_log', handler=ServerLogHandler, strict_slash=True, name="server_upload_log"),
     RedirectRoute('/admin/versions', handler=MinecraftDownloadHandler, strict_slash=True, name="minecraft_versions"),

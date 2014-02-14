@@ -291,6 +291,15 @@ def unzip_server_dir(server_key, server_dir):
         os.remove(archive)
 
 
+def start_minecraft(server_key, server_dir, run_server_script):
+    try:
+        args = ['sudo', '-u', '_minecraft', run_server_script]
+        subprocess.check_call(args, cwd=server_dir)
+    except Exception, e:
+        logger.error("Error ({0}) starting MC process for server {1}".format(e, server_key))
+        raise
+
+
 def start_server(server_key, **kwargs):
     minecraft_url = kwargs['minecraft_url']
     server_memory = kwargs.get('memory', '256M')
@@ -357,14 +366,27 @@ def start_server(server_key, **kwargs):
     except Exception as e:
         logger.error("Error ({0}) starting agent process for server {1}".format(e, server_key))
         raise
-    # Start MC
+    # Create run script
     try:
         run_server_script = make_run_server_script(server_dir, server_memory, fifo)
-        args = ['sudo', '-u', '_minecraft', run_server_script]
-        subprocess.check_call(args, cwd=server_dir)
     except Exception, e:
-        logger.error("Error ({0}) starting MC process for server {1}".format(e, server_key))
+        logger.error("Error ({0}) creating run_server_script for server {1}".format(e, server_key))
         raise
+    # Start minecraft
+    start_minecraft(server_key, server_dir, run_server_script)
+
+
+def stop_minecraft(server_key, server_dir):
+    try:
+        fifo = os.path.join(server_dir, 'command-fifo')
+        with open(fifo, 'a+') as fifo_file:
+            fifo_file.write('stop\n')
+        with open(os.path.join(server_dir, 'server.pid'), 'r') as f:
+            pid = f.read()
+        while pid_exists(int(pid)):
+            time.sleep(0.5)
+    except Exception as e:
+        logger.error("Error ({0}) stopping MC process for server {1}".format(e, server_key))
 
 
 def zip_server_dir(server_dir, archive_file):
@@ -436,20 +458,11 @@ def stop_server(server_key, **kwargs):
     servers = get_servers()
     server = servers.get(server_key, None)
     if server is None:
-        return
+        return  # TODO: Handle partial startups/shutdowns
     port = server['port']
     server_dir = get_server_dir(port)
-    # Stop MC
-    try:
-        fifo = os.path.join(server_dir, 'command-fifo')
-        with open(fifo, 'a+') as fifo_file:
-            fifo_file.write('stop\n')
-        with open(os.path.join(server_dir, 'server.pid'), 'r') as f:
-            pid = f.read()
-        while pid_exists(int(pid)):
-            time.sleep(0.5)
-    except Exception as e:
-        logger.error("Error ({0}) stopping MC process for server {1}".format(e, server_key))
+    # Stop minecraft
+    stop_minecraft(server_key, server_dir)
     # Archive server_dir
     archive_successful = False
     archive = get_archive_file_path(server_key)
@@ -475,6 +488,20 @@ def stop_server(server_key, **kwargs):
         shutil.rmtree(server_dir)
 
 
+def restart_server(server_key, **kwargs):
+    servers = get_servers()
+    server = servers.get(server_key, None)
+    if server is None:
+        return  # TODO: Handle partial startups/shutdowns
+    port = server['port']
+    server_dir = get_server_dir(port)
+    run_server_script = os.path.join(server_dir, 'run_server.sh')
+    # Stop minecraft
+    stop_minecraft(server_key, server_dir)
+    # Start minecraft
+    start_minecraft(server_key, server_dir, run_server_script)
+
+
 def complete_tasks(tasks):
     completed_tasks = list()
     for task in tasks:
@@ -486,6 +513,8 @@ def complete_tasks(tasks):
             server_key = payload.pop('server_key')
             if event == 'START_SERVER':
                 start_server(server_key, **payload)
+            if event == 'RESTART_SERVER':
+                restart_server(server_key, **payload)
             if event == 'STOP_SERVER':
                 stop_server(server_key, **payload)
             completed_tasks.append(task)

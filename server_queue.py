@@ -35,6 +35,16 @@ def start_server(server, reserved_ports=None):
         raise
 
 
+def restart_server(server):
+    try:
+        payload = {'event': 'RESTART_SERVER'}
+        payload['server_key'] = server.key.urlsafe()
+        queue_controller_task(payload)
+    except Exception as e:
+        logging.exception(e)
+        raise
+
+
 def stop_server(server):
     try:
         payload = {'event': 'STOP_SERVER'}

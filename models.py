@@ -29,6 +29,7 @@ TICKS_PER_PLAY_SECOND = 20
 SERVER_MAX_IDLE_SECONDS = 300  # 5 minutes
 SERVER_UNKNOWN = 'UNKNOWN'
 SERVER_QUEUED_START = 'QUEUED_START'
+SERVER_QUEUED_RESTART = 'QUEUED_RESTART'
 SERVER_QUEUED_STOP = 'QUEUED_STOP'
 SERVER_RUNNING = 'RUNNING'
 SERVER_STOPPED = 'STOPPED'
@@ -439,8 +440,11 @@ class Server(ndb.Model):
     is_running = ndb.ComputedProperty(lambda self: self.status == SERVER_RUNNING)
     is_stopped = ndb.ComputedProperty(lambda self: self.status == SERVER_STOPPED)
     is_queued_start = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED_START)
+    is_queued_restart = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED_RESTART)
     is_queued_stop = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED_STOP)
-    is_queued = ndb.ComputedProperty(lambda self: self.status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP])
+    is_queued = ndb.ComputedProperty(
+        lambda self: self.status in [SERVER_QUEUED_START, SERVER_QUEUED_RESTART, SERVER_QUEUED_STOP]
+    )
     is_unknown = ndb.ComputedProperty(lambda self: self.status == SERVER_UNKNOWN)
     last_ping = ndb.DateTimeProperty()
     last_server_day = ndb.IntegerProperty()
@@ -507,6 +511,11 @@ class Server(ndb.Model):
             start_server(self, Server.reserved_ports(ignore_server=self))
             self.update_status(status=SERVER_QUEUED_START)
 
+    def restart(self):
+        if self.is_gce and not self.is_queued_restart:
+            restart_server(self)
+            self.update_status(status=SERVER_QUEUED_RESTART)
+
     def stop(self):
         if self.is_gce and not (self.is_stopped or self.is_queued_stop):
             stop_server(self)
@@ -532,7 +541,7 @@ class Server(ndb.Model):
         timeout = now - datetime.timedelta(minutes=5)
         previous_status = self.status
         # Set queued datetime
-        if status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP]:
+        if status in [SERVER_QUEUED_START, SERVER_QUEUED_RESTART, SERVER_QUEUED_STOP]:
             self.queued = datetime.datetime.utcnow()
             if self.idle:
                 self.idle = None
@@ -597,7 +606,7 @@ class Server(ndb.Model):
             self.put()
             # Email admins
             send_email = previous_status != status
-            if status in [SERVER_QUEUED_START, SERVER_QUEUED_STOP]:
+            if status in [SERVER_QUEUED_START, SERVER_QUEUED_RESTART, SERVER_QUEUED_STOP]:
                 send_email = False
             if status == SERVER_UNKNOWN and previous_status == SERVER_STOPPED:
                 send_email = False
