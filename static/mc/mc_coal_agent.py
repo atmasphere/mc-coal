@@ -29,10 +29,12 @@ mc_pidfile = None
 mc_logfile = None
 mc_levelfile = None
 mc_commandfile = None
+tz = None
 zone = None
 parse_mc_history = False
 skip_chat_history = False
 address = None
+overloads = []
 
 
 class AgentException(Exception):
@@ -203,8 +205,13 @@ def ping_host(running, server_day, server_time, raining, thundering):
             params['server_time'] = server_time
         params['is_raining'] = raining
         params['is_thundering'] = thundering
+        recent_overloads = calculate_overloaded()
+        params['num_overloads'] = recent_overloads[0]
+        params['ms_behind'] = recent_overloads[1]
+        params['skipped_ticks'] = recent_overloads[2]
         if address:
             params['address'] = address
+
         response_json = client.post("/api/v1/agents/ping", params=params).json()
         commands = response_json['commands']
         if commands:
@@ -214,11 +221,51 @@ def ping_host(running, server_day, server_time, raining, thundering):
 
 
 def is_moved_wrongly_warning(line):
-    return re.search(ur"([\w-]+) ([\w:]+) \[WARNING\] (.+) moved wrongly!", line)
+    return re.search(ur"([\w-]+) ([\w:]+) \[(?P<log_level>\w+)\] (.+) moved wrongly!", line)
 
 
-def is_overloaded_warning(line):
-    return re.search(ur"([\w-]+) ([\w:]+) \[WARNING\] Can't keep up! Did the system time change, or is the server overloaded\?", line)
+def record_overloaded_warning(line):
+    global overloads
+    overloaded = re.match(
+        ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Can't keep up! .+ Running (?P<behind>.+)ms behind, skipping (?P<ticks>.+) tick\(s\)",
+        line
+    )
+    if overloaded is None:
+        overloaded = re.match(
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Can't keep up! .+",
+            line
+        )
+    if overloaded is not None:
+        gd = overloaded.groupdict()
+        d = gd.get('date', None)
+        t = gd.get('time', None)
+        if d and t:
+            dts = "{0} {1}".format(d, t)
+            dt = datetime.datetime.strptime(dts, "%Y-%m-%d %H:%M:%S")
+            dt = tz.localize(dt) if tz else pytz.utc.localize(dt)
+            dt = dt.astimezone(pytz.utc).replace(tzinfo=None)
+            overload = (dt, gd.get('behind', None), gd.get('ticks', None))
+            overloads.append(overload)
+    return overloaded is not None
+
+
+def calculate_overloaded():
+    global overloads
+    now = datetime.datetime.utcnow()
+    cutoff = now - datetime.timedelta(minutes=5)
+    for i, overload in overloads:
+        dt = overload[0]
+        if dt > cutoff:
+            break
+    del overloads[0:i]
+    behind = 0
+    ticks = 0
+    for overload in overloads:
+        if overload[1]:
+            behind += int(overload[1])
+        if overload[2]:
+            ticks += int(overload[2])
+    return (len(overloads), behind, ticks)
 
 
 def is_chat(line):
@@ -230,8 +277,8 @@ def post_line(line, skip_chat):
     if is_moved_wrongly_warning(line):
         logger.debug(u"SKIPPING '{0}'".format(line))
         return
-    if is_overloaded_warning(line):
-        logger.debug(u"SKIPPING '{0}'".format(line))
+    if record_overloaded_warning(line):
+        logger.debug(u"RECORDING OVERLOAD '{0}'".format(line))
         return
     if skip_chat and is_chat(line):
         logger.debug(u"SKIPPING '{0}'".format(line))
@@ -268,6 +315,7 @@ def line_reader(logfile, last_ping, last_time):
             running = is_server_running(mc_pidfile)
             server_day, server_time, raining, thundering = read_level(mc_levelfile)
             last_time = datetime.datetime.now()
+            num, behind, ticks = calculate_overloaded()
             ping_host(running, server_day, server_time, raining, thundering)
             last_ping = datetime.datetime.now()
         where = logfile.tell()
@@ -384,6 +432,7 @@ def main(argv):
     global mc_logfile
     global mc_levelfile
     global mc_commandfile
+    global tz
     global zone
     global parse_mc_history
     global skip_chat_history

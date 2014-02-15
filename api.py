@@ -96,6 +96,9 @@ class PingForm(form.Form):
     server_time = fields.IntegerField(validators=[validators.Optional()])
     is_raining = RestfulBooleanField(validators=[validators.Optional()])
     is_thundering = RestfulBooleanField(validators=[validators.Optional()])
+    num_overloads = fields.IntegerField(validators=[validators.Optional()])
+    ms_behind = fields.IntegerField(validators=[validators.Optional()])
+    skipped_ticks = fields.IntegerField(validators=[validators.Optional()])
     address = RestfulStringField(validators=[validators.Optional()])
     timestamp = fields.DateTimeField(validators=[validators.Optional()])
 
@@ -110,6 +113,9 @@ class PingHandler(JsonHandler):
         server_time = form.server_time.data
         is_raining = form.is_raining.data
         is_thundering = form.is_thundering.data
+        num_overloads = form.num_overloads.data
+        ms_behind = form.ms_behind.data
+        skipped_ticks = form.skipped_ticks.data
         address = form.address.data
         timestamp = form.timestamp.data
         client = Client.get_by_client_id(self.request.authentication.client_id)
@@ -128,6 +134,9 @@ class PingHandler(JsonHandler):
             server_time=server_time,
             is_raining=is_raining,
             is_thundering=is_thundering,
+            num_overloads=num_overloads,
+            ms_behind=ms_behind,
+            skipped_ticks=skipped_ticks,
             address=address,
             timestamp=timestamp
         )

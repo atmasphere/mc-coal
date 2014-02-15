@@ -25,6 +25,7 @@ TIME_STAMP_LOG_LINE = '2012-10-07 15:10:09 [INFO] Preparing level "world"'
 SERVER_START_LOG_LINE = '2012-10-15 16:05:00 [INFO] Starting minecraft server version 1.3.2'
 SERVER_STOP_LOG_LINE = '2012-10-15 16:26:11 [INFO] Stopping server'
 OVERLOADED_LOG_LINE = "2012-10-21 00:01:46 [WARNING] Can't keep up! Did the system time change, or is the server overloaded?"
+OVERLOADED_LOG_LINE_2 = "2014-02-13 22:07:55 [WARN] Can't keep up! Did the system time change, or is the server overloaded? Running 2850ms behind, skipping 57 tick(s)"
 CHAT_LOG_LINE = '2012-10-09 20:46:06 [INFO] <vesicular> yo yo'
 CHAT_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] [Server] hello'
 CHAT_LOG_LINE_3 = '2012-10-09 20:46:05 [INFO] [Server] <vesicular> yo yo'
@@ -494,6 +495,20 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 21, 5, 1, 46), log_line.timestamp)
         self.assertEqual('WARNING', log_line.log_level)
+        self.assertEqual(models.OVERLOADED_TAGS, log_line.tags)
+
+    def test_post_overloaded_log_line_2(self):
+        params = {'line': OVERLOADED_LOG_LINE_2, 'zone': TIME_ZONE}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(0, body)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(OVERLOADED_LOG_LINE_2, log_line.line)
+        self.assertEqual(TIME_ZONE, log_line.zone)
+        self.assertEqual(datetime.datetime(2014, 2, 14, 4, 7, 55), log_line.timestamp)
+        self.assertEqual('WARN', log_line.log_level)
         self.assertEqual(models.OVERLOADED_TAGS, log_line.tags)
 
     def test_post_chat_log_line(self):

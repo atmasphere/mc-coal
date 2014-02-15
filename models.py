@@ -31,6 +31,8 @@ SERVER_UNKNOWN = 'UNKNOWN'
 SERVER_QUEUED_START = 'QUEUED_START'
 SERVER_QUEUED_RESTART = 'QUEUED_RESTART'
 SERVER_QUEUED_STOP = 'QUEUED_STOP'
+SERVER_HAS_STARTED = 'HAS_STARTED'
+SERVER_HAS_STOPPED = 'HAS_STOPPED'
 SERVER_RUNNING = 'RUNNING'
 SERVER_STOPPED = 'STOPPED'
 UNKNOWN_TAG = 'unknown'
@@ -95,7 +97,8 @@ REGEX_TAGS = [
     ),
     (
         [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Can't keep up! Did the system time change, or is the server overloaded\?"
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Can't keep up! .+",
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Can't keep up! .+ Running (?P<behind>.+)ms behind, skipping (?P<ticks>.+) tick\(s\)"
         ],
         OVERLOADED_TAGS
     ),
@@ -451,6 +454,9 @@ class Server(ndb.Model):
     last_server_time = ndb.IntegerProperty()
     is_raining = ndb.BooleanProperty()
     is_thundering = ndb.BooleanProperty()
+    num_overloads = ndb.IntegerProperty()
+    ms_behind = ndb.IntegerProperty()
+    skipped_ticks = ndb.IntegerProperty()
     timestamp = ndb.DateTimeProperty()
     queued = ndb.DateTimeProperty()
     idle = ndb.DateTimeProperty()
@@ -533,8 +539,8 @@ class Server(ndb.Model):
                 self.put()
 
     def update_status(
-        self, status=None, last_ping=None, server_day=None, server_time=None,
-        is_raining=None, is_thundering=None, address=None, timestamp=None
+        self, status=None, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None,
+        num_overloads=None, ms_behind=None, skipped_ticks=None, address=None, timestamp=None
     ):
         changed = False
         now = datetime.datetime.utcnow()
@@ -549,8 +555,9 @@ class Server(ndb.Model):
         elif status is not None and self.queued is not None:
             # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually
             if (
-                (previous_status == SERVER_QUEUED_START and status is not SERVER_RUNNING) or
-                (previous_status == SERVER_QUEUED_STOP and status is not SERVER_STOPPED)
+                (previous_status == SERVER_QUEUED_START and status != SERVER_HAS_STARTED) or
+                (previous_status == SERVER_QUEUED_RESTART and status != SERVER_HAS_STARTED) or
+                (previous_status == SERVER_QUEUED_STOP and status != SERVER_HAS_STOPPED)
             ):
                 status = previous_status
             else:
@@ -587,8 +594,19 @@ class Server(ndb.Model):
             changed = True
         # Update server weather
         if is_raining != self.is_raining or is_thundering != self.is_thundering:
-            self.is_raining = is_raining
-            self.is_thundering = is_thundering
+            if is_raining is not None:
+                self.is_raining = is_raining
+            if is_thundering is not None:
+                self.is_thundering = is_thundering
+            changed = True
+        # Update overloads
+        if num_overloads != self.num_overloads or ms_behind != self.ms_behind or skipped_ticks != self.skipped_ticks:
+            if num_overloads is not None:
+                self.num_overloads = num_overloads
+            if ms_behind is not None:
+                self.ms_behind = ms_behind
+            if skipped_ticks is not None:
+                self.skipped_ticks = skipped_ticks
             changed = True
         # Record pings every minute, even if nothing changed
         if last_ping is not None:
@@ -600,7 +618,12 @@ class Server(ndb.Model):
                 PlaySession.close_all_current(self.key, now)
         # Put server changes
         if changed:
-            self.status = status
+            if status == SERVER_HAS_STARTED:
+                self.status = SERVER_RUNNING
+            elif status == SERVER_HAS_STOPPED:
+                self.status = SERVER_STOPPED
+            else:
+                self.status = status
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
@@ -924,6 +947,10 @@ class LogLine(UsernameModel):
             PlaySession.close_current(log_line.server_key, log_line.username, log_line.timestamp, log_line.key)
         if STARTING_TAG in log_line.tags or STOPPING_TAG in log_line.tags:
             PlaySession.close_all_current(server.key, log_line.timestamp, log_line.key)
+            if STARTING_TAG in log_line.tags and server.status == SERVER_QUEUED_START:
+                server.update_status(SERVER_HAS_STARTED)
+            if STOPPING_TAG in log_line.tags and server.status == SERVER_QUEUED_STOP:
+                server.update_status(SERVER_HAS_STOPPED)
         if CLAIM_TAG in log_line.tags:
             if UsernameClaim.authenticate(log_line.username, log_line.code):
                 message = "Username claim succeeded."
