@@ -253,7 +253,7 @@ def calculate_overloaded():
     global overloads
     now = datetime.datetime.utcnow()
     cutoff = now - datetime.timedelta(minutes=5)
-    for i, overload in overloads:
+    for i, overload in enumerate(overloads):
         dt = overload[0]
         if dt > cutoff:
             break
