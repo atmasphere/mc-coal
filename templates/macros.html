@@ -68,7 +68,7 @@
             {% set status_text = 'Prologue...' %}
         {% elif server.is_queued_restart %}
             {% set status = 'queued' %}
-            {% set status_text = 'Reboot...' %}
+            {% set status_text = 'Resolution...' %}
         {% elif server.is_queued_stop %}
             {% set status = 'queued' %}
             {% set status_text = 'Epilogue...' %}
@@ -123,7 +123,7 @@
             <i class="sprite"></i>
             <div class="right">
                 <h4>Server Status{% if server.last_ping %}&nbsp;({{ server.last_ping|datetimeformat(format='%b %d, %Y', timezone=user.timezone) }}&nbsp;&nbsp;{{ server.last_ping|datetimeformat(format='%I:%M%p', timezone=user.timezone) }}{% endif %})</h4>
-                {% if server.num_overloads %}<h4>5 Minute Lag Count:&nbsp;{{ server.num_overloads }}&nbsp;({{ server.ms_behing }}ms,&nbsp;{{ server.skipped_ticks }}&nbsp;ticks)</h4>{% endif %}
+                {% if server.num_overloads %}<h4>5 Minute Lag Count:&nbsp;{{ server.num_overloads }}&nbsp;({{ server.ms_behind }}ms,&nbsp;{{ server.skipped_ticks }}&nbsp;ticks)</h4>{% endif %}
                 <strong>
                     {{ status_text }} (v{{ server.running_version }})
                 </strong>
