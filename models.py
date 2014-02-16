@@ -947,9 +947,9 @@ class LogLine(UsernameModel):
             PlaySession.close_current(log_line.server_key, log_line.username, log_line.timestamp, log_line.key)
         if STARTING_TAG in log_line.tags or STOPPING_TAG in log_line.tags:
             PlaySession.close_all_current(server.key, log_line.timestamp, log_line.key)
-            if STARTING_TAG in log_line.tags and server.status == SERVER_QUEUED_START:
+            if STARTING_TAG in log_line.tags:
                 server.update_status(SERVER_HAS_STARTED)
-            if STOPPING_TAG in log_line.tags and server.status == SERVER_QUEUED_STOP:
+            if STOPPING_TAG in log_line.tags:
                 server.update_status(SERVER_HAS_STOPPED)
         if CLAIM_TAG in log_line.tags:
             if UsernameClaim.authenticate(log_line.username, log_line.code):
