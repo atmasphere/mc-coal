@@ -256,8 +256,9 @@ def calculate_overloaded():
     for i, overload in enumerate(overloads):
         dt = overload[0]
         if dt > cutoff:
+            i -= 1
             break
-    del overloads[0:i]
+    del overloads[0:i+1]
     behind = 0
     ticks = 0
     for overload in overloads:
