@@ -97,10 +97,12 @@
                 {% else %}
                     <a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a>
                 {% endif %}
-                <form action="{{ uri_for('server_command', key=server.key.urlsafe()) }}" method="post">
-                    <input type="text" name="command" placeholder="Send command... {% if not server.is_running %}The server isn't running but commands will be saved.{% endif %}"/>
-                    <button type="submit" class="btn btn-primary">Send</button>
-                </form>
+                {% if server.is_running %}
+                    <form action="{{ uri_for('server_command', key=server.key.urlsafe()) }}" method="post">
+                        <input type="text" name="command" placeholder="Send command..."/>
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                {% endif %}
                 {% if not ON_SERVER %}
                     &nbsp; | &nbsp; <a href="{{ uri_for('server_upload_log', key=server.key.urlsafe()) }}">Upload Log File</a>
                 {% endif %}

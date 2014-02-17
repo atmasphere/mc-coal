@@ -558,8 +558,8 @@ class CommandForm(form.Form):
 
 class ServerCommandHandler(AdminHandlerBase):
     @authentication_required(authenticate=authenticate_admin)
-    def post(self, server_key=None):
-        server = self.get_server_by_key(server_key, abort=False)
+    def post(self, key=None):
+        server = self.get_server_by_key(key, abort=False)
         if server is None:
             self.redirect_to_server('home')
             return
@@ -575,10 +575,15 @@ class ServerCommandHandler(AdminHandlerBase):
                         command = u"/say <{0}> {1}".format(username, command[5:])
                 if command:
                     Command.push(server.key, username, command)
+                    message = u'Command "{0}" sent to server "{1}".'.format(command, server.name)
+                    logging.info(message)
+                    self.session.add_flash(message, level='info')
+                    time.sleep(1)
         except Exception, e:
-            logging.error(u"Error POSTing command: {0}".format(e))
-            self.abort(500)
-        self.response.set_status(201)
+            message = u'Command "{0}" could not be send to server "{1}" (Reason: {2}).'.format(command, server.name, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
 class MinecraftDownloadForm(form.Form):
