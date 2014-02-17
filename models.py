@@ -619,11 +619,10 @@ class Server(ndb.Model):
         # Put server changes
         if changed:
             if status == SERVER_HAS_STARTED:
-                self.status = SERVER_RUNNING
+                status = SERVER_RUNNING
             elif status == SERVER_HAS_STOPPED:
-                self.status = SERVER_STOPPED
-            else:
-                self.status = status
+                status = SERVER_STOPPED
+            self.status = status
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
