@@ -11,7 +11,7 @@ from wtforms import form, fields, validators
 from forms import StringListField, AtLeastOneAdmin, UniqueUsernames
 from forms import UniquePort, UniqueVersion, VersionUrlExists
 import gce
-from models import Server, User, MinecraftDownload
+from models import Server, User, MinecraftDownload, Command
 from server_handler import ServerHandlerBase, PagingHandler
 from user_auth import ON_SERVER, UserHandler, authentication_required, authenticate, authenticate_admin
 
@@ -552,6 +552,35 @@ class ServerStopHandler(AdminHandlerBase):
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
+class CommandForm(form.Form):
+    command = fields.StringField(u'Command', validators=[validators.DataRequired()])
+
+
+class ServerCommandHandler(AdminHandlerBase):
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, server_key=None):
+        server = self.get_server_by_key(server_key, abort=False)
+        if server is None:
+            self.redirect_to_server('home')
+            return
+        try:
+            form = CommandForm(self.request.POST)
+            if form.validate():
+                command = form.command.data
+                username = self.request.user.get_server_play_name(server.key)
+                if command and command.startswith(u'/say '):
+                    if len(command) <= 5:
+                        command = None
+                    elif username:
+                        command = u"/say <{0}> {1}".format(username, command[5:])
+                if command:
+                    Command.push(server.key, username, command)
+        except Exception, e:
+            logging.error(u"Error POSTing command: {0}".format(e))
+            self.abort(500)
+        self.response.set_status(201)
+
+
 class MinecraftDownloadForm(form.Form):
     version = fields.StringField(u'Version', validators=[validators.DataRequired(), UniqueVersion()])
     url = fields.StringField(u'Download URL', validators=[validators.URL(), VersionUrlExists()])
@@ -767,6 +796,7 @@ routes = [
     RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
     RedirectRoute('/admin/servers/<key>/restart', handler=ServerRestartHandler, strict_slash=True, name="server_restart"),
     RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
+    RedirectRoute('/admin/servers/<key>/command', handler=ServerCommandHandler, strict_slash=True, name="server_command"),
     RedirectRoute('/admin/servers/<key>/upload_log', handler=ServerLogHandler, strict_slash=True, name="server_upload_log"),
     RedirectRoute('/admin/versions', handler=MinecraftDownloadHandler, strict_slash=True, name="minecraft_versions"),
     RedirectRoute('/admin/versions/<key>/remove', handler=MinecraftDownloadRemoveHandler, strict_slash=True, name="minecraft_version_remove"),

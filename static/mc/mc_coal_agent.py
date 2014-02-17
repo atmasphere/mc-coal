@@ -183,14 +183,9 @@ def execute_commands(commandfile, commands):
     with open(commandfile, "a") as command_fifo:
         for command in commands:
             c = command.get('command', None)
-            u = command.get('username', None)
-            if c and c.startswith(u'/say '):
-                if len(c) <= 5:
-                    c = None
-                elif u:
-                    c = u"/say <{0}> {1}".format(u, c[5:])
             if c:
-                c += u'\n'
+                if c[-1] != u'\n':
+                    c += u'\n'
                 command_fifo.write(c.encode('ISO-8859-2', errors='ignore'))
 
 

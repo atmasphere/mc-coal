@@ -150,8 +150,14 @@ class ChatsHandler(MainPagingHandler):
                 self.abort(404)
             form = ChatForm(self.request.POST)
             if form.validate():
-                chat = u"/say {0}".format(form.chat.data)
-                Command.push(server.key, user.get_server_play_name(server.key), chat)
+                chat = form.chat.data
+                username = user.get_server_play_name(server.key)
+                if chat:
+                    if username:
+                        chat = u"/say <{0}> {1}".format(username, chat)
+                    else:
+                        chat = u"/say {0}".format(chat)
+                    Command.push(server.key, username, chat)
         except Exception, e:
             logging.error(u"Error POSTing chat: {0}".format(e))
             self.abort(500)
