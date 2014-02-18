@@ -15,7 +15,7 @@
                 <h1 class="data">{{ status }} {{ instance.machine_type }} in {{ instance.zone }}</h1>
             </div>
             <h2 class="box"><a href="{{ uri_for('instance_configure') }}">Configure</a></h2>
-            <h2 class="box"><a href="{{ uri_for('server_create_gce') }}">Create CE-Hosted World</a></h2>
+            <h2 class="box"><a href="{{ uri_for('server_create_gce') }}">Create GCE-Hosted World</a></h2>
             <h2 class="box"><a href="{{ uri_for('minecraft_versions') }}">Define New Minecraft Version/URL</a></h2>
             {% if status == 'RUNNING' %}
                 <form action="{{ uri_for('instance_stop') }}">
