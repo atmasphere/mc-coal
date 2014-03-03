@@ -10,7 +10,6 @@ from pytz.gae import pytz
 import webapp2
 
 from wtforms import form, fields, validators, ValidationError
-from wtforms.compat import string_types
 
 from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
@@ -33,7 +32,7 @@ def validate_params(form_class):
             request = handler.request
             while True:
                 try:
-                    if request.headers.get('content-type', None) == 'application/json':
+                    if request.headers.get('Content-Type', '').startswith('application/json'):
                         json_params = json.loads(request.body)
                         form = form_class(data=json_params)
                     else:

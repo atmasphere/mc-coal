@@ -450,7 +450,7 @@ class AuthorizationCodeHandler(UserHandler, PyOAuth2Base):
 
 class TokenHandler(webapp2.RequestHandler, PyOAuth2Base):
     def set_access_token_response(self):
-        if self.request.headers.get('content-type', None) == 'application/json':
+        if self.request.headers.get('Content-Type', '').startswith('application/json'):
             data = json.loads(self.request.body)
         else:
             data = self.request.POST

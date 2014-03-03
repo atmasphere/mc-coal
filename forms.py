@@ -20,6 +20,14 @@ class StringListField(fields.Field):
         else:
             return u''
 
+    def process_data(self, value):
+        if value:
+            self.data = [x.strip() for x in value.split(',')]
+        else:
+            self.data = []
+        if self.remove_duplicates:
+            self.data = list(self._remove_duplicates(self.data))
+
     def process_formdata(self, valuelist):
         if valuelist:
             self.data = [x.strip() for x in valuelist[0].split(',')]
@@ -104,6 +112,12 @@ class VersionUrlExists(object):
 
 
 class RestfulStringField(fields.StringField):
+    def process_data(self, value):
+        if value:
+            self.data = value
+        else:
+            self.data = None
+
     def process_formdata(self, valuelist):
         if valuelist:
             self.data = valuelist[0]
