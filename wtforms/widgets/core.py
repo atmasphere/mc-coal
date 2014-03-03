@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from cgi import escape
 
-from wtforms.compat import text_type, string_types, iteritems
+from wtforms.compat import text_type, iteritems
 
 __all__ = (
     'CheckboxInput', 'FileInput', 'HiddenInput', 'ListWidget', 'PasswordInput',
@@ -13,29 +13,58 @@ __all__ = (
 
 def html_params(**kwargs):
     """
-    Generate HTML parameters from inputted keyword arguments.
+    Generate HTML attribute syntax from inputted keyword arguments.
 
     The output value is sorted by the passed keys, to provide consistent output
-    each time this function is called with the same parameters.  Because of the
+    each time this function is called with the same parameters. Because of the
     frequent use of the normally reserved keywords `class` and `for`, suffixing
     these with an underscore will allow them to be used.
 
-    >>> html_params(name='text1', id='f', class_='text') == 'class="text" id="f" name="text1"'
-    True
+    In addition, the values ``True`` and ``False`` are special:
+      * ``attr=True`` generates the HTML compact output of a boolean attribute,
+        e.g. ``checked=True`` will generate simply ``checked``
+      * ``attr=`False`` will be ignored and generate no output.
+
+    >>> html_params(name='text1', id='f', class_='text')
+    'class="text" id="f" name="text1"'
+    >>> html_params(checked=True, readonly=False, name="text1", abc="hello")
+    'abc="hello" checked name="text1"'
     """
     params = []
-    for k,v in sorted(iteritems(kwargs)):
+    for k, v in sorted(iteritems(kwargs)):
         if k in ('class_', 'class__', 'for_'):
             k = k[:-1]
         if v is True:
             params.append(k)
+        elif v is False:
+            pass
         else:
             params.append('%s="%s"' % (text_type(k), escape(text_type(v), quote=True)))
     return ' '.join(params)
 
 
 class HTMLString(text_type):
+    """
+    This is an "HTML safe string" class that is returned by WTForms widgets.
+
+    For the most part, HTMLString acts like a normal unicode string, except
+    in that it has a `__html__` method. This method is invoked by a compatible
+    auto-escaping HTML framework to get the HTML-safe version of a string.
+
+    Usage::
+
+        HTMLString('<input type="text" value="hello">')
+
+    """
     def __html__(self):
+        """
+        Give an HTML-safe string.
+
+        This method actually returns itself, because it's assumed that
+        whatever you give to HTMLString is a string with any unsafe values
+        already escaped. This lets auto-escaping template frameworks
+        know that this string is safe for HTML rendering.
+        """
         return self
 
 
@@ -61,7 +90,7 @@ class ListWidget(object):
         html = ['<%s %s>' % (self.html_tag, html_params(**kwargs))]
         for subfield in field:
             if self.prefix_label:
-                html.append('<li>%s: %s</li>' % (subfield.label, subfield()))
+                html.append('<li>%s %s</li>' % (subfield.label, subfield()))
             else:
                 html.append('<li>%s %s</li>' % (subfield(), subfield.label))
         html.append('</%s>' % self.html_tag)
@@ -75,7 +104,7 @@ class TableWidget(object):
     If `with_table_tag` is True, then an enclosing <table> is placed around the
     rows.
 
-    Hidden fields will not be displayed with a row, instead the field will be 
+    Hidden fields will not be displayed with a row, instead the field will be
     pushed into a subsequent table row to ensure XHTML validity. Hidden fields
     at the end of the field list will appear outside the table.
     """
@@ -144,7 +173,7 @@ class PasswordInput(Input):
     def __init__(self, hide_value=True):
         self.hide_value = hide_value
 
-    def __call__(self, field, **kwargs): 
+    def __call__(self, field, **kwargs):
         if self.hide_value:
             kwargs['value'] = ''
         return super(PasswordInput, self).__call__(field, **kwargs)
@@ -182,7 +211,7 @@ class RadioInput(Input):
 
     def __call__(self, field, **kwargs):
         if field.checked:
-            kwargs['checked'] = True 
+            kwargs['checked'] = True
         return super(RadioInput, self).__call__(field, **kwargs)
 
 
@@ -193,9 +222,6 @@ class FileInput(object):
 
     def __call__(self, field, **kwargs):
         kwargs.setdefault('id', field.id)
-        value = field._value()
-        if value:
-            kwargs.setdefault('value', value)
         return HTMLString('<input %s>' % html_params(name=field.name, type='file', **kwargs))
 
 
@@ -208,7 +234,7 @@ class SubmitInput(Input):
     """
     input_type = 'submit'
 
-    def __call__(self, field, **kwargs): 
+    def __call__(self, field, **kwargs):
         kwargs.setdefault('value', field.label.text)
         return super(SubmitInput, self).__call__(field, **kwargs)
 
@@ -219,9 +245,12 @@ class TextArea(object):
 
     `rows` and `cols` ought to be passed as keyword args when rendering.
     """
-    def __call__(self, field, **kwargs): 
+    def __call__(self, field, **kwargs):
         kwargs.setdefault('id', field.id)
-        return HTMLString('<textarea %s>%s</textarea>' % (html_params(name=field.name, **kwargs), escape(text_type(field._value()))))
+        return HTMLString('<textarea %s>%s</textarea>' % (
+            html_params(name=field.name, **kwargs),
+            escape(text_type(field._value()))
+        ))
 
 
 class Select(object):
@@ -250,6 +279,10 @@ class Select(object):
 
     @classmethod
     def render_option(cls, value, label, selected, **kwargs):
+        if value is True:
+            # Handle the special case of a 'True' value.
+            value = text_type(value)
+
         options = dict(kwargs, value=value)
         if selected:
             options['selected'] = True
@@ -265,4 +298,3 @@ class Option(object):
     """
     def __call__(self, field, **kwargs):
         return Select.render_option(field._value(), field.label.text, field.checked, **kwargs)
-

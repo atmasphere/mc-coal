@@ -235,6 +235,15 @@ class ApiTest(OauthTest):
             bearer_token=bearer_token or getattr(self, 'access_token', None)
         )
 
+    def post_json(self, params, url=None, json=None, headers=None, bearer_token=None):
+        url = url or self.url
+        return super(ApiTest, self).post_json(
+            url,
+            params,
+            headers=headers,
+            bearer_token=bearer_token or getattr(self, 'access_token', None)
+        )
+
     def test_get_no_auth(self):
         if self.url:
             self.access_token = None
@@ -1040,6 +1049,21 @@ class ServersTest(AdminApiTest, MultiPageApiTest):
         self.assertFalse(body['gce'])
         self.assertFalse(server.is_gce)
 
+    def test_post_boolean_json(self):
+        name = 'Brave New World'
+        params = {'name': name, 'gce': '0'}
+        response = self.post_json(params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_FIELDS, body)
+        self.assertEqual(len(self.servers)+1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual(name, body['name'])
+        self.assertEqual(name, server.name)
+        self.assertFalse(body['gce'])
+        self.assertFalse(server.is_gce)
+
     def test_post_gce(self):
         name = 'Brave New World'
         params = {'name': name, 'gce': 't'}
@@ -1143,6 +1167,19 @@ class ServerKeyTest(AdminApiTest, KeyApiTest):
         name = 'Not So Brave New World'
         params = {'name': name}
         response = self.post(params=params)
+        self.assertOK(response)
+        body = json.loads(response.body)
+        self.assertLength(NUM_SERVER_FIELDS, body)
+        self.assertEqual(1, models.Server.query().count())
+        server_key = ndb.Key(urlsafe=body['key'])
+        server = server_key.get()
+        self.assertEqual(name, body['name'])
+        self.assertEqual(name, server.name)
+
+    def test_post_json(self):
+        name = 'Not So Brave New World'
+        params = {'name': name}
+        response = self.post_json(params)
         self.assertOK(response)
         body = json.loads(response.body)
         self.assertLength(NUM_SERVER_FIELDS, body)

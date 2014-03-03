@@ -1,5 +1,6 @@
 import datetime
 from functools import wraps
+import json
 import logging
 
 from google.appengine.ext import ndb
@@ -8,7 +9,8 @@ from pytz.gae import pytz
 
 import webapp2
 
-from wtforms import form, fields, validators
+from wtforms import form, fields, validators, ValidationError
+from wtforms.compat import string_types
 
 from restler.serializers import json_response as restler_json_response
 from restler.serializers import ModelStrategy
@@ -31,7 +33,11 @@ def validate_params(form_class):
             request = handler.request
             while True:
                 try:
-                    form = form_class(request.params)
+                    if request.headers.get('content-type', None) == 'application/json':
+                        json_params = json.loads(request.body)
+                        form = form_class(data=json_params)
+                    else:
+                        form = form_class(formdata=request.params)
                     valid = form.validate()
                 except Exception, e:
                     errors = u"Unhandled form parsing exception: {0}".format(e)
@@ -55,6 +61,11 @@ def validate_params(form_class):
                     return
         return wrapped
     return decorator
+
+
+def boolean_input_required(form, field):
+    if field.data is None and field.object_data is None:
+        raise ValidationError(field.gettext('This field is required.'))
 
 
 class JsonHandler(webapp2.RequestHandler):
@@ -90,7 +101,7 @@ class JsonHandler(webapp2.RequestHandler):
 
 
 class PingForm(form.Form):
-    server_name = fields.StringField(validators=[validators.InputRequired(), validators.Length(max=500)])
+    server_name = fields.StringField(validators=[validators.DataRequired(), validators.Length(max=500)])
     is_server_running = RestfulBooleanField(validators=[validators.Optional()])
     server_day = fields.IntegerField(validators=[validators.Optional()])
     server_time = fields.IntegerField(validators=[validators.Optional()])
@@ -147,8 +158,8 @@ class PingHandler(JsonHandler):
 
 
 class LogLineForm(form.Form):
-    line = fields.StringField(validators=[validators.InputRequired()])
-    zone = fields.StringField(validators=[validators.InputRequired()])
+    line = fields.StringField(validators=[validators.DataRequired()])
+    zone = fields.StringField(validators=[validators.DataRequired()])
 
 
 class LogLineHandler(JsonHandler):
@@ -286,11 +297,11 @@ SERVER_STRATEGY = ModelStrategy(Server).include(*SERVER_FIELDS).include(**SERVER
 
 
 class ServerForm(form.Form):
-    name = fields.StringField(validators=[validators.InputRequired()])
+    name = fields.StringField(validators=[validators.DataRequired()])
 
 
 class CreateServerForm(ServerForm):
-    gce = RestfulBooleanField(validators=[validators.InputRequired()])
+    gce = RestfulBooleanField(validators=[boolean_input_required])
 
 
 class ServersHandler(MultiPageJsonHandler):

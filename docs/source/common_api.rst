@@ -95,11 +95,16 @@ Status Codes
 
   The ``errors`` string is resource and error specific.
 
+------------------
+Request Parameters
+------------------
+Resources that accept request parameters expect them in the request body using the ``application/x-www-form-urlencoded`` or ``application/json`` formats with a character encoding of ``UTF-8``.
+
 ----------
 Timestamps
 ----------
 
-  Unless otherwise specified, all timestamps are of the form ``%Y-%m-%d %H:%M:%S %Z-%z`` (see `Python strftime formatting <http://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_) and returned as UTC unless otherwise noted.
+Unless otherwise specified, all timestamps are of the form ``%Y-%m-%d %H:%M:%S %Z-%z`` (see `Python strftime formatting <http://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_) and returned as UTC unless otherwise noted.
 
   **Example timestamp**:
 

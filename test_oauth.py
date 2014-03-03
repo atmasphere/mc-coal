@@ -170,19 +170,19 @@ class OauthTest(BaseTest, WebTest):
             headers.update({'Authorization': 'Bearer ' + str(bearer_token)})
         return super(OauthTest, self).delete(url, headers=headers)
 
-    def post_json(self, url, params='', headers=None, bearer_token=None):
+    def post_json(self, url, params, headers=None, bearer_token=None):
         if bearer_token is not None:
             if headers is None:
                 headers = {}
             headers.update({'Authorization': 'Bearer ' + str(bearer_token)})
-        return self.app.post_json(url, params, headers=headers, status="*", expect_errors=True)
+        return super(OauthTest, self).post_json(url, params, headers=headers)
 
     def put_json(self, url, params='', headers=None, bearer_token=None):
         if bearer_token is not None:
             if headers is None:
                 headers = {}
             headers.update({'Authorization': 'Bearer ' + str(bearer_token)})
-        return self.app.put_json(url, params, headers=headers, status="*", expect_errors=True)
+        return super(OauthTest, self).put_json(url, params, headers=headers)
 
 
 class AuthorizationCodeHandlerTest(OauthTest):
@@ -358,6 +358,35 @@ class TokenHandlerTest(OauthTest):
             'scope': 'data'
         }
         response = self.post(self.url, params)
+        self.assertOK(response)
+        self.assertEqual(1, Token.query().count())
+        token = Token.query().get()
+        self.assertIsNotNone(token)
+        self.assertIsNotNone(token.access_token)
+        self.assertIsNotNone(token.refresh_token)
+        self.assertEqual(token.client_id, TEST_CLIENT_ID)
+        self.assertEqual(token.user_key, self.user.key)
+        self.assertEqual(token.token_type, 'Bearer')
+        self.assertGreater(token.expires_in, 0)
+        self.assertFalse(token.is_expired)
+        body = json.loads(response.body)
+        self.assertLength(4, body)
+        self.assertEqual(body['access_token'], token.access_token)
+        self.assertEqual(body['refresh_token'], token.refresh_token)
+        self.assertEqual(body['token_type'], token.token_type)
+        self.assertEqual(body['expires_in'], token.expires_in)
+
+    def test_post_authorization_code_json(self):
+        code = self.get_authorization_code()
+        params = {
+            'code': code,
+            'grant_type': 'authorization_code',
+            'client_id': TEST_CLIENT_ID,
+            'client_secret': TEST_CLIENT_SECRET,
+            'redirect_uri': TEST_REDIRECT_URI,
+            'scope': 'data'
+        }
+        response = self.post_json(self.url, params)
         self.assertOK(response)
         self.assertEqual(1, Token.query().count())
         token = Token.query().get()

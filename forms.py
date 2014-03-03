@@ -114,9 +114,13 @@ class RestfulStringField(fields.StringField):
 class RestfulBooleanField(fields.BooleanField):
     def process_data(self, value):
         if value is not None:
-            self.data = bool(value)
+            b = value.lower()
+            if b and (b[0] == 'n' or b[0] == 'f' or b[0] == '0'):
+                self.data = False
+            else:
+                self.data = bool(value)
         else:
-            self.data = None
+            self.data = self.default
 
     def process_formdata(self, valuelist):
         if valuelist:

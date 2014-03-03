@@ -40,8 +40,14 @@ class WebTest(unittest.TestCase):
     def post(self, url, params='', headers=None, upload_files=None):
         return self.app.post(url, params, headers=headers, status="*", expect_errors=True, upload_files=upload_files)
 
+    def post_json(self, url, params, headers=None):
+        return self.app.post_json(url, params, headers=headers, status="*", expect_errors=True)
+
     def put(self, url, params='', headers=None, upload_files=None):
         return self.app.put(url, params, headers=headers, status="*", expect_errors=True, upload_files=upload_files)
+
+    def put_json(self, url, params='', headers=None):
+        return self.app.put_json(url, params, headers=headers, status="*", expect_errors=True)
 
     def delete(self, url, headers=None):
         return self.app.delete(url, headers=headers, status="*", expect_errors=True)

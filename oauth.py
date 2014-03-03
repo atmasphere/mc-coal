@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 
 from pyoauth2.provider import AuthorizationProvider, ResourceAuthorization, ResourceProvider
@@ -449,7 +450,11 @@ class AuthorizationCodeHandler(UserHandler, PyOAuth2Base):
 
 class TokenHandler(webapp2.RequestHandler, PyOAuth2Base):
     def set_access_token_response(self):
-        response = authorization_provider.get_token_from_post_data(self.request.POST)
+        if self.request.headers.get('content-type', None) == 'application/json':
+            data = json.loads(self.request.body)
+        else:
+            data = self.request.POST
+        response = authorization_provider.get_token_from_post_data(data)
         self.set_response(response)
 
     def post(self):
