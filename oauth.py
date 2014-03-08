@@ -426,10 +426,11 @@ class AuthorizationCodeHandler(UserHandler, PyOAuth2Base):
     @authentication_required(authenticate=authenticate)
     def get(self):
         if self.user.is_client_id_authorized(self.client_id):
-            self.user.unauthorize_client_id(self.client_id)
-        form = AuthForm(csrf_context=self.session)
-        context = {'url': self.request.url, 'form': form, 'client_id': self.client_id}
-        self.render_template('auth.html', context=context)
+            self.set_authorization_code_response()
+        else:
+            form = AuthForm(csrf_context=self.session)
+            context = {'url': self.request.url, 'form': form, 'client_id': self.client_id}
+            self.render_template('auth.html', context=context)
 
     @authentication_required(authenticate=authenticate)
     def post(self):
