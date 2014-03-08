@@ -99,20 +99,21 @@ class OauthTest(BaseTest, WebTest):
             'scope': 'data'
         }
         response = self.get(url, params=query_params)
-        self.assertOK(response)
-        csrf_string = 'name="csrf_token" type="hidden" value="'
-        begin = response.body.find(csrf_string) + len(csrf_string)
-        end = response.body.find('"', begin)
-        csrf_token = response.body[begin:end]
-        if query_params:
-            query_params = urlencode(query_params, doseq=True)
-            if '?' in url:
-                url += '&'
-            else:
-                url += '?'
-            url += query_params
-        params = {'csrf_token': csrf_token, 'grant': 'Grant'}
-        response = self.post(url, params)
+        if response.status_int == 200:
+            self.assertOK(response)
+            csrf_string = 'name="csrf_token" type="hidden" value="'
+            begin = response.body.find(csrf_string) + len(csrf_string)
+            end = response.body.find('"', begin)
+            csrf_token = response.body[begin:end]
+            if query_params:
+                query_params = urlencode(query_params, doseq=True)
+                if '?' in url:
+                    url += '&'
+                else:
+                    url += '?'
+                url += query_params
+            params = {'csrf_token': csrf_token, 'grant': 'Grant'}
+            response = self.post(url, params)
         self.assertRedirects(response)
         self.assertRegexpMatches(response.headers['Location'], ur"https://localhost/\?code=.+")
         start = response.headers['Location'].find('=')
@@ -299,21 +300,21 @@ class AuthorizationCodeHandlerTest(OauthTest):
             'response_type': 'code'
         }
         response = self.get(self.url, params=query_params)
-        self.assertOK(response)
-        csrf_string = 'name="csrf_token" type="hidden" value="'
-        begin = response.body.find(csrf_string) + len(csrf_string)
-        end = response.body.find('"', begin)
-        csrf_token = response.body[begin:end]
-        url = self.url
-        if query_params:
-            query_params = urlencode(query_params, doseq=True)
-            if '?' in url:
-                url += '&'
-            else:
-                url += '?'
-            url += query_params
-        params = {'csrf_token': csrf_token, 'grant': 'Grant'}
-        response = self.post(url, params)
+        if response.status_int == 200:
+            csrf_string = 'name="csrf_token" type="hidden" value="'
+            begin = response.body.find(csrf_string) + len(csrf_string)
+            end = response.body.find('"', begin)
+            csrf_token = response.body[begin:end]
+            url = self.url
+            if query_params:
+                query_params = urlencode(query_params, doseq=True)
+                if '?' in url:
+                    url += '&'
+                else:
+                    url += '?'
+                url += query_params
+            params = {'csrf_token': csrf_token, 'grant': 'Grant'}
+            response = self.post(url, params)
         self.assertBadRequest(response)
         body = json.loads(response.body)
         self.assertLength(1, body)
