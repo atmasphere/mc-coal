@@ -22,7 +22,7 @@ class StringListField(fields.Field):
 
     def process_data(self, value):
         if value:
-            self.data = [x.strip() for x in value.split(',')]
+            self.data = [x.strip() for x in value]
         else:
             self.data = []
         if self.remove_duplicates:

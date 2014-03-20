@@ -85,6 +85,27 @@ class UsersTest(AdminAuthTest):
     URL = '/admin/users'
 
 
+class UserEditTest(AdminAuthTest):
+    URL = '/admin/users/{0}'
+
+    def setUp(self):
+        super(UserEditTest, self).setUp()
+        self.log_in_user("user@test.com")
+        self.user = self.current_user
+        self.user.usernames = ['username1, username2']
+        self.user.put()
+        self.log_out_user()
+
+    @property
+    def url(self):
+        return self.URL.format(self.user.key.urlsafe())
+
+    def test_get_multiple_usernames(self):
+        self.log_in_admin()
+        response = self.get()
+        self.assertOK(response)
+
+
 class ServerCreateTest(AdminAuthTest):
     URL = '/admin/server_create'
 
