@@ -1,3 +1,5 @@
+import fix_path
+
 import logging
 import mimetypes
 import urlparse

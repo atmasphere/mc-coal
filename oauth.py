@@ -1,3 +1,5 @@
+import fix_path
+
 import datetime
 import json
 import logging

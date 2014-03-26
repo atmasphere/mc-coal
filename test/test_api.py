@@ -1275,7 +1275,8 @@ class ServerPlayTest(AdminApiTest):
 
     def setUp(self):
         super(ServerPlayTest, self).setUp()
-        self.testbed.init_taskqueue_stub(root_path=os.path.dirname(__file__))
+        path = os.path.dirname(__file__) + '/../'
+        self.testbed.init_taskqueue_stub(root_path=path)
         models.MinecraftDownload.create(
             '1.7.4',
             'https://s3.amazonaws.com/Minecraft.Download/versions/1.7.4/minecraft_server.1.7.4.jar',
@@ -1320,7 +1321,8 @@ class ServerPauseTest(AdminApiTest):
 
     def setUp(self):
         super(ServerPauseTest, self).setUp()
-        self.testbed.init_taskqueue_stub(root_path=os.path.dirname(__file__))
+        path = os.path.dirname(__file__) + '/../'
+        self.testbed.init_taskqueue_stub(root_path=path)
         self.server.is_gce = True
         self.server.put()
 

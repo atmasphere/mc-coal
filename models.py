@@ -1,3 +1,5 @@
+import fix_path
+
 from cStringIO import StringIO
 import datetime
 import re

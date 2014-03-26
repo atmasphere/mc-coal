@@ -13,6 +13,7 @@ from filters import datetime_filter
 
 KEY_NAME = 'channels'
 
+
 class ServerChannels(ndb.Model):
     client_ids = ndb.StringProperty(repeated=True)
 

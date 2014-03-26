@@ -1,3 +1,5 @@
+import fix_path
+
 from google.appengine.ext import ndb
 
 import webapp2

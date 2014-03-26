@@ -1,3 +1,5 @@
+import fix_path
+
 import datetime
 from functools import wraps
 import json

@@ -1,3 +1,5 @@
+import fix_path
+
 import datetime
 import httplib2
 import logging

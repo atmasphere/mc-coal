@@ -5,7 +5,6 @@ Library                                 License
 ======================================= ===================================================================================
 `gae-pytz <pytz>`_                      `MIT LICENSE <https://code.google.com/p/gae-pytz/>`_
 `minimock <minimock.py>`_               `MIT-STYLE LICENSE <https://pypi.python.org/pypi/MiniMock#license-repository>`_
-`nbt <nbt>`_                            `LICENSE <https://github.com/acfoltzer/nbt/blob/master/LICENSE>`_
 `poster <poster>`_                      `MIT LICENSE <http://atlee.ca/software/poster/#license>`_
 `pyoauth2 <pyoauth2>`_                  `LICENSE <https://github.com/StartTheShift/pyoauth2/blob/master/LICENSE.txt>`_
 `python-requests <requests>`_           `APACHE 2 LICENSE <http://docs.python-requests.org/en/latest/user/intro/#apache2>`_
