@@ -222,11 +222,10 @@ header {
     height: 55px;
 }
 
-header div.logo.sprite {
+.logo.sprite {
     height: 27px;
     width: 118px;
     background-position: 0 0;
-    margin: 14px 0;
 }
 
 header nav {
