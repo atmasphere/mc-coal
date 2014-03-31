@@ -3100,6 +3100,35 @@ input[type="button"].btn-block {
   width: 100%;
 }
 
+/* line 10, vendor/bootstrap/_component-animations.scss */
+.fade {
+  opacity: 0;
+  -webkit-transition: opacity 0.15s linear;
+  transition: opacity 0.15s linear;
+}
+/* line 13, vendor/bootstrap/_component-animations.scss */
+.fade.in {
+  opacity: 1;
+}
+
+/* line 18, vendor/bootstrap/_component-animations.scss */
+.collapse {
+  display: none;
+}
+/* line 20, vendor/bootstrap/_component-animations.scss */
+.collapse.in {
+  display: block;
+}
+
+/* line 24, vendor/bootstrap/_component-animations.scss */
+.collapsing {
+  position: relative;
+  height: 0;
+  overflow: hidden;
+  -webkit-transition: height 0.35s ease;
+  transition: height 0.35s ease;
+}
+
 /* line 9, vendor/bootstrap/_navs.scss */
 .nav {
   margin-bottom: 0;
