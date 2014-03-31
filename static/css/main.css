@@ -62,7 +62,7 @@ html {
 }
 
 body {
-    background: #ececec;
+    /*background: #ececec;*/
     font: 500 14px/1.45em "Lato", "Helvetica Neue", arial, helvetica, sans-serif;
     color: #242424;
     text-rendering: optimizeLegibility;
