@@ -34,6 +34,7 @@ class Instance(ndb.Model):
     zone = ndb.StringProperty(required=False, default='us-central1-a')
     machine_type = ndb.StringProperty(required=False, default='n1-standard-1')
     reserved_ip = ndb.BooleanProperty(required=False, default=False)
+    boot_disk_size = ndb.IntegerProperty()
     idle = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
@@ -54,7 +55,7 @@ class Instance(ndb.Model):
                 address = create_address(region)
         verify_minecraft_firewall(network_url)
         if not verify_boot_disk(DISK_NAME, self.zone):
-            create_boot_disk(DISK_NAME, self.zone)
+            create_boot_disk(DISK_NAME, self.zone, size=self.boot_disk_size)
         disk_url = '%s/zones/%s/disks/%s' % (project_url, self.zone, DISK_NAME)
         machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, self.machine_type)
         access_configs = [{
@@ -253,10 +254,10 @@ def verify_boot_disk(disk, zone):
     return False
 
 
-def create_boot_disk(disk, zone):
+def create_boot_disk(disk, zone, size=50):
     execute_request(
         get_gce_service().disks().insert(
-            project=get_project_id(), zone=zone, sourceImage=IMAGE_URL, body={'name': disk}
+            project=get_project_id(), zone=zone, sourceImage=IMAGE_URL, sizeGb=size, body={'name': disk}
         )
     )
 
