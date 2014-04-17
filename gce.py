@@ -257,7 +257,7 @@ def verify_boot_disk(disk, zone):
 def create_boot_disk(disk, zone, size=50):
     execute_request(
         get_gce_service().disks().insert(
-            project=get_project_id(), zone=zone, sourceImage=IMAGE_URL, sizeGb=size, body={'name': disk}
+            project=get_project_id(), zone=zone, sourceImage=IMAGE_URL, body={'name': disk, 'sizeGb': size}
         )
     )
 
