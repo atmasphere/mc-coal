@@ -16,7 +16,7 @@ from oauth2client.appengine import AppAssertionCredentials
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
 API_VERSION = 'v1'
 GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
-IMAGE_URL = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20131120')
+IMAGE_URL = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20140408')
 SCOPES = [
     'https://www.googleapis.com/auth/devstorage.full_control',
     'https://www.googleapis.com/auth/compute',

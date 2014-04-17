@@ -268,7 +268,11 @@ class ServerPropertiesForm(ServerForm):
             ('1G', '1 Gigabyte'),
             ('2G', '2 Gigabytes'),
             ('3G', '3 Gigabytes'),
-            ('4G', '4 Gigabytes')
+            ('4G', '4 Gigabytes'),
+            ('5G', '5 Gigabytes'),
+            ('6G', '6 Gigabytes'),
+            ('7G', '7 Gigabytes'),
+            ('8G', '8 Gigabytes')
         ]
         self.gamemode.choices = [
             ('0', 'Survival'),
@@ -671,15 +675,18 @@ class InstanceForm(form.Form):
         super(InstanceForm, self).__init__(*args, **kwargs)
         self.zone.choices = [(z, z) for z in gce.get_zones() or []]
         self.machine_type.choices = [
-            ('f1-micro', '1 vCPU (shared physical core) and 0.6 GB RAM @ $0.019/Hour'),
-            ('g1-small', '1 vCPU (shared physical core) and 1.7 GB RAM @ $0.054/Hour'),
+            ('f1-micro', '1 vCPU (shared physical core), 0.6 GB RAM'),
+            ('g1-small', '1 vCPU (shared physical core), 1.7 GB RAM'),
             ('n1-standard-1', '1 vCPU, 3.75 GB RAM'),
-            ('n1-highcpu-2', '2 vCPUs, 1.8 GB RAM'),
             ('n1-standard-2', '2 vCPUs, 7.5 GB RAM'),
-            ('n1-highcpu-4', '4 vCPUs, 3.6 GB RAM'),
+            ('n1-highcpu-2', '2 vCPUs, 1.8 GB RAM'),
+            ('n1-highmem-2', '2 vCPUs, 13GB RAM'),
             ('n1-standard-4', '4 vCPUs, 15 GB RAM'),
+            ('n1-highcpu-4', '4 vCPUs, 3.6 GB RAM'),
+            ('n1-highmem-4', '4 vCPUs, 26GB RAM'),
+            ('n1-standard-8', '8 vCPUs, 30 GB RAM'),
             ('n1-highcpu-8', '8 vCPUs, 7.2 GB RAM'),
-            ('n1-standard-8', '8 vCPUs, 30 GB RAM')
+            ('n1-highmem-8', '8 vCPUs, 52GB RAM')
         ]
 
 
