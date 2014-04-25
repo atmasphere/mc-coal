@@ -1,4 +1,4 @@
-from testing_utils import fix_sys_path; fix_sys_path()
+import fix_dev_path
 
 import datetime
 import json

@@ -1,4 +1,4 @@
-from testing_utils import fix_sys_path; fix_sys_path()
+import fix_dev_path
 
 from base_test import BaseTest
 
