@@ -25,11 +25,16 @@ pip install --upgrade requests
 pip install --upgrade git+https://github.com/twoolie/NBT@version-1.4.1#egg=NBT
 
 mkdir /coal
+/usr/share/google/safe_format_and_mount -m "mkfs.ext4 -F" /dev/disk/by-id/google-coal /coal
+
 cd /coal
 
 PROJECT_ID=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/project-id)
 PROJECT_MC_URL="https://$PROJECT_ID.appspot.com/mc"
 echo $PROJECT_ID > project_id
+
+INSTANCE_NAME=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/instance-name)
+echo $INSTANCE_NAME > instance-name
 
 TIMEZONES_URL="$PROJECT_MC_URL/timezones.py"
 wget $TIMEZONES_URL -O timezones.py

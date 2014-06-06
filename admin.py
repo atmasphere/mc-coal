@@ -39,7 +39,7 @@ class AdminHandler(AdminPagingHandler):
         for server in Server.query():
             servers.append(server)
         instance = gce.Instance.singleton()
-        status = instance.status()
+        status = instance.get_status()
         context = {'servers': servers, 'instance': instance, 'status': status}
         self.render_template('admin.html', context=context)
 
@@ -669,7 +669,7 @@ class MinecraftDownloadRemoveHandler(AdminHandlerBase):
 class InstanceForm(form.Form):
     zone = fields.SelectField(u'Zone', validators=[validators.DataRequired()])
     machine_type = fields.SelectField(u'Machine Type', validators=[validators.DataRequired()])
-    boot_disk_size = fields.IntegerField(u'Boot Disk Size (GB)', validators=[validators.DataRequired(), validators.NumberRange(min=10, max=10240)], default=50)
+    disk_size = fields.IntegerField(u'Disk Size (GB)', validators=[validators.DataRequired(), validators.NumberRange(min=10, max=10240)], default=100)
     reserved_ip = fields.BooleanField(u'Use Reserved IP Address')
 
     def __init__(self, *args, **kwargs):
@@ -706,7 +706,7 @@ class InstanceConfigureHandler(UserHandler):
             instance = gce.Instance.singleton()
             instance.zone = form.zone.data
             instance.machine_type = form.machine_type.data
-            instance.boot_disk_size = form.boot_disk_size.data
+            instance.disk_size = form.disk_size.data
             instance.reserved_ip = form.reserved_ip.data
             instance.put()
             self.redirect(webapp2.uri_for('admin'))
