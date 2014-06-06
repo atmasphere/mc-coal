@@ -46,7 +46,7 @@ class Instance(ndb.Model):
 
     @property
     def boot_disk_name(self):
-        return '{0}-{1}-boot'.format(COAL_BOOT_DISK_NAME, self.key.id())
+        return '{0}-{1}'.format(COAL_BOOT_DISK_NAME, self.key.id())
 
     @property
     def coal_disk_name(self):
