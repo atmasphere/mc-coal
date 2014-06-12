@@ -25,10 +25,7 @@ import datetime
 import os.path
 import time
 import warnings
-try:
-  from pytz.gae import pytz
-except ImportError:
-  import pytz
+import pytz
 
 # Need to patch pytz.utc to have a _utcoffset so you can normalize/localize
 # using it.

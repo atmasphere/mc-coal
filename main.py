@@ -8,7 +8,7 @@ from google.appengine.ext import blobstore
 from google.appengine.ext import ndb
 from google.appengine.ext.webapp import blobstore_handlers
 
-from pytz.gae import pytz
+import pytz
 
 import webapp2
 

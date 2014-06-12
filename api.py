@@ -7,7 +7,7 @@ import logging
 
 from google.appengine.ext import ndb
 
-from pytz.gae import pytz
+import pytz
 
 import webapp2
 

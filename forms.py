@@ -1,6 +1,6 @@
 from google.appengine.api import urlfetch
 
-from pytz.gae import pytz
+import pytz
 
 from wtforms import fields, validators, widgets
 

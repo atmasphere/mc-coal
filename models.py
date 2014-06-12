@@ -11,7 +11,7 @@ from google.appengine.api import users, mail, app_identity, taskqueue, urlfetch
 
 import webapp2_extras.appengine.auth.models as auth_models
 
-from pytz.gae import pytz
+import pytz
 
 from PIL import Image, ImageFilter
 

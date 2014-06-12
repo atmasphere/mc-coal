@@ -1,5 +1,5 @@
 import json
-from pytz.gae import pytz
+import pytz
 
 
 def datetime_filter(value, format='%A, %B %d, %Y %I:%M:%S %p', timezone=None):
