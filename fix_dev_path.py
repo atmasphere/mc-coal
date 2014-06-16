@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import fix_path
+import fix_path  # noqa
 import os
 import sys
 

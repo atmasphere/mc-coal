@@ -1,4 +1,4 @@
-import fix_dev_path
+import fix_dev_path  # noqa
 
 import logging
 

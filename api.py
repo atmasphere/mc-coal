@@ -1,4 +1,4 @@
-import fix_path
+import fix_path  # noqa
 
 import datetime
 from functools import wraps

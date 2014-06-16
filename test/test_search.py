@@ -1,9 +1,10 @@
-import fix_dev_path
+import fix_dev_path  # noqa
 
 from base_test import BaseTest
 
 import main
 import models
+import patterns
 import search
 
 from test_api import ALL_LOG_LINES
@@ -43,10 +44,10 @@ class SearchTest(BaseTest):
         self.assertEqual(2, len(results))
         self.assertEqual(2, number_found)
         self.assertIsNone(cursor)
-        results, number_found, cursor = search.search_log_lines(models.CONNECTION_TAG)
+        results, number_found, cursor = search.search_log_lines(patterns.CONNECTION_TAG)
         self.assertEqual(4, len(results))
         self.assertEqual(4, number_found)
-        results, number_found, cursor = search.search_log_lines(models.SERVER_TAG)
+        results, number_found, cursor = search.search_log_lines(patterns.SERVER_TAG)
         self.assertEqual(5, len(results))
         self.assertEqual(5, number_found)
         self.assertIsNone(cursor)
@@ -54,7 +55,7 @@ class SearchTest(BaseTest):
         self.assertEqual(2, len(results))
         self.assertEqual(2, number_found)
         self.assertIsNone(cursor)
-        results, number_found, cursor = search.search_log_lines('username:gumptionthomas tags:{0}'.format(models.LOGIN_TAG))
+        results, number_found, cursor = search.search_log_lines('username:gumptionthomas tags:{0}'.format(patterns.LOGIN_TAG))
         self.assertEqual(2, len(results))
         self.assertEqual(2, number_found)
         self.assertIsNone(cursor)
@@ -80,10 +81,10 @@ class SearchTest(BaseTest):
         self.assertEqual(4, len(results))
         self.assertEqual(4, number_found)
         self.assertIsNone(cursor)
-        results, number_found, cursor = search.search_log_lines(models.CONNECTION_TAG)
+        results, number_found, cursor = search.search_log_lines(patterns.CONNECTION_TAG)
         self.assertEqual(8, len(results))
         self.assertEqual(8, number_found)
-        results, number_found, cursor = search.search_log_lines(models.SERVER_TAG)
+        results, number_found, cursor = search.search_log_lines(patterns.SERVER_TAG)
         self.assertEqual(10, len(results))
         self.assertEqual(10, number_found)
         self.assertIsNone(cursor)
@@ -91,7 +92,7 @@ class SearchTest(BaseTest):
         self.assertEqual(4, len(results))
         self.assertEqual(4, number_found)
         self.assertIsNone(cursor)
-        results, number_found, cursor = search.search_log_lines('username:gumptionthomas tags:{0}'.format(models.LOGIN_TAG))
+        results, number_found, cursor = search.search_log_lines('username:gumptionthomas tags:{0}'.format(patterns.LOGIN_TAG))
         self.assertEqual(4, len(results))
         self.assertEqual(4, number_found)
         self.assertIsNone(cursor)
@@ -112,10 +113,10 @@ class SearchTest(BaseTest):
         self.assertEqual(2, len(results))
         self.assertEqual(2, number_found)
         self.assertIsNone(cursor)
-        results, number_found, cursor = search.search_log_lines(models.CONNECTION_TAG, server_key=self.server.key)
+        results, number_found, cursor = search.search_log_lines(patterns.CONNECTION_TAG, server_key=self.server.key)
         self.assertEqual(4, len(results))
         self.assertEqual(4, number_found)
-        results, number_found, cursor = search.search_log_lines(models.SERVER_TAG, server_key=self.server.key)
+        results, number_found, cursor = search.search_log_lines(patterns.SERVER_TAG, server_key=self.server.key)
         self.assertEqual(5, len(results))
         self.assertEqual(5, number_found)
         self.assertIsNone(cursor)
@@ -123,7 +124,7 @@ class SearchTest(BaseTest):
         self.assertEqual(2, len(results))
         self.assertEqual(2, number_found)
         self.assertIsNone(cursor)
-        results, number_found, cursor = search.search_log_lines('username:gumptionthomas tags:{0}'.format(models.LOGIN_TAG), server_key=self.server.key)
+        results, number_found, cursor = search.search_log_lines('username:gumptionthomas tags:{0}'.format(patterns.LOGIN_TAG), server_key=self.server.key)
         self.assertEqual(2, len(results))
         self.assertEqual(2, number_found)
         self.assertIsNone(cursor)
@@ -144,10 +145,10 @@ class SearchTest(BaseTest):
         self.assertEqual(2, len(results))
         self.assertEqual(2, number_found)
         self.assertIsNone(cursor)
-        results, number_found, cursor = search.search_log_lines(models.CONNECTION_TAG, server_key=self.server2.key)
+        results, number_found, cursor = search.search_log_lines(patterns.CONNECTION_TAG, server_key=self.server2.key)
         self.assertEqual(4, len(results))
         self.assertEqual(4, number_found)
-        results, number_found, cursor = search.search_log_lines(models.SERVER_TAG, server_key=self.server2.key)
+        results, number_found, cursor = search.search_log_lines(patterns.SERVER_TAG, server_key=self.server2.key)
         self.assertEqual(5, len(results))
         self.assertEqual(5, number_found)
         self.assertIsNone(cursor)
@@ -155,7 +156,7 @@ class SearchTest(BaseTest):
         self.assertEqual(2, len(results))
         self.assertEqual(2, number_found)
         self.assertIsNone(cursor)
-        results, number_found, cursor = search.search_log_lines('username:gumptionthomas tags:{0}'.format(models.LOGIN_TAG), server_key=self.server2.key)
+        results, number_found, cursor = search.search_log_lines('username:gumptionthomas tags:{0}'.format(patterns.LOGIN_TAG), server_key=self.server2.key)
         self.assertEqual(2, len(results))
         self.assertEqual(2, number_found)
         self.assertIsNone(cursor)

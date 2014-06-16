@@ -1,4 +1,4 @@
-import fix_dev_path
+import fix_dev_path  # noqa
 
 import datetime
 import json
@@ -11,9 +11,10 @@ from google.appengine.ext import blobstore, testbed, ndb
 
 import minimock
 
-import image
+import image  # noqa
 import main
 import models
+import patterns
 from test_oauth import OauthTest
 
 
@@ -24,16 +25,16 @@ IMAGE_PATH = 'static/img/coal_sprite.png'
 TIME_STAMP_LOG_LINE = '2012-10-07 15:10:09 [INFO] Preparing level "world"'
 SERVER_START_LOG_LINE = '2012-10-15 16:05:00 [INFO] Starting minecraft server version 1.3.2'
 SERVER_STOP_LOG_LINE = '2012-10-15 16:26:11 [INFO] Stopping server'
-OVERLOADED_LOG_LINE = "2012-10-21 00:01:46 [WARNING] Can't keep up! Did the system time change, or is the server overloaded?"
-OVERLOADED_LOG_LINE_2 = "2014-02-13 22:07:55 [WARN] Can't keep up! Did the system time change, or is the server overloaded? Running 2850ms behind, skipping 57 tick(s)"
+OVERLOADED_LOG_LINE = "2012-10-21 00:01:46 [WARNING] Can't keep up! Did the system time change, or is the server overloaded?"  # noqa
+OVERLOADED_LOG_LINE_2 = "2014-02-13 22:07:55 [WARN] Can't keep up! Did the system time change, or is the server overloaded? Running 2850ms behind, skipping 57 tick(s)"  # noqa
 CHAT_LOG_LINE = '2012-10-09 20:46:06 [INFO] <vesicular> yo yo'
 CHAT_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] [Server] hello'
 CHAT_LOG_LINE_3 = '2012-10-09 20:46:05 [INFO] [Server] <vesicular> yo yo'
 CHAT_LOG_LINE_4 = '2012-10-09 20:46:05 [INFO] [Server] <t@gmail.com> yo yo'
 DISCONNECT_LOG_LINE = '2012-10-09 20:50:08 [INFO] gumptionthomas left the game'
 DISCONNECT_LOG_LINE_2 = '2013-03-13 23:03:39 [INFO] gumptionthomas left the game'
-CONNECT_LOG_LINE = '2012-10-09 19:52:55 [INFO] gumptionthomas[/192.168.11.198:59659] logged in with entity id 14698 at (221.41534292614716, 68.0, 239.43154415221068)'
-CONNECT_LOG_LINE_2 = '2013-03-08 21:06:34 [INFO] gumptionthomas[/192.168.11.205:50167] logged in with entity id 3583968 at (1168.5659371692745, 63.0, -779.6390153758603)'
+CONNECT_LOG_LINE = '2012-10-09 19:52:55 [INFO] gumptionthomas[/192.168.11.198:59659] logged in with entity id 14698 at (221.41534292614716, 68.0, 239.43154415221068)'  # noqa
+CONNECT_LOG_LINE_2 = '2013-03-08 21:06:34 [INFO] gumptionthomas[/192.168.11.205:50167] logged in with entity id 3583968 at (1168.5659371692745, 63.0, -779.6390153758603)'  # noqa
 ALL_LOG_LINES = [
     LOG_LINE, TIME_STAMP_LOG_LINE, SERVER_START_LOG_LINE, SERVER_STOP_LOG_LINE, OVERLOADED_LOG_LINE,
     CHAT_LOG_LINE, CHAT_LOG_LINE_2, CHAT_LOG_LINE_3, DISCONNECT_LOG_LINE, DISCONNECT_LOG_LINE_2,
@@ -52,8 +53,8 @@ TIMESTAMP_LOG_LINES_CRON = [
 CHAT_LOG_LINES_CRON = [CHAT_LOG_LINE_2, CHAT_LOG_LINE, CHAT_LOG_LINE_3]
 ANVIL_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was squashed by a falling anvil'
 PRICKED_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was pricked to death'
-CACTUS_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas walked into a cactus whilst trying to escape Skeleton'
-CACTUS_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas walked into a cactus whilst trying to escape vesicular'
+CACTUS_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas walked into a cactus whilst trying to escape Skeleton'  # noqa
+CACTUS_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas walked into a cactus whilst trying to escape vesicular'  # noqa
 SHOT_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas was shot by arrow'
 DROWNED_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas drowned'
 DROWNED_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas drowned whilst trying to escape Skeleton'
@@ -86,8 +87,8 @@ MOB_DEATH_LOG_LINE_4 = '2013-04-03 10:27:55 [INFO] gumptionthomas was killed by 
 MOB_DEATH_LOG_LINE_5 = '2013-04-03 10:27:55 [INFO] gumptionthomas got finished off by Skeleton using Bow'
 MOB_DEATH_LOG_LINE_6 = '2013-04-03 10:27:55 [INFO] gumptionthomas was slain by Skeleton using Bow'
 LAVA_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas tried to swim in lava'
-LAVA_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas tried to swim in lava while trying to escape Skeleton'
-LAVA_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas tried to swim in lava while trying to escape vesicular'
+LAVA_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas tried to swim in lava while trying to escape Skeleton'  # noqa
+LAVA_DEATH_LOG_LINE_3 = '2013-04-03 10:27:55 [INFO] gumptionthomas tried to swim in lava while trying to escape vesicular'  # noqa
 OTHER_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas died'
 PVP_DEATH_LOG_LINE = '2013-04-03 10:27:55 [INFO] gumptionthomas got finished off by vesicular using Bow'
 PVP_DEATH_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] gumptionthomas was slain by vesicular using Bow'
@@ -476,7 +477,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 15, 21, 5), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
-        self.assertEqual(models.STARTING_TAGS, log_line.tags)
+        self.assertEqual(patterns.STARTING_TAGS, log_line.tags)
 
     def test_post_server_stop_log_line(self):
         params = {'line': SERVER_STOP_LOG_LINE, 'zone': TIME_ZONE}
@@ -490,7 +491,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 15, 21, 26, 11), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
-        self.assertEqual(models.STOPPING_TAGS, log_line.tags)
+        self.assertEqual(patterns.STOPPING_TAGS, log_line.tags)
 
     def test_post_overloaded_log_line(self):
         params = {'line': OVERLOADED_LOG_LINE, 'zone': TIME_ZONE}
@@ -504,7 +505,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2012, 10, 21, 5, 1, 46), log_line.timestamp)
         self.assertEqual('WARNING', log_line.log_level)
-        self.assertEqual(models.OVERLOADED_TAGS, log_line.tags)
+        self.assertEqual(patterns.OVERLOADED_TAGS, log_line.tags)
 
     def test_post_overloaded_log_line_2(self):
         params = {'line': OVERLOADED_LOG_LINE_2, 'zone': TIME_ZONE}
@@ -518,7 +519,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(TIME_ZONE, log_line.zone)
         self.assertEqual(datetime.datetime(2014, 2, 14, 4, 7, 55), log_line.timestamp)
         self.assertEqual('WARN', log_line.log_level)
-        self.assertEqual(models.OVERLOADED_TAGS, log_line.tags)
+        self.assertEqual(patterns.OVERLOADED_TAGS, log_line.tags)
 
     def test_post_chat_log_line(self):
         params = {'line': CHAT_LOG_LINE, 'zone': TIME_ZONE}
@@ -534,7 +535,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('vesicular', log_line.username)
         self.assertEqual('yo yo', log_line.chat)
-        self.assertEqual(models.CHAT_TAGS, log_line.tags)
+        self.assertEqual(patterns.CHAT_TAGS, log_line.tags)
         self.assertEqual(1, models.Player.query().count())
         player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNotNone(player)
@@ -553,7 +554,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('INFO', log_line.log_level)
         self.assertIsNone(log_line.username)
         self.assertEqual('hello', log_line.chat)
-        self.assertEqual(models.CHAT_TAGS, log_line.tags)
+        self.assertEqual(patterns.CHAT_TAGS, log_line.tags)
         self.assertEqual(0, models.Player.query().count())
 
     def test_post_chat_log_line_3(self):
@@ -570,7 +571,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('vesicular', log_line.username)
         self.assertEqual('yo yo', log_line.chat)
-        self.assertEqual(models.CHAT_TAGS, log_line.tags)
+        self.assertEqual(patterns.CHAT_TAGS, log_line.tags)
         self.assertEqual(1, models.Player.query().count())
         player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNotNone(player)
@@ -589,7 +590,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('t@gmail.com', log_line.username)
         self.assertEqual('yo yo', log_line.chat)
-        self.assertEqual(models.CHAT_TAGS, log_line.tags)
+        self.assertEqual(patterns.CHAT_TAGS, log_line.tags)
         self.assertEqual(0, models.Player.query().count())
 
     def test_post_disconnect_line(self):
@@ -605,7 +606,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(datetime.datetime(2012, 10, 10, 1, 50, 8), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
-        self.assertEqual(models.LOGOUT_TAGS, log_line.tags)
+        self.assertEqual(patterns.LOGOUT_TAGS, log_line.tags)
         self.assertEqual(0, models.PlaySession.query().count())
         play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNone(play_session)
@@ -626,7 +627,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(datetime.datetime(2013, 3, 14, 4, 3, 39), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
-        self.assertEqual(models.LOGOUT_TAGS, log_line.tags)
+        self.assertEqual(patterns.LOGOUT_TAGS, log_line.tags)
         self.assertEqual(0, models.PlaySession.query().count())
         play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNone(play_session)
@@ -647,7 +648,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(datetime.datetime(2012, 10, 10, 0, 52, 55), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
-        self.assertEqual(models.LOGIN_TAGS, log_line.tags)
+        self.assertEqual(patterns.LOGIN_TAGS, log_line.tags)
         self.assertEqual(1, models.PlaySession.query().count())
         play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNotNone(play_session)
@@ -671,7 +672,7 @@ class LogLineTest(AgentApiTest):
         self.assertEqual(datetime.datetime(2013, 3, 9, 3, 6, 34), log_line.timestamp)
         self.assertEqual('INFO', log_line.log_level)
         self.assertEqual('gumptionthomas', log_line.username)
-        self.assertEqual(models.LOGIN_TAGS, log_line.tags)
+        self.assertEqual(patterns.LOGIN_TAGS, log_line.tags)
         self.assertEqual(2, models.PlaySession.query().count())
         play_session = models.PlaySession.current(self.server.key, 'gumptionthomas')
         self.assertIsNotNone(play_session)
@@ -691,7 +692,7 @@ class LogLineTest(AgentApiTest):
             self.assertLength(0, body)
         self.assertEqual(len(ALL_LOG_LINES), models.LogLine.query().count())
         self.assertEqual(len(TIMESTAMP_LOG_LINES), models.LogLine.query_latest_with_timestamp(self.server.key).count())
-        self.assertEqual(1, models.LogLine.query_by_tags(self.server.key, models.OVERLOADED_TAG).count())
+        self.assertEqual(1, models.LogLine.query_by_tags(self.server.key, patterns.OVERLOADED_TAG).count())
         self.assertEqual(3, models.LogLine.query_latest_chats(self.server.key).count())
         self.assertEqual(2, models.LogLine.query_latest_logins(self.server.key).count())
         self.assertEqual(2, models.LogLine.query_latest_logouts(self.server.key).count())
@@ -769,7 +770,7 @@ class DeathLogLineTest(AgentApiTest):
                 msg="Incorrect username/mob: '{0}' [{1}]".format(log_line.username_mob, log_line.line)
             )
             self.assertEqual(weapon, log_line.weapon)
-            self.assertEqual(models.DEATH_TAGS, log_line.tags)
+            self.assertEqual(patterns.DEATH_TAGS, log_line.tags)
             self.assertEqual(1, models.Player.query().count())
             player = models.Player.lookup(self.server.key, log_line.username)
             self.assertIsNotNone(player)
@@ -806,7 +807,7 @@ class AchievementLogLineTest(AgentApiTest):
             log_line.achievement_message,
             msg="Incorrect achievement message: '{0}' [{1}]".format(log_line.achievement, log_line.line)
         )
-        self.assertEqual(models.ACHIEVEMENT_TAGS, log_line.tags)
+        self.assertEqual(patterns.ACHIEVEMENT_TAGS, log_line.tags)
         self.assertEqual(1, models.Player.query().count())
         player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNotNone(player)

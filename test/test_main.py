@@ -1,4 +1,4 @@
-import fix_dev_path
+import fix_dev_path  # noqa
 
 from main_test import AuthTest, ServerAuthTest
 from models import Server, Command

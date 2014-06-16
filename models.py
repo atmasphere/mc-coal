@@ -1,4 +1,4 @@
-import fix_path
+import fix_path  # noqa
 
 from cStringIO import StringIO
 import datetime
@@ -21,6 +21,10 @@ from channel import ServerChannels
 
 from filters import datetime_filter
 from image import NdbImage
+from patterns import (
+    UNKNOWN_TAG, TIMESTAMP_TAG, LOGIN_TAG, LOGOUT_TAG, CHAT_TAG, STOPPING_TAG, STARTING_TAG, DEATH_TAG,
+    ACHIEVEMENT_TAG, CLAIM_TAG, CHANNEL_TAGS_SET, REGEX_TAGS
+)
 from server_queue import start_server, restart_server, stop_server
 import search
 
@@ -37,143 +41,6 @@ SERVER_HAS_STARTED = 'HAS_STARTED'
 SERVER_HAS_STOPPED = 'HAS_STOPPED'
 SERVER_RUNNING = 'RUNNING'
 SERVER_STOPPED = 'STOPPED'
-UNKNOWN_TAG = 'unknown'
-TIMESTAMP_TAG = 'timestamp'
-CONNECTION_TAG = 'connection'
-LOGIN_TAG = 'login'
-LOGOUT_TAG = 'logout'
-CHAT_TAG = 'chat'
-SERVER_TAG = 'server'
-PERFORMANCE_TAG = 'performance'
-OVERLOADED_TAG = 'overloaded'
-STOPPING_TAG = 'stopping'
-STARTING_TAG = 'starting'
-DEATH_TAG = 'death'
-ACHIEVEMENT_TAG = 'achievement'
-CLAIM_TAG = 'claim'
-COAL_TAG = 'coal'
-LOGIN_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGIN_TAG]
-LOGOUT_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGOUT_TAG]
-CHAT_TAGS = [TIMESTAMP_TAG, CHAT_TAG]
-OVERLOADED_TAGS = [TIMESTAMP_TAG, SERVER_TAG, PERFORMANCE_TAG, OVERLOADED_TAG]
-STOPPING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STOPPING_TAG]
-STARTING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STARTING_TAG]
-DEATH_TAGS = [TIMESTAMP_TAG, DEATH_TAG]
-ACHIEVEMENT_TAGS = [TIMESTAMP_TAG, ACHIEVEMENT_TAG]
-CLAIM_TAGS = [TIMESTAMP_TAG, CLAIM_TAG]
-COAL_TAGS = [TIMESTAMP_TAG, COAL_TAG]
-TIMESTAMP_TAGS = [TIMESTAMP_TAG, UNKNOWN_TAG]
-CHANNEL_TAGS_SET = set(['login', 'logout', 'chat', 'death', 'achievement'])
-REGEX_TAGS = [
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+)\[/(?P<ip>[\w.]+):(?P<port>\w+)\] logged in.+\((?P<location_x>-?\w.+), (?P<location_y>-?\w.+), (?P<location_z>-?\w.+)\)"
-        ],
-        LOGIN_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) left the game"
-        ],
-        LOGOUT_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \[Server\] \<COAL\> (?P<chat>.+)",
-        ],
-        COAL_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \<(?P<username>\w+)\> coal:claim:(?P<code>.+)",
-        ],
-        CLAIM_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \<(?P<username>\w+)\> (?P<chat>.+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \[Server\] \<(?P<username>[\w@\.]+)\> (?P<chat>.+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \[Server\] (?P<chat>.+)"
-        ],
-        CHAT_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Can't keep up! .+",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Can't keep up! .+ Running (?P<behind>.+)ms behind, skipping (?P<ticks>.+) tick\(s\)"
-        ],
-        OVERLOADED_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Stopping server"
-        ],
-        STOPPING_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] Starting minecraft server version (?P<server_version>[\S:]+)"
-        ],
-        STARTING_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was squashed by a falling anvil",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was pricked to death",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) walked into a cactus whilst trying to escape (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was shot by arrow",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) drowned whilst trying to escape (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) drowned",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) blew up",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was blown up by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) hit the ground too hard",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) fell off a ladder",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) fell off some vines",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) fell out of the water",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) fell from a high place",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) fell into a patch of fire",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) fell into a patch of cacti",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was doomed to fall by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was shot off some vines by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was blown from a high place by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) went up in flames",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) burned to death",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was burnt to a crisp whilst fighting (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) walked into a fire whilst fighting (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was slain by (?P<username_mob>\w+) using (?P<weapon>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was slain by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was shot by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was fireballed by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was killed by magic",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was killed by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) got finished off by (?P<username_mob>\w+) using (?P<weapon>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) tried to swim in lava while trying to escape (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) tried to swim in lava",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) died",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) starved to death",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) suffocated in a wall",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was killed while trying to hurt (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was pummeled by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) fell out of the world",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) fell from a high place and fell out of the world",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) was knocked into the void by (?P<username_mob>\w+)",
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) withered away",
-        ],
-        DEATH_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) has just earned the achievement \[(?P<achievement>.+)\]",
-        ],
-        ACHIEVEMENT_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] .+"
-        ],
-        TIMESTAMP_TAGS
-    )
-]
 
 
 def seconds_since_epoch(dt):
@@ -336,7 +203,7 @@ class User(auth_models.User):
 
     @classmethod
     def is_single_admin(cls):
-        return cls.query().filter(cls.admin == True).count(keys_only=True, limit=2) < 2
+        return cls.query().filter(cls.admin == True).count(keys_only=True, limit=2) < 2  # noqa
 
     @classmethod
     def query_all(cls):
@@ -348,7 +215,7 @@ class User(auth_models.User):
 
     @classmethod
     def query_admin(cls):
-        return cls.query().filter(User.admin == True)
+        return cls.query().filter(User.admin == True)  # noqa
 
 
 @ae_ndb_serializer
@@ -369,7 +236,7 @@ class UsernameClaim(ndb.Model):
         claim_query = cls.query()
         claim_query = claim_query.filter(cls.username == username)
         claim_query = claim_query.filter(cls.code == code)
-        claim_query = claim_query.filter(cls.authenticated == None)
+        claim_query = claim_query.filter(cls.authenticated == None)  # noqa
         claim = claim_query.get()
         if claim is not None:
             user = claim.user_key.get()
@@ -386,7 +253,7 @@ class UsernameClaim(ndb.Model):
         claim_query = cls.query(ancestor=user_key)
         claim_query = claim_query.filter(cls.username == username)
         claim_query = claim_query.filter(cls.user_key == user_key)
-        claim_query = claim_query.filter(cls.authenticated == None)
+        claim_query = claim_query.filter(cls.authenticated == None)  # noqa
         claim = claim_query.get()
         if claim is None:
             claim = cls(parent=user_key, username=username, user_key=user_key)
@@ -397,7 +264,7 @@ class UsernameClaim(ndb.Model):
     def query_unauthenticated_by_user_key(cls, user_key):
         claim_query = cls.query(ancestor=user_key)
         claim_query = claim_query.filter(cls.user_key == user_key)
-        claim_query = claim_query.filter(cls.authenticated == None)
+        claim_query = claim_query.filter(cls.authenticated == None)  # noqa
         return claim_query
 
 
@@ -691,11 +558,11 @@ class Server(ndb.Model):
 
     @classmethod
     def query_all(cls):
-        return cls.query().filter(cls.active == True).order(cls.created)
+        return cls.query().filter(cls.active == True).order(cls.created)  # noqa
 
     @classmethod
     def query_all_reverse(cls):
-        return cls.query().filter(cls.active == True).order(-cls.created)
+        return cls.query().filter(cls.active == True).order(-cls.created)  # noqa
 
     @classmethod
     def reserved_ports(cls, ignore_server=None):
@@ -975,7 +842,7 @@ class LogLine(UsernameModel):
 
     @classmethod
     def query_latest_with_timestamp(cls, server_key):
-        return cls.server_query(server_key).filter(cls.has_timestamp == True).order(-cls.timestamp)
+        return cls.server_query(server_key).filter(cls.has_timestamp == True).order(-cls.timestamp)  # noqa
 
     @classmethod
     def get_last_line_with_timestamp(cls, server_key):
@@ -1015,11 +882,15 @@ class LogLine(UsernameModel):
 
     @classmethod
     def query_latest_events(cls, server_key):
-        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG, ACHIEVEMENT_TAG])).order(-cls.timestamp, cls.key)
+        return cls.server_query(server_key).filter(
+            cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG, ACHIEVEMENT_TAG])
+        ).order(-cls.timestamp, cls.key)
 
     @classmethod
     def query_oldest_events(cls, server_key):
-        return cls.server_query(server_key).filter(cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG, ACHIEVEMENT_TAG])).order(cls.timestamp, cls.key)
+        return cls.server_query(server_key).filter(
+            cls.tags.IN([CHAT_TAG, LOGIN_TAG, LOGOUT_TAG, DEATH_TAG, ACHIEVEMENT_TAG])
+        ).order(cls.timestamp, cls.key)
 
     @classmethod
     def query_api(cls, server_key, username=None, tag=None, since=None, before=None):
@@ -1045,7 +916,9 @@ class LogLine(UsernameModel):
             query_string = u"{0} timestamp_sse >= {1}".format(query_string, seconds_since_epoch(since))
         if before is not None:
             query_string = u"{0} timestamp_sse < {1}".format(query_string, seconds_since_epoch(before))
-        results, _, next_cursor = search.search_log_lines(query_string, server_key=server_key, limit=size or 50, cursor=cursor)
+        results, _, next_cursor = search.search_log_lines(
+            query_string, server_key=server_key, limit=size or 50, cursor=cursor
+        )
         return results, next_cursor if next_cursor else None
 
 
@@ -1141,7 +1014,7 @@ class PlaySession(UsernameModel):
 
     @classmethod
     def query_open(cls, server_key):
-        return cls.server_query(server_key).filter(cls.logout_timestamp == None)
+        return cls.server_query(server_key).filter(cls.logout_timestamp == None)  # noqa
 
     @classmethod
     def query_latest_open(cls, server_key):
@@ -1233,7 +1106,9 @@ class ScreenShot(NdbImage, ServerModel):
     def create_blurred(self):
         f = self.filename
         filename = "{0}_blur.png".format(f[:f.rfind('.') if f.rfind('.') != -1 else len(f)])
-        blurred_image = NdbImage.create(parent=self.key, data=self.generate_blurred_image_data(), filename=filename, mime_type='image/png')
+        blurred_image = NdbImage.create(
+            parent=self.key, data=self.generate_blurred_image_data(), filename=filename, mime_type='image/png'
+        )
         if self.blurred_image_key:
             self.blurred_image_key.delete()
         self.blurred_image_key = blurred_image.key
@@ -1259,7 +1134,9 @@ class ScreenShot(NdbImage, ServerModel):
             offset = random.randrange(count)
             screenshot = ScreenShot.server_query(server_key).order(cls.random_id).get(offset=offset)
         else:  # Use statistics
-            screenshot = ScreenShot.server_query(server_key).filter(cls.random_id > random.random()).order(cls.random_id).get()
+            screenshot = ScreenShot.server_query(server_key).filter(
+                cls.random_id > random.random()
+            ).order(cls.random_id).get()
             if screenshot is None:
                 screenshot = ScreenShot.server_query(server_key).order(cls.random_id).get()
         return screenshot
