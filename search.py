@@ -36,8 +36,12 @@ def add_log_lines(log_lines):
             search.TextField(name='server_key', value=log_line.server_key.urlsafe())
         ]
         if log_line.timestamp is not None:
-            fields.append(search.DateField(name='timestamp', value=log_line.timestamp.date() if log_line.timestamp else None))
-            fields.append(search.TextField(name='timestamp_string', value=log_line.timestamp.strftime('%Y-%m-%d %H:%M:%S')))
+            fields.append(search.DateField(
+                name='timestamp', value=log_line.timestamp.date() if log_line.timestamp else None
+            ))
+            fields.append(search.TextField(
+                name='timestamp_string', value=log_line.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            ))
             fields.append(search.NumberField(name='timestamp_sse', value=log_line.timestamp_sse))
         if log_line.log_level:
             fields.append(search.TextField(name='log_level', value=log_line.log_level))
@@ -68,7 +72,9 @@ def add_player(player):
     ]
     if player.last_login_timestamp is not None:
         fields.append(search.DateField(name='last_login_timestamp', value=player.last_login_timestamp.date()))
-        fields.append(search.TextField(name='last_login_timestamp_string', value=player.last_login_timestamp.strftime('%Y-%m-%d %H:%M:%S')))
+        fields.append(search.TextField(
+            name='last_login_timestamp_string', value=player.last_login_timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        ))
         fields.append(search.NumberField(name='last_login_timestamp_sse', value=player.last_login_timestamp_sse))
     return add_to_index(player_index, [(player.key, fields)])
 
@@ -131,7 +137,7 @@ def search_log_lines(query_string, server_key=None, limit=1000, offset=None, cur
         default_value=0
     )
     sort_options = search.SortOptions(expressions=[timestamp_desc], limit=limit)
-    return search_index(log_line_index, query_string, server_key=server_key, sort_options=sort_options, limit=limit, offset=offset, cursor=cursor)
+    return search_index(log_line_index, query_string, server_key=server_key, sort_options=sort_options, limit=limit, offset=offset, cursor=cursor)  # noqa
 
 
 def search_players(query_string, server_key=None, limit=1000, offset=None):

@@ -359,7 +359,7 @@ SERVER_PROPERTIES_FIELD_FUNCTIONS = {
     'operator': lambda o: o.server.operator,
     'idle_timeout': lambda o: o.server.idle_timeout
 }
-SERVER_PROPERTIES_STRATEGY = ModelStrategy(MinecraftProperties).include(*SERVER_PROPERTIES_FIELDS).include(**SERVER_PROPERTIES_FIELD_FUNCTIONS)
+SERVER_PROPERTIES_STRATEGY = ModelStrategy(MinecraftProperties).include(*SERVER_PROPERTIES_FIELDS).include(**SERVER_PROPERTIES_FIELD_FUNCTIONS)  # noqa
 
 
 class ServerPropertiesForm(form.Form):
@@ -430,7 +430,7 @@ class ServerPropertiesForm(form.Form):
         validators=[validators.Optional()],
         choices=[
             ('1', 'Can bypass spawn protection'),
-            ('2', 'Can use /clear, /difficulty, /effect, /gamemode, /gamerule, /give, and /tp, and can edit command blocks'),
+            ('2', 'Can use /clear, /difficulty, /effect, /gamemode, /gamerule, /give, and /tp, and can edit command blocks'),  # noqa
             ('3', 'Can use /ban, /deop, /kick, and /op')
         ]
     )
@@ -538,7 +538,7 @@ PLAYER_FIELD_FUNCTIONS = {
     'server_key': lambda o: o.server_key.urlsafe(),
     'user_key': lambda o: o.user.key.urlsafe() if o.user is not None else None,
     'last_login': lambda o: api_datetime(o.last_login_timestamp),
-    'last_session_duration': lambda o: o.last_session_duration.total_seconds() if o.last_session_duration is not None else None
+    'last_session_duration': lambda o: o.last_session_duration.total_seconds() if o.last_session_duration is not None else None  # noqa
 }
 PLAYER_STRATEGY = ModelStrategy(Player).include(*PLAYER_FIELDS).include(**PLAYER_FIELD_FUNCTIONS)
 
@@ -1040,15 +1040,15 @@ routes = [
     webapp2.Route('/api/v1/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
     webapp2.Route('/api/v1/users', 'api.UsersHandler', name='api_data_users'),
 
-    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),
-    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),
-    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),
-    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/achievements', 'api.AchievementHandler', name='api_data_player_achievements'),
-    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),
-    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/sessions', 'api.PlaySessionsHandler', name='api_data_player_sessions'),  # noqa
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/chats', 'api.ChatHandler', name='api_data_player_chats'),  # noqa
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/deaths', 'api.DeathHandler', name='api_data_player_deaths'),  # noqa
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/achievements', 'api.AchievementHandler', name='api_data_player_achievements'),  # noqa
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>/loglines', 'api.LogLinesHandler', name='api_data_player_loglines'),  # noqa
+    webapp2.Route('/api/v1/servers/<server_key>/players/<key_username>', 'api.PlayerKeyUsernameHandler', name='api_data_player_key_username'),  # noqa
     webapp2.Route('/api/v1/servers/<server_key>/players', 'api.PlayersHandler', name='api_data_players'),
 
-    webapp2.Route('/api/v1/servers/<server_key>/sessions/<key>', 'api.PlaySessionKeyHandler', name='api_data_session_key'),
+    webapp2.Route('/api/v1/servers/<server_key>/sessions/<key>', 'api.PlaySessionKeyHandler', name='api_data_session_key'),  # noqa
     webapp2.Route('/api/v1/servers/<server_key>/sessions', 'api.PlaySessionsHandler', name='api_data_sessions'),
 
     webapp2.Route('/api/v1/servers/<server_key>/chats/<key>', 'api.ChatKeyHandler', name='api_data_chat_key'),
@@ -1057,15 +1057,15 @@ routes = [
     webapp2.Route('/api/v1/servers/<server_key>/deaths/<key>', 'api.DeathKeyHandler', name='api_data_death_key'),
     webapp2.Route('/api/v1/servers/<server_key>/deaths', 'api.DeathHandler', name='api_data_deaths'),
 
-    webapp2.Route('/api/v1/servers/<server_key>/achievements/<key>', 'api.AchievementKeyHandler', name='api_data_achievement_key'),
+    webapp2.Route('/api/v1/servers/<server_key>/achievements/<key>', 'api.AchievementKeyHandler', name='api_data_achievement_key'),  # noqa
     webapp2.Route('/api/v1/servers/<server_key>/achievements', 'api.AchievementHandler', name='api_data_achievements'),
 
     webapp2.Route('/api/v1/servers/<server_key>/loglines/<key>', 'api.LogLineKeyHandler', name='api_data_logline_key'),
     webapp2.Route('/api/v1/servers/<server_key>/loglines', 'api.LogLinesHandler', name='api_data_loglines'),
 
-    webapp2.Route('/api/v1/servers/<server_key>/screenshots/<key>', 'api.ScreenShotKeyHandler', name='api_data_screenshot_key'),
+    webapp2.Route('/api/v1/servers/<server_key>/screenshots/<key>', 'api.ScreenShotKeyHandler', name='api_data_screenshot_key'),  # noqa
     webapp2.Route('/api/v1/servers/<server_key>/screenshots', 'api.ScreenShotsHandler', name='api_data_screenshots'),
-    webapp2.Route('/api/v1/servers/<server_key>/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),
+    webapp2.Route('/api/v1/servers/<server_key>/users/<key>/screenshots', 'api.ScreenShotsHandler', name='api_data_user_screenshots'),  # noqa
 
     webapp2.Route('/api/v1/servers/<key>/properties', 'api.ServerPropertiesHander', name='api_data_server_properties'),
     webapp2.Route('/api/v1/servers/<key>/queue/play', 'api.ServerPlayHandler', name='api_data_server_play'),

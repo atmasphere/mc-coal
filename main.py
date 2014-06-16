@@ -344,15 +344,15 @@ application = webapp2.WSGIApplication(
         RedirectRoute('/players', handler=PlayersHandler, strict_slash=True, name="naked_players"),
         RedirectRoute('/sessions', handler=PlaySessionsHandler, strict_slash=True, name="naked_play_sessions"),
         RedirectRoute('/screenshots', handler=ScreenShotsHandler, strict_slash=True, name="naked_screenshots_lol"),
-        RedirectRoute('/screenshots/<key>/create_blur', handler=ScreenShotBlurHandler, strict_slash=True, name="naked_screenshots_blur"),
+        RedirectRoute('/screenshots/<key>/create_blur', handler=ScreenShotBlurHandler, strict_slash=True, name="naked_screenshots_blur"),  # noqa
         RedirectRoute('/servers/<server_key>', handler=HomeHandler, name="home"),
         RedirectRoute('/servers/<server_key>/chats', handler=ChatsHandler, strict_slash=True, name="chats"),
         RedirectRoute('/servers/<server_key>/players', handler=PlayersHandler, strict_slash=True, name="players"),
-        RedirectRoute('/servers/<server_key>/sessions', handler=PlaySessionsHandler, strict_slash=True, name="play_sessions"),
-        RedirectRoute('/servers/<server_key>/screenshot_upload', handler=ScreenShotUploadHandler, strict_slash=True, name="screenshot_upload"),
-        RedirectRoute('/servers/<server_key>/screenshot_uploaded', handler=ScreenShotUploadedHandler, strict_slash=True, name="screenshot_uploaded"),
-        RedirectRoute('/servers/<server_key>/screenshots', handler=ScreenShotsHandler, strict_slash=True, name="screenshots"),
-        RedirectRoute('/servers/<server_key>/screenshots/<key>/remove', handler=ScreenShotRemoveHandler, strict_slash=True, name="screenshot_remove"),
+        RedirectRoute('/servers/<server_key>/sessions', handler=PlaySessionsHandler, strict_slash=True, name="play_sessions"),  # noqa
+        RedirectRoute('/servers/<server_key>/screenshot_upload', handler=ScreenShotUploadHandler, strict_slash=True, name="screenshot_upload"),  # noqa
+        RedirectRoute('/servers/<server_key>/screenshot_uploaded', handler=ScreenShotUploadedHandler, strict_slash=True, name="screenshot_uploaded"),  # noqa
+        RedirectRoute('/servers/<server_key>/screenshots', handler=ScreenShotsHandler, strict_slash=True, name="screenshots"),  # noqa
+        RedirectRoute('/servers/<server_key>/screenshots/<key>/remove', handler=ScreenShotRemoveHandler, strict_slash=True, name="screenshot_remove"),  # noqa
         RedirectRoute('/profile', handler=UserProfileHandler, strict_slash=True, name="user_profile"),
     ],
     config={

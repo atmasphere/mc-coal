@@ -11,7 +11,7 @@ from user_auth import UserHandler
 class ServerHandlerBase(UserHandler):
     def get_template_context(self, context=None):
         template_context = super(ServerHandlerBase, self).get_template_context(context=context)
-        server = template_context['server'] = template_context.get('server', None) or getattr(self.request, 'server', None)
+        server = template_context['server'] = template_context.get('server', None) or getattr(self.request, 'server', None)  # noqa
         if server is not None:
             bg_img = ScreenShot.random(server.key)
             if bg_img is not None:

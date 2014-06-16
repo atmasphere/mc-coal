@@ -60,6 +60,7 @@ def authenticate_abort_403(handler):
 def authentication_required(authenticate=None, request_property_name='user', require_https=False):
     if authenticate is None:
         authenticate = authenticate_abort_403
+
     def decorator(request_method):
         @wraps(request_method)
         def wrapped(self, *args, **kwargs):
@@ -82,7 +83,7 @@ def authenticate(handler, required=True, admin=False):
     user = handler.user
     if user is not None:
         update = False
-        if admin and not user.admin and User.query().filter(User.admin == True).count(keys_only=True, limit=1) == 0:
+        if admin and not user.admin and User.query().filter(User.admin == True).count(keys_only=True, limit=1) == 0:  # noqa
             user.admin = True
             user.active = True
             update = True
@@ -236,6 +237,6 @@ class IndieAuthUserHandler(AuthHandler):
 routes = [
     RedirectRoute('/login', handler='user_auth.LoginHandler', name='login'),
     RedirectRoute('/logout', handler='user_auth.UserHandler:logout', name='logout'),
-    RedirectRoute('/gae_login_callback', handler='user_auth.GoogleAppEngineUserHandler:login_callback', name='gae_login_callback'),
-    RedirectRoute('/ia_login_callback', handler='user_auth.IndieAuthUserHandler:login_callback', name='ia_login_callback')
+    RedirectRoute('/gae_login_callback', handler='user_auth.GoogleAppEngineUserHandler:login_callback', name='gae_login_callback'),  # noqa
+    RedirectRoute('/ia_login_callback', handler='user_auth.IndieAuthUserHandler:login_callback', name='ia_login_callback')  # noqa
 ]

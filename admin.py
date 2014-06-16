@@ -293,7 +293,7 @@ class ServerPropertiesForm(ServerForm):
         ]
         self.op_permission_level.choices = [
             ('1', 'Can bypass spawn protection'),
-            ('2', 'Can use /clear, /difficulty, /effect, /gamemode, /gamerule, /give, and /tp, and can edit command blocks'),
+            ('2', 'Can use /clear, /difficulty, /effect, /gamemode, /gamerule, /give, and /tp, and can edit command blocks'),  # noqa
             ('3', 'Can use /ban, /deop, /kick, and /op')
         ]
 
@@ -669,7 +669,7 @@ class MinecraftDownloadRemoveHandler(AdminHandlerBase):
 class InstanceForm(form.Form):
     zone = fields.SelectField(u'Zone', validators=[validators.DataRequired()])
     machine_type = fields.SelectField(u'Machine Type', validators=[validators.DataRequired()])
-    disk_size = fields.IntegerField(u'Disk Size (GB)', validators=[validators.DataRequired(), validators.NumberRange(min=10, max=10240)], default=100)
+    disk_size = fields.IntegerField(u'Disk Size (GB)', validators=[validators.DataRequired(), validators.NumberRange(min=10, max=10240)], default=100)  # noqa
     reserved_ip = fields.BooleanField(u'Use Reserved IP Address')
 
     def __init__(self, *args, **kwargs):
@@ -805,18 +805,18 @@ routes = [
     RedirectRoute('/admin/users/<key>', handler=UserEditHandler, strict_slash=True, name="user"),
     RedirectRoute('/admin/users/<key>/remove', handler=UserRemoveHandler, strict_slash=True, name="user_remove"),
     RedirectRoute('/admin/server_create', handler=ServerCreateHandler, strict_slash=True, name="server_create"),
-    RedirectRoute('/admin/server_create_gce', handler=ServerCreateGceHandler, strict_slash=True, name="server_create_gce"),
+    RedirectRoute('/admin/server_create_gce', handler=ServerCreateGceHandler, strict_slash=True, name="server_create_gce"),  # noqa
     RedirectRoute('/admin/servers/<key>', handler=ServerEditHandler, strict_slash=True, name="server"),
     RedirectRoute('/admin/servers/<key>/gce', handler=ServerEditGceHandler, strict_slash=True, name="server_gce"),
-    RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),
+    RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),  # noqa
     RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
-    RedirectRoute('/admin/servers/<key>/restart', handler=ServerRestartHandler, strict_slash=True, name="server_restart"),
+    RedirectRoute('/admin/servers/<key>/restart', handler=ServerRestartHandler, strict_slash=True, name="server_restart"),  # noqa
     RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
-    RedirectRoute('/admin/servers/<key>/command', handler=ServerCommandHandler, strict_slash=True, name="server_command"),
-    RedirectRoute('/admin/servers/<key>/upload_log', handler=ServerLogHandler, strict_slash=True, name="server_upload_log"),
+    RedirectRoute('/admin/servers/<key>/command', handler=ServerCommandHandler, strict_slash=True, name="server_command"),  # noqa
+    RedirectRoute('/admin/servers/<key>/upload_log', handler=ServerLogHandler, strict_slash=True, name="server_upload_log"),  # noqa
     RedirectRoute('/admin/versions', handler=MinecraftDownloadHandler, strict_slash=True, name="minecraft_versions"),
-    RedirectRoute('/admin/versions/<key>/remove', handler=MinecraftDownloadRemoveHandler, strict_slash=True, name="minecraft_version_remove"),
-    RedirectRoute('/admin/instance/configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure"),
+    RedirectRoute('/admin/versions/<key>/remove', handler=MinecraftDownloadRemoveHandler, strict_slash=True, name="minecraft_version_remove"),  # noqa
+    RedirectRoute('/admin/instance/configure', handler=InstanceConfigureHandler, strict_slash=True, name="instance_configure"),  # noqa
     RedirectRoute('/admin/instance/start', handler=InstanceStartHandler, strict_slash=True, name="instance_start"),
     RedirectRoute('/admin/instance/stop', handler=InstanceStopHandler, strict_slash=True, name="instance_stop"),
 ]

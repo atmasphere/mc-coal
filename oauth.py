@@ -36,7 +36,7 @@ class Client(ndb.Model):
     scope = ndb.StringProperty(repeated=True)
     secret = ndb.StringProperty()
     secret_expires_at = ndb.IntegerProperty(default=0)
-    secret_expires = ndb.ComputedProperty(lambda self: datetime.datetime(year=1970, month=1, day=1) + datetime.timedelta(seconds=self.secret_expires_at) if self.secret_expires_at else None)
+    secret_expires = ndb.ComputedProperty(lambda self: datetime.datetime(year=1970, month=1, day=1) + datetime.timedelta(seconds=self.secret_expires_at) if self.secret_expires_at else None)  # noqa
     registration_access_token = ndb.StringProperty()
     active = ndb.BooleanProperty(default=True)
     created = ndb.DateTimeProperty(auto_now_add=True)
@@ -58,7 +58,7 @@ class Client(ndb.Model):
 
     @classmethod
     def is_agent(cls, client_or_id):
-        if isinstance(client_or_id, cls): 
+        if isinstance(client_or_id, cls):
             client = client_or_id
         else:
             client = Client.get_key(client_or_id).get()
@@ -90,7 +90,7 @@ class AuthorizationCode(ndb.Model):
     user_key = ndb.KeyProperty()
     scope = ndb.StringProperty(repeated=True)
     expires_in = ndb.IntegerProperty(default=0)
-    expires = ndb.ComputedProperty(lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in else None)
+    expires = ndb.ComputedProperty(lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in else None)  # noqa
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -115,7 +115,7 @@ class Token(ndb.Model):
     scope = ndb.StringProperty(repeated=True)
     token_type = ndb.StringProperty()
     expires_in = ndb.IntegerProperty(default=0)
-    expires = ndb.ComputedProperty(lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in is not None else None)
+    expires = ndb.ComputedProperty(lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in is not None else None)  # noqa
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -225,7 +225,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
         if key.get() is not None:
             raise Exception("duplicate_authorization_code")
         scope = scope.split() if scope else ['data']
-        auth_code = AuthorizationCode(key=key, code=code, client_id=client_id, scope=scope, user_key=user.key, expires_in=coal_config.OAUTH_TOKEN_EXPIRES_IN)
+        auth_code = AuthorizationCode(key=key, code=code, client_id=client_id, scope=scope, user_key=user.key, expires_in=coal_config.OAUTH_TOKEN_EXPIRES_IN)  # noqa
         auth_code.put()
 
     def persist_token_information(self, client_id, scope, access_token, token_type, expires_in, refresh_token, data):
@@ -236,7 +236,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
             raise Exception("duplicate_refresh_token")
         scope = scope.split() if scope else ['data']
         user_key = getattr(data, 'user_key', None) if data is not None else None
-        token = Token(key=key, access_token=access_token, refresh_token=refresh_token, client_id=client_id, user_key=user_key, scope=scope, token_type=token_type, expires_in=expires_in)
+        token = Token(key=key, access_token=access_token, refresh_token=refresh_token, client_id=client_id, user_key=user_key, scope=scope, token_type=token_type, expires_in=expires_in)  # noqa
         token.put()
 
     def discard_authorization_code(self, client_id, code):
@@ -488,7 +488,7 @@ class ClientHandler(webapp2.RequestHandler, PyOAuth2Base):
         if not is_valid_client_id:
             self.set_response(authorization_provider._make_response(status_code=401))
             return
-        is_valid_registration_access_token = authorization_provider.validate_registration_access_token(client_id, registration_access_token)
+        is_valid_registration_access_token = authorization_provider.validate_registration_access_token(client_id, registration_access_token)  # noqa
         if not is_valid_registration_access_token:
             self.set_response(authorization_provider._make_error_response('invalid_token'))
             return
@@ -571,10 +571,10 @@ def authenticate_admin_required(handler):
 
 
 routes = [
-    RedirectRoute('/oauth/v1/auth', handler='oauth.AuthorizationCodeHandler', methods=['GET', 'POST'], name='oauth_auth'),
+    RedirectRoute('/oauth/v1/auth', handler='oauth.AuthorizationCodeHandler', methods=['GET', 'POST'], name='oauth_auth'),  # noqa
     RedirectRoute('/oauth/v1/token', handler='oauth.TokenHandler', methods=['POST'], name='oauth_token'),
     RedirectRoute('/oauth/v1/register', handler='oauth.RegistrationHandler', methods=['POST'], name='oauth_register'),
-    RedirectRoute('/oauth/v1/clients/<client_id>', handler='oauth.ClientHandler', methods=['GET', 'PUT', 'DELETE'], name='oauth_client'),
+    RedirectRoute('/oauth/v1/clients/<client_id>', handler='oauth.ClientHandler', methods=['GET', 'PUT', 'DELETE'], name='oauth_client'),  # noqa
     RedirectRoute('/oauth/v1/show', handler='oauth.ShowAuthorizationCodeHandler', methods=['GET'], name='oauth_show'),
     RedirectRoute('/oauth/v1/test', handler='oauth.TestHandler', methods=['GET'], name='oauth_test')
 ]

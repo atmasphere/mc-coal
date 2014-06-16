@@ -138,7 +138,9 @@ class NdbImage(ndb.Model):
                 while tries < 3:
                     try:
                         tries += 1
-                        serving_url = images.get_serving_url(str(self.blob_key), size=size, crop=crop, secure_url=secure_url)
+                        serving_url = images.get_serving_url(
+                            str(self.blob_key), size=size, crop=crop, secure_url=secure_url
+                        )
                         if serving_url is not None:
                             break
                     except Exception, e:
@@ -159,7 +161,9 @@ class NdbImage(ndb.Model):
         payload = str().join(payload_generator)
         key = None
         try:
-            result = urlfetch.fetch(url=url, payload=payload, method=urlfetch.POST, headers=headers, deadline=10, follow_redirects=False)
+            result = urlfetch.fetch(
+                url=url, payload=payload, method=urlfetch.POST, headers=headers, deadline=10, follow_redirects=False
+            )
             if "location" in result.headers:
                 location = result.headers["location"]
                 key = location[location.rfind("/") + 1:]
@@ -198,8 +202,8 @@ class NdbImage(ndb.Model):
     @classmethod
     def create(cls, blob_key=None, blob_info=None, data=None, filename=None, url=None, mime_type=None, **kwargs):
         """
-        Create an ``Image``. Use this class method rather than creating an image with the constructor. You must provide one
-        of the following parameters ``blob_info``, ``data``, or ``url`` to specify the image data to use.
+        Create an ``Image``. Use this class method rather than creating an image with the constructor. You must provide
+        one of the following parameters ``blob_info``, ``data``, or ``url`` to specify the image data to use.
 
         :param blob_key: The `Blobstore`_ data to use as the image data. If this parameter is not ``None``, all
             other parameters will be ignored as they are not needed (Only use with `NdbImage`).
@@ -208,7 +212,8 @@ class NdbImage(ndb.Model):
         :param data: The image data that should be put in the `Blobstore`_ and used as the image data.
         :param filename: The filename of the image data. If not provided, the filename will be guessed from the URL
             or, if there is no URL, it will be set to the stringified `Key`_ of the image entity.
-        :param url: The URL to fetch the image data from and then place in the `Blobstore`_ to be used as the image data.
+        :param url: The URL to fetch the image data from and then place in the `Blobstore`_ to be used as the image
+            data.
         :param mime_type: The `mime type`_ to use for the `Blobstore`_ image data.
             If ``None``, it will attempt to guess the mime type from the url fetch response headers or the filename.
         :param parent:  Inherited from `Model`_. The `Model`_ instance or `Key`_ instance for the entity that is the new
