@@ -25,7 +25,7 @@ from patterns import (
     UNKNOWN_TAG, TIMESTAMP_TAG, LOGIN_TAG, LOGOUT_TAG, CHAT_TAG, STOPPING_TAG, STARTING_TAG, DEATH_TAG,
     ACHIEVEMENT_TAG, CLAIM_TAG, CHANNEL_TAGS_SET, REGEX_TAGS
 )
-from server_queue import start_server, restart_server, stop_server
+from server_queue import start_server, backup_server, restart_server, stop_server
 import search
 
 
@@ -385,6 +385,10 @@ class Server(ndb.Model):
                 raise Exception("No valid minecraft version specified for server")
             start_server(self, Server.reserved_ports(ignore_server=self))
             self.update_status(status=SERVER_QUEUED_START)
+
+    def backup(self):
+        if self.is_gce and self.is_running:
+            backup_server(self)
 
     def restart(self):
         if self.is_gce and not self.is_queued_restart:

@@ -35,12 +35,21 @@ ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
 MINECRAFT_DIR = os.path.join(COAL_DIR, 'minecraft')
 NUM_RETRIES = 5
 CHUNKSIZE = 2 * 1024 * 1024
+COMMAND_FIFO_FILENAME = 'command-fifo'
+MINECRAFT_SERVER_JAR_FILENAME = 'minecraft_server.jar'
+LOG4J_CONFIG_FILENAME = 'log4j2.xml'
+SERVER_KEY_FILENAME = 'server_key'
+AGENT_PID_FILENAME = 'agent.pid'
+SERVER_PID_FILENAME = 'server.pid'
+RUN_SERVER_FILENAME = 'run_server.sh'
+AGENT_FILENAME = 'mc_coal_agent.py'
+MC_COAL_DIRNAME = 'mc_coal'
 RETRY_ERRORS = (httplib2.HttpLib2Error, IOError, httplib.ResponseNotReady)
 
-#Globals
+# Globals
 logger = None
 project = None
-world_bucket = None
+app_bucket = None
 external_ip = None
 
 
@@ -89,9 +98,13 @@ def get_archive_file_path(server_key):
     return os.path.join(ARCHIVES_DIR, '{0}.zip'.format(server_key))
 
 
+def get_gcs_archive_name(server_key):
+    return 'worlds/{0}/{0}.zip'.format(server_key)
+
+
 def read_server_key(port):
     server_key = None
-    server_key_filename = os.path.join(SERVERS_DIR, str(port), 'server_key')
+    server_key_filename = os.path.join(SERVERS_DIR, str(port), SERVER_KEY_FILENAME)
     try:
         with open(server_key_filename, 'r') as f:
             server_key = f.read()
@@ -102,7 +115,7 @@ def read_server_key(port):
 
 def write_server_key(port, server_key):
     server_dir = get_server_dir(port)
-    server_key_filename = os.path.join(server_dir, 'server_key')
+    server_key_filename = os.path.join(server_dir, SERVER_KEY_FILENAME)
     with open(server_key_filename, 'w') as server_key_file:
         server_key_file.write(server_key)
 
@@ -127,7 +140,7 @@ def get_minecraft_version(minecraft_url):
                 with open(url_filename, 'r') as f:
                     mc_url = f.read().strip()
                     if mc_url == minecraft_url:
-                        mc = os.path.join(MINECRAFT_DIR, mc_dir, 'minecraft_server.jar')
+                        mc = os.path.join(MINECRAFT_DIR, mc_dir, MINECRAFT_SERVER_JAR_FILENAME)
         if mc is None:
             exists = True
             while exists:
@@ -138,7 +151,7 @@ def get_minecraft_version(minecraft_url):
             url_filename = os.path.join(new_mc_dir, 'url')
             with open(url_filename, 'w') as f:
                 f.write(minecraft_url)
-            mc = os.path.join(new_mc_dir, 'minecraft_server.jar')
+            mc = os.path.join(new_mc_dir, MINECRAFT_SERVER_JAR_FILENAME)
             urllib.urlretrieve(minecraft_url, mc)
         return mc
     except Exception, e:
@@ -166,13 +179,13 @@ def copy_server_files(port, minecraft_url, server_properties):
     server_dir = get_server_dir(port)
     mc = get_minecraft_version(minecraft_url)
     shutil.copy2(mc, server_dir)
-    shutil.copy2(os.path.join(COAL_DIR, 'log4j2.xml'), server_dir)
+    shutil.copy2(os.path.join(COAL_DIR, LOG4J_CONFIG_FILENAME), server_dir)
     copy_server_properties(port, server_properties)
     filenames = [
         'timezones.py',
-        'mc_coal_agent.py'
+        AGENT_FILENAME
     ]
-    mc_coal_dir = os.path.join(server_dir, 'mc_coal')
+    mc_coal_dir = os.path.join(server_dir, MC_COAL_DIRNAME)
     if not os.path.exists(mc_coal_dir):
         os.makedirs(mc_coal_dir)
     for fn in filenames:
@@ -180,7 +193,7 @@ def copy_server_files(port, minecraft_url, server_properties):
 
 
 def make_fifo(server_dir):
-    fifo = os.path.join(server_dir, 'command-fifo')
+    fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
     try:
         os.remove(fifo)
     except OSError:
@@ -190,10 +203,10 @@ def make_fifo(server_dir):
 
 
 def make_run_server_script(server_dir, server_memory, fifo):
-    mc_jar = os.path.join(server_dir, 'minecraft_server.jar')
-    log4j_config = os.path.join(server_dir, 'log4j2.xml')
-    pid_filename = os.path.join(server_dir, 'server.pid')
-    run_filename = os.path.join(server_dir, 'run_server.sh')
+    mc_jar = os.path.join(server_dir, MINECRAFT_SERVER_JAR_FILENAME)
+    log4j_config = os.path.join(server_dir, LOG4J_CONFIG_FILENAME)
+    pid_filename = os.path.join(server_dir, SERVER_PID_FILENAME)
+    run_filename = os.path.join(server_dir, RUN_SERVER_FILENAME)
     run_script = '#!/bin/bash\n'
     run_script += '/usr/bin/java -Xincgc -Xmx{0} -Dlog4j.configurationFile={1} -jar {2} nogui <> {3} &\n'.format(
         server_memory, log4j_config, mc_jar, fifo
@@ -208,15 +221,34 @@ def make_run_server_script(server_dir, server_memory, fifo):
 
 def verify_bucket(service):
     done = False
+    body = {
+        'versioning': {'enabled': True},
+        'lifecycle': {
+            'rule': [
+                {
+                    'action': {'type': 'Delete'},
+                    'condition': {
+                        'isLive': False,
+                        'numNewerVersions': 5
+                    }
+                }
+            ]
+        }
+    }
     while not done:
         try:
-            request = service.buckets().get(bucket=world_bucket)
-            request.execute()
+            request = service.buckets().get(bucket=app_bucket)
+            response = request.execute()
+            versioning = response.get('versioning', False)
+            if not (versioning and versioning.get('enabled', False)):
+                request = service.buckets().patch(bucket=app_bucket, body=body)
+                request.execute()
             done = True
         except HttpError, err:
             if err.resp.status == 404:
                 try:
-                    request = service.buckets().insert(project=project, body={'name': world_bucket})
+                    body['name'] = app_bucket
+                    request = service.buckets().insert(project=project, body=body)
                     request.execute()
                     done = True
                 except HttpError, err2:
@@ -235,8 +267,8 @@ def load_zip_from_gcs(server_key):
     archive = get_archive_file_path(server_key)
     try:
         with file(archive, 'w') as f:
-            name = '{0}.zip'.format(server_key)
-            request = service.objects().get_media(bucket=world_bucket, object=name)
+            name = get_gcs_archive_name(server_key)
+            request = service.objects().get_media(bucket=app_bucket, object=name)
             media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
             tries = 0
             done = False
@@ -352,15 +384,15 @@ def start_server(server_key, **kwargs):
         raise
     # Start Agent
     try:
-        mc_coal_dir = os.path.join(server_dir, 'mc_coal')
-        agent = os.path.join(mc_coal_dir, 'mc_coal_agent.py')
+        mc_coal_dir = os.path.join(server_dir, MC_COAL_DIRNAME)
+        agent = os.path.join(mc_coal_dir, AGENT_FILENAME)
         args = [agent]
         args.append('--coal_host={0}.appspot.com'.format(project))
         args.append('--agent_client_id={0}'.format(kwargs['agent_client_id']))
         args.append('--agent_secret={0}'.format(kwargs['agent_secret']))
         args.append('--address={0}'.format(address))
         pid = subprocess.Popen(args, cwd=mc_coal_dir).pid
-        pid_filename = os.path.join(server_dir, 'agent.pid')
+        pid_filename = os.path.join(server_dir, AGENT_PID_FILENAME)
         with open(pid_filename, 'w') as pid_file:
             pid_file.write(str(pid))
     except Exception as e:
@@ -378,10 +410,10 @@ def start_server(server_key, **kwargs):
 
 def stop_minecraft(server_key, server_dir):
     try:
-        fifo = os.path.join(server_dir, 'command-fifo')
+        fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
         with open(fifo, 'a+') as fifo_file:
             fifo_file.write('stop\n')
-        with open(os.path.join(server_dir, 'server.pid'), 'r') as f:
+        with open(os.path.join(server_dir, SERVER_PID_FILENAME), 'r') as f:
             pid = f.read()
         while pid_exists(int(pid)):
             time.sleep(0.5)
@@ -389,19 +421,38 @@ def stop_minecraft(server_key, server_dir):
         logger.error("Error ({0}) stopping MC process for server {1}".format(e, server_key))
 
 
+def minecraft_save_off(server_key, server_dir):
+    try:
+        fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
+        with open(fifo, 'a+') as fifo_file:
+            fifo_file.write('save-all\n')
+            fifo_file.write('save-off\n')
+    except Exception as e:
+        logger.error("Error ({0}) turning off save for server {1}".format(e, server_key))
+
+
+def minecraft_save_on(server_key, server_dir):
+    try:
+        fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
+        with open(fifo, 'a+') as fifo_file:
+            fifo_file.write('save-on\n')
+    except Exception as e:
+        logger.error("Error ({0}) turning on save for server {1}".format(e, server_key))
+
+
 def zip_server_dir(server_dir, archive_file):
     skip_dirs = [
-        os.path.join(server_dir, 'mc_coal'),
+        os.path.join(server_dir, MC_COAL_DIRNAME),
         os.path.join(server_dir, 'logs'),
     ]
     skip_files = [
-        'command-fifo',
-        'minecraft_server.jar',
-        'log4j2.xml',
-        'server_key',
-        'agent.pid',
-        'server.pid',
-        'run_server.sh'
+        COMMAND_FIFO_FILENAME,
+        MINECRAFT_SERVER_JAR_FILENAME,
+        LOG4J_CONFIG_FILENAME,
+        SERVER_KEY_FILENAME,
+        AGENT_PID_FILENAME,
+        SERVER_PID_FILENAME,
+        RUN_SERVER_FILENAME
     ]
     abs_src = os.path.abspath(server_dir)
     with zipfile.ZipFile(archive_file, "w") as zf:
@@ -424,8 +475,8 @@ def upload_zip_to_gcs(server_key, archive_file):
     media = MediaFileUpload(archive_file, chunksize=CHUNKSIZE, resumable=True)
     if not media.mimetype():
         media = MediaFileUpload(archive_file, 'application/zip', resumable=True)
-    name = '{0}.zip'.format(server_key)
-    request = service.objects().insert(bucket=world_bucket, name=name, media_body=media)
+    name = get_gcs_archive_name(server_key)
+    request = service.objects().insert(bucket=app_bucket, name=name, media_body=media)
     tries = 0
     response = None
     while response is None:
@@ -454,6 +505,38 @@ def upload_zip_to_gcs(server_key, archive_file):
     os.remove(archive_file)
 
 
+def backup_server(server_key, **kwargs):
+    servers = get_servers()
+    server = servers.get(server_key, None)
+    if server is None:
+        return  # TODO: Handle partial startups/shutdowns
+    port = server['port']
+    server_dir = get_server_dir(port)
+    # Archive server_dir
+    archive_successful = False
+    archive = get_archive_file_path(server_key)
+    try:
+        # Pause saving
+        minecraft_save_off(server_key, server_dir)
+    except Exception as e:
+        logger.error("Error ({0}) pausing saves for server {1}".format(e, server_key))
+    try:
+        zip_server_dir(server_dir, archive)
+        archive_successful = True
+    except Exception as e:
+        logger.error("Error ({0}) archiving server {1}".format(e, server_key))
+    try:
+        # Unpause saving
+        minecraft_save_on(server_key, server_dir)
+    except Exception as e:
+        logger.error("Error ({0}) unpausing saves for server {1}".format(e, server_key))
+    try:
+        if archive_successful:
+            upload_zip_to_gcs(server_key, archive)
+    except Exception as e:
+        logger.error("Error ({0}) uploading archived server {1}".format(e, server_key))
+
+
 def stop_server(server_key, **kwargs):
     servers = get_servers()
     server = servers.get(server_key, None)
@@ -477,7 +560,7 @@ def stop_server(server_key, **kwargs):
         logger.error("Error ({0}) uploading archived server {1}".format(e, server_key))
     try:
         # Stop Agent
-        with open(os.path.join(server_dir, 'agent.pid'), 'r') as f:
+        with open(os.path.join(server_dir, AGENT_PID_FILENAME), 'r') as f:
             pid = f.read()
         os.kill(int(pid), signal.SIGTERM)
         os.waitpid(int(pid), 0)
@@ -495,7 +578,7 @@ def restart_server(server_key, **kwargs):
         return  # TODO: Handle partial startups/shutdowns
     port = server['port']
     server_dir = get_server_dir(port)
-    run_server_script = os.path.join(server_dir, 'run_server.sh')
+    run_server_script = os.path.join(server_dir, RUN_SERVER_FILENAME)
     # Stop minecraft
     stop_minecraft(server_key, server_dir)
     # Start minecraft
@@ -513,6 +596,8 @@ def complete_tasks(tasks):
             server_key = payload.pop('server_key')
             if event == 'START_SERVER':
                 start_server(server_key, **payload)
+            if event == 'BACKUP_SERVER':
+                backup_server(server_key, **payload)
             if event == 'RESTART_SERVER':
                 restart_server(server_key, **payload)
             if event == 'STOP_SERVER':
@@ -578,7 +663,7 @@ def init_logger(debug=False, logfile='controller.log'):
 
 def main(argv):
     global project
-    global world_bucket
+    global app_bucket
     global logger
     init_logger()
     logger = logging.getLogger('main')
@@ -592,7 +677,7 @@ def main(argv):
     try:
         with open('/coal/project_id', 'r') as f:
             project = f.read().strip()
-        world_bucket = '{0}-worlds'.format(project)
+        app_bucket = '{0}.appspot.com'.format(project)
         credentials = gce.AppAssertionCredentials(scope=TQ_API_SCOPE)
         http = credentials.authorize(httplib2.Http())
         service = build('taskqueue', TQ_API_VERSION, http=http)

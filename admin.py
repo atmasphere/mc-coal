@@ -472,6 +472,49 @@ class ServerStartHandler(AdminHandlerBase):
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
+class ServerBackupHandler(AdminHandlerBase):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.redirect_to_server('home')
+                return
+            context = {}
+            context['question'] = u'Back up server "{0}"?'.format(server.name)
+            context['confirmed_url'] = webapp2.uri_for('server_backup', key=server.key.urlsafe())
+            context['cancelled_url'] = webapp2.uri_for('home', server_key=server.key.urlsafe())
+            self.render_template('confirm.html', context=context)
+        except webapp2.HTTPException:
+            pass
+        except Exception as e:
+            message = u'Server "{0}" could not be backed up (Reason: {1}).'.format(server.name, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+            self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        server = self.get_server_by_key(key, abort=False)
+        if server is None:
+            self.redirect_to_server('home')
+            return
+        try:
+            server.backup()
+            message = u'Server "{0}" backing up...'.format(server.name)
+            logging.info(message)
+            self.session.add_flash(message, level='info')
+            time.sleep(1)
+        except webapp2.HTTPException:
+            pass
+        except Exception, e:
+            message = u'Server "{0}" could not be backed up (Reason: {1}).'.format(server.name, e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+
+
 class ServerRestartHandler(AdminHandlerBase):
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
@@ -810,6 +853,7 @@ routes = [
     RedirectRoute('/admin/servers/<key>/gce', handler=ServerEditGceHandler, strict_slash=True, name="server_gce"),
     RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),  # noqa
     RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
+    RedirectRoute('/admin/servers/<key>/backup', handler=ServerBackupHandler, strict_slash=True, name="server_backup"),  # noqa
     RedirectRoute('/admin/servers/<key>/restart', handler=ServerRestartHandler, strict_slash=True, name="server_restart"),  # noqa
     RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
     RedirectRoute('/admin/servers/<key>/command', handler=ServerCommandHandler, strict_slash=True, name="server_command"),  # noqa
