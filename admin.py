@@ -556,7 +556,7 @@ class ServerRestoreHandler(AdminHandlerBase):
                 self.abort(404)
             if not server.is_gce:
                 self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
-            form = ServerPropertiesForm(formdata=self.request.POST, server=server)
+            form = ServerRestoreForm(formdata=self.request.POST, versions=gcs.get_versions(server.key.urlsafe()))
             if form.validate():
                 gcs.restore_generation(server_key, form.generation.data)
                 name = None
