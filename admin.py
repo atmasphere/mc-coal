@@ -7,12 +7,13 @@ from dateutil import parser
 
 from google.appengine.ext import ndb
 
+import pytz
+
 import webapp2
 from webapp2_extras.routes import RedirectRoute
 
 from wtforms import form, fields, validators
 
-from filters import datetime_filter
 from forms import StringListField, AtLeastOneAdmin, UniqueUsernames
 from forms import UniquePort, UniqueVersion, VersionUrlExists
 import gce
@@ -529,7 +530,10 @@ def human_size(size):
 
 def human_date(date_string, timezone):
     dt = parser.parse(date_string)
-    return datetime_filter(dt, timezone=timezone)
+    if timezone is None:
+        timezone = pytz.utc
+    timezone_dt = dt.astimezone(timezone)
+    return timezone_dt.strftime('%A, %B %d, %Y %I:%M:%S %p')
 
 
 class ServerRestoreForm(form.Form):
