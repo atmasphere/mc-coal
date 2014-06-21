@@ -542,12 +542,13 @@ class ServerRestoreForm(form.Form):
 
     def __init__(self, versions=None, timezone=None, *args, **kwargs):
         super(ServerRestoreForm, self).__init__(*args, **kwargs)
-        self.generation_choices = []
-        for v in versions:
-            generation = v['generation']
-            name = "{0} - {1}".format(human_date(v['updated'], timezone), human_size(v['size']))
-            if v.get('timeDeleted', None):
-                self.generation_choices.append((generation, name))
+        self.generation.choices = []
+        if versions:
+            for v in versions:
+                generation = v['generation']
+                name = "{0} - {1}".format(human_date(v['updated'], timezone), human_size(v['size']))
+                if v.get('timeDeleted', None):
+                    self.generation.choices.append((generation, name))
 
 
 class ServerRestoreHandler(AdminHandlerBase):
