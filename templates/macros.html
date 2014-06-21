@@ -140,7 +140,12 @@
                                 <button type="submit" class="btn btn-primary">Play</button>
                             </div>
                         </form>
-                    {% elif user.admin %}
+                         <form action="{{ uri_for('server_restore', key=server.key.urlsafe()) }}">
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Restore</button>
+                            </div>
+                        </form>
+                   {% elif user.admin %}
                         {% if not server.is_queued %}
                             <form action="{{ uri_for('server_restart', key=server.key.urlsafe()) }}">
                                 <div class="form-actions">
@@ -149,7 +154,7 @@
                             </form>
                             <form action="{{ uri_for('server_backup', key=server.key.urlsafe()) }}">
                                 <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary">Backup</button>
+                                    <button type="submit" class="btn btn-primary">Save</button>
                                 </div>
                             </form>
                         {% endif %}

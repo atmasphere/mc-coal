@@ -28,7 +28,7 @@ import httplib2
 TQ_API_SCOPE = 'https://www.googleapis.com/auth/taskqueue'
 TQ_API_VERSION = 'v1beta2'
 STORAGE_API_SCOPE = 'https://www.googleapis.com/auth/devstorage.full_control'
-STORAGE_API_VERSION = 'v1beta2'
+STORAGE_API_VERSION = 'v1'
 COAL_DIR = '/coal/'
 SERVERS_DIR = os.path.join(COAL_DIR, 'servers')
 ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
@@ -99,7 +99,7 @@ def get_archive_file_path(server_key):
 
 
 def get_gcs_archive_name(server_key):
-    return 'worlds/{0}/{0}.zip'.format(server_key)
+    return 'worlds/{0}.zip'.format(server_key)
 
 
 def read_server_key(port):

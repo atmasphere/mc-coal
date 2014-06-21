@@ -13,6 +13,7 @@ from wtforms import form, fields, validators
 from forms import StringListField, AtLeastOneAdmin, UniqueUsernames
 from forms import UniquePort, UniqueVersion, VersionUrlExists
 import gce
+import gcs
 from models import Server, User, MinecraftDownload, Command
 from server_handler import ServerHandlerBase, PagingHandler
 from user_auth import ON_SERVER, UserHandler, authentication_required, authenticate, authenticate_admin
@@ -515,6 +516,73 @@ class ServerBackupHandler(AdminHandlerBase):
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
+class ServerRestoreForm(form.Form):
+    generation = fields.SelectField(u'Choose Saved Game to Restore', validators=[validators.DataRequired()])
+
+    def __init__(self, versions=None, *args, **kwargs):
+        super(ServerRestoreForm, self).__init__(*args, **kwargs)
+        self.generation.choices = [
+            (v['generation'], "{0} - {1}".format(v['updated'], v['size'])) for v in versions or []
+        ]
+
+
+class ServerRestoreHandler(AdminHandlerBase):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.abort(404)
+            if not server.is_gce:
+                self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
+            form = ServerRestoreForm(versions=gcs.get_versions(server.key.urlsafe()))
+        except Exception, e:
+            logging.error(u"Error GETting GCE server restore: {0}".format(e))
+            self.abort(404)
+        context = {
+            'edit_server': server,
+            'form': form,
+            'action': webapp2.uri_for('server_restore', key=server.key.urlsafe())
+        }
+        self.render_template('server_restore.html', context=context)
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, key):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is None:
+                self.abort(404)
+            if not server.is_gce:
+                self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
+            form = ServerPropertiesForm(formdata=self.request.POST, server=server)
+            if form.validate():
+                gcs.restore_generation(server_key, form.generation.data)
+                name = None
+                for choice in form.generation.choices:
+                    if choice[0] == form.generation.data:
+                        name = choice[1]
+                        break
+                message = u"Saved game restored."
+                if name:
+                    message = u"Saved game ({0}) restored.".format(name)
+                logging.info(message)
+                self.session.add_flash(message, level='info')
+                time.sleep(1)
+                self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
+        except Exception, e:
+            message = "Problem restoring game: {0}".format(e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+        context = {
+            'edit_server': server,
+            'form': form,
+            'action': webapp2.uri_for('server_restore', key=server.key.urlsafe())
+        }
+        self.render_template('server_restore.html', context=context)
+
+
 class ServerRestartHandler(AdminHandlerBase):
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
@@ -854,6 +922,7 @@ routes = [
     RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),  # noqa
     RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
     RedirectRoute('/admin/servers/<key>/backup', handler=ServerBackupHandler, strict_slash=True, name="server_backup"),  # noqa
+    RedirectRoute('/admin/servers/<key>/restore', handler=ServerRestoreHandler, strict_slash=True, name="server_restore"),  # noqa
     RedirectRoute('/admin/servers/<key>/restart', handler=ServerRestartHandler, strict_slash=True, name="server_restart"),  # noqa
     RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
     RedirectRoute('/admin/servers/<key>/command', handler=ServerCommandHandler, strict_slash=True, name="server_command"),  # noqa

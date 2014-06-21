@@ -383,7 +383,7 @@ class Server(ndb.Model):
         if self.is_gce and not (self.is_running or self.is_queued_start):
             if self.minecraft_url is None:
                 raise Exception("No valid minecraft version specified for server")
-            start_server(self, Server.reserved_ports(ignore_server=self))
+            start_server(self, reserved_ports=Server.reserved_ports(ignore_server=self))
             self.update_status(status=SERVER_QUEUED_START)
 
     def backup(self):
