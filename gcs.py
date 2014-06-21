@@ -54,7 +54,7 @@ def restore_generation(server_key, generation):
     request = service.objects().copy(
         sourceBucket=bucket,
         sourceObject=object,
-        destionationBucket=bucket,
+        destinationBucket=bucket,
         destinationObject=object,
         sourceGeneration=generation
     )
