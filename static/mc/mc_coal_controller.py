@@ -475,7 +475,7 @@ def backup_server(server_key, **kwargs):
     archive = get_archive_file_path(server_key)
     fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
     with open(fifo, 'a+') as fifo_file:
-        fifo_file.write(u"/say Saving game...")
+        fifo_file.write(u"/say Saving game...\n")
     try:
         # Pause saving
         minecraft_save_off(server_key, server_dir)
@@ -495,7 +495,7 @@ def backup_server(server_key, **kwargs):
         if archive_successful:
             upload_zip_to_gcs(server_key, archive)
             with open(fifo, 'a+') as fifo_file:
-                fifo_file.write(u"/say Game saved.")
+                fifo_file.write(u"/say Game saved.\n")
     except Exception as e:
         logger.error("Error ({0}) uploading archived server {1}".format(e, server_key))
 
