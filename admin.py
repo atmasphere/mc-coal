@@ -3,6 +3,8 @@ import fix_path  # noqa
 import logging
 import time
 
+import dateutil
+
 from google.appengine.ext import ndb
 
 import webapp2
@@ -10,6 +12,7 @@ from webapp2_extras.routes import RedirectRoute
 
 from wtforms import form, fields, validators
 
+from filters import datetime_filter
 from forms import StringListField, AtLeastOneAdmin, UniqueUsernames
 from forms import UniquePort, UniqueVersion, VersionUrlExists
 import gce
@@ -516,13 +519,29 @@ class ServerBackupHandler(AdminHandlerBase):
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
+def human_size(size):
+    for x in ['bytes', 'KB', 'MB', 'GB']:
+        if size < 1024.0:
+            return "%3.1f%s" % (size, x)
+        size /= 1024.0
+    return "%3.1f%s" % (size, 'TB')
+
+
+def human_date(date_string, timezone):
+    dt = dateutil.parser.parse(date_string)
+    return datetime_filter(dt, timezone=timezone)
+
+
 class ServerRestoreForm(form.Form):
     generation = fields.SelectField(u'Choose Saved Game to Restore', validators=[validators.DataRequired()])
 
-    def __init__(self, versions=None, *args, **kwargs):
+    def __init__(self, versions=None, timezone=None, *args, **kwargs):
         super(ServerRestoreForm, self).__init__(*args, **kwargs)
         self.generation.choices = [
-            (v['generation'], "{0} - {1}".format(v['updated'], v['size'])) for v in versions or []
+            (
+                v['generation'],
+                "{0} - {1}".format(human_date(v['updated'], timezone), human_size(v['size']))
+            ) for v in versions or []
         ]
 
 
@@ -536,7 +555,10 @@ class ServerRestoreHandler(AdminHandlerBase):
                 self.abort(404)
             if not server.is_gce:
                 self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
-            form = ServerRestoreForm(versions=gcs.get_versions(server.key.urlsafe()))
+            form = ServerRestoreForm(
+                versions=gcs.get_versions(server.key.urlsafe()),
+                timezone=self.request.user.timezone
+            )
         except Exception, e:
             logging.error(u"Error GETting GCE server restore: {0}".format(e))
             self.abort(404)
@@ -556,7 +578,11 @@ class ServerRestoreHandler(AdminHandlerBase):
                 self.abort(404)
             if not server.is_gce:
                 self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
-            form = ServerRestoreForm(formdata=self.request.POST, versions=gcs.get_versions(server.key.urlsafe()))
+            form = ServerRestoreForm(
+                formdata=self.request.POST,
+                versions=gcs.get_versions(server.key.urlsafe()),
+                timezone=self.request.user.timezone
+            )
             if form.validate():
                 gcs.restore_generation(server.key.urlsafe(), form.generation.data)
                 name = None
