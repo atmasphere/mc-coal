@@ -14,6 +14,8 @@
                 {{ macros.with_errors(form.machine_type, class="span3") }}
                 <label>Disk Size (GB)</label>
                 {{ macros.with_errors(form.disk_size, class="span3") }}
+                <label>Number Of Saved Games</label>
+                {{ macros.with_errors(form.backup_depth, class="span3") }}
                 <label>Use Reserved IP Address</label>
                 {{ macros.with_errors(form.reserved_ip, class="span3") }}
                 <div class="form-actions">
@@ -21,6 +23,7 @@
                     <a class="btn" href="{{ uri_for('admin') }}">Cancel</a>
                 </div>
             </form>
+            {% if instance.is_running %}Changes will not take effect until GCE instance restart.{% endif %}
         </div>
     </div>
 {% endblock %}

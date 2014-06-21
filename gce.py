@@ -12,6 +12,8 @@ from google.appengine.ext import ndb
 
 from oauth2client.appengine import AppAssertionCredentials
 
+from gcs import verify_bucket
+
 
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
 API_VERSION = 'v1'
@@ -35,6 +37,7 @@ class Instance(ndb.Model):
     machine_type = ndb.StringProperty(required=False, default='g1-small')
     reserved_ip = ndb.BooleanProperty(required=False, default=False)
     disk_size = ndb.IntegerProperty(default=100)
+    backup_depth = ndb.IntegerProperty(default=10)
     server_key = ndb.KeyProperty(default=None)
     idle = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
@@ -64,6 +67,7 @@ class Instance(ndb.Model):
         coal_disk_url = '%s/zones/%s/disks/%s' % (project_url, self.zone, self.coal_disk_name)
         machine_type_url = '%s/zones/%s/machineTypes/%s' % (project_url, self.zone, self.machine_type)
         address = None
+        verify_bucket(num_versions=self.backup_depth)
         if self.reserved_ip:
             region = get_region(self.zone)
             address = verify_address(region)

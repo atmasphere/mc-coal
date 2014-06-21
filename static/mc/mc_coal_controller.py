@@ -219,51 +219,10 @@ def make_run_server_script(server_dir, server_memory, fifo):
     return run_filename
 
 
-def verify_bucket(service):
-    done = False
-    body = {
-        'versioning': {'enabled': True},
-        'lifecycle': {
-            'rule': [
-                {
-                    'action': {'type': 'Delete'},
-                    'condition': {
-                        'isLive': False,
-                        'numNewerVersions': 5
-                    }
-                }
-            ]
-        }
-    }
-    while not done:
-        try:
-            request = service.buckets().get(bucket=app_bucket)
-            response = request.execute()
-            versioning = response.get('versioning', False)
-            if not (versioning and versioning.get('enabled', False)):
-                request = service.buckets().patch(bucket=app_bucket, body=body)
-                request.execute()
-            done = True
-        except HttpError, err:
-            if err.resp.status == 404:
-                try:
-                    body['name'] = app_bucket
-                    request = service.buckets().insert(project=project, body=body)
-                    request.execute()
-                    done = True
-                except HttpError, err2:
-                    logger.error("Error ({0}) creating bucket".format(err2))
-                    time.sleep(2)
-            else:
-                logger.error("Error ({0}) verifying bucket".format(err))
-                time.sleep(2)
-
-
 def load_zip_from_gcs(server_key):
     credentials = gce.AppAssertionCredentials(scope=STORAGE_API_SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
-    verify_bucket(service)
     archive = get_archive_file_path(server_key)
     try:
         with file(archive, 'w') as f:
@@ -471,7 +430,6 @@ def upload_zip_to_gcs(server_key, archive_file):
     credentials = gce.AppAssertionCredentials(scope=STORAGE_API_SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
-    verify_bucket(service)
     media = MediaFileUpload(archive_file, chunksize=CHUNKSIZE, resumable=True)
     if not media.mimetype():
         media = MediaFileUpload(archive_file, 'application/zip', resumable=True)

@@ -67,6 +67,48 @@ def restore_generation(server_key, generation):
         raise
 
 
+def verify_bucket(num_versions=10):
+    service = get_gcs_service()
+    bucket = get_default_bucket_name()
+    body = {
+        'versioning': {'enabled': True},
+        'lifecycle': {
+            'rule': [
+                {
+                    'action': {'type': 'Delete'},
+                    'condition': {
+                        'isLive': False,
+                        'numNewerVersions': num_versions
+                    }
+                }
+            ]
+        }
+    }
+    try:
+        request = service.buckets().get(bucket=bucket)
+        response = request.execute()
+        versioning = response.get('versioning', {}).get('enabled', False)
+        num_newer_versions = 0
+        lifecycle_rules = response.get('lifecycle', {}).get('rule', [])
+        if lifecycle_rules:
+            num_newer_versions = lifecycle_rules[0].get('condition', {}).get('numNewerVersions', 0)
+        if not (versioning and num_versions == num_newer_versions):
+            request = service.buckets().patch(bucket=bucket, body=body)
+            request.execute()
+    except HttpError as err:
+        if err.resp.status == 404:
+            try:
+                body['name'] = bucket
+                request = service.buckets().insert(project=get_project_id(), body=body)
+                request.execute()
+            except HttpError as err2:
+                logging.error("Error ({0}) creating bucket".format(err2))
+                raise
+        else:
+            logging.error("Error ({0}) verifying bucket".format(err))
+            raise
+
+
 def get_gcs_service():
     credentials = AppAssertionCredentials(scope=STORAGE_API_SCOPE)
     http = credentials.authorize(httplib2.Http(memcache, 30))

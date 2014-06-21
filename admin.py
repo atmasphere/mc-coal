@@ -813,6 +813,7 @@ class InstanceForm(form.Form):
     zone = fields.SelectField(u'Zone', validators=[validators.DataRequired()])
     machine_type = fields.SelectField(u'Machine Type', validators=[validators.DataRequired()])
     disk_size = fields.IntegerField(u'Disk Size (GB)', validators=[validators.DataRequired(), validators.NumberRange(min=10, max=10240)], default=100)  # noqa
+    backup_depth = fields.IntegerField(u'Number Of Saved Games', validators=[validators.DataRequired(), validators.NumberRange(min=1, max=1000)], default=10)  # noqa
     reserved_ip = fields.BooleanField(u'Use Reserved IP Address')
 
     def __init__(self, *args, **kwargs):
@@ -850,10 +851,11 @@ class InstanceConfigureHandler(UserHandler):
             instance.zone = form.zone.data
             instance.machine_type = form.machine_type.data
             instance.disk_size = form.disk_size.data
+            instance.backup_depth = form.backup_depth.data
             instance.reserved_ip = form.reserved_ip.data
             instance.put()
             self.redirect(webapp2.uri_for('admin'))
-        context = {'form': form}
+        context = {'form': form, 'instance': instance}
         self.render_template('instance_configure.html', context=context)
 
 
