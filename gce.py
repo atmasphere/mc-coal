@@ -139,7 +139,7 @@ class Instance(ndb.Model):
         self.put()
 
     def stop_if_idle(self):
-        if not (self.is_running and self.idle):
+        if not (self.is_running() and self.idle):
             return
         if datetime.datetime.utcnow() > self.idle + datetime.timedelta(seconds=GCE_MAX_IDLE_SECONDS):
             self.stop()

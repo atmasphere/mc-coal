@@ -23,7 +23,7 @@
                     <a class="btn" href="{{ uri_for('admin') }}">Cancel</a>
                 </div>
             </form>
-            {% if instance.is_running %}Changes will not take effect until GCE instance restart.{% endif %}
+            {% if instance.is_running() %}Changes will not take effect until GCE instance restart.{% endif %}
         </div>
     </div>
 {% endblock %}

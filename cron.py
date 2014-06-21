@@ -27,7 +27,7 @@ class ServerStatusHandler(webapp2.RequestHandler):
                     if instance.idle:
                         instance.idle = None
                         instance.put()
-        if instance.is_running and not gce_server_running and not instance.idle:
+        if instance.is_running() and not gce_server_running and not instance.idle:
             instance.idle = datetime.datetime.utcnow()
             instance.put()
         instance.stop_if_idle()
