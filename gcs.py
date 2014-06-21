@@ -56,7 +56,8 @@ def restore_generation(server_key, generation):
         sourceObject=object,
         destinationBucket=bucket,
         destinationObject=object,
-        sourceGeneration=generation
+        sourceGeneration=generation,
+        body={}
     )
     try:
         request.execute()
