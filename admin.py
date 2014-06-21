@@ -3,7 +3,7 @@ import fix_path  # noqa
 import logging
 import time
 
-import dateutil
+from dateutil import parser
 
 from google.appengine.ext import ndb
 
@@ -528,7 +528,7 @@ def human_size(size):
 
 
 def human_date(date_string, timezone):
-    dt = dateutil.parser.parse(date_string)
+    dt = parser.parse(date_string)
     return datetime_filter(dt, timezone=timezone)
 
 
