@@ -8,7 +8,7 @@
     <div class="player_list players">
         <div class="box">
             <form action="{{ action }}" method="post">
-                <label>Choose Saved Game to Restore</label>
+                <label>Choose {{edit_server.name }} saved game to restore:</label>
                 {{ macros.with_errors(form.generation, class="span3") }}
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save</button>

@@ -487,14 +487,14 @@ class ServerBackupHandler(AdminHandlerBase):
                 self.redirect_to_server('home')
                 return
             context = {}
-            context['question'] = u'Back up server "{0}"?'.format(server.name)
+            context['question'] = u'Save "{0}" game?'.format(server.name)
             context['confirmed_url'] = webapp2.uri_for('server_backup', key=server.key.urlsafe())
             context['cancelled_url'] = webapp2.uri_for('home', server_key=server.key.urlsafe())
             self.render_template('confirm.html', context=context)
         except webapp2.HTTPException:
             pass
         except Exception as e:
-            message = u'Server "{0}" could not be backed up (Reason: {1}).'.format(server.name, e)
+            message = u'"{0}" game could not be saved (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
             self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
@@ -507,14 +507,14 @@ class ServerBackupHandler(AdminHandlerBase):
             return
         try:
             server.backup()
-            message = u'Server "{0}" backing up...'.format(server.name)
+            message = u'"{0}" game saving...'.format(server.name)
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
         except webapp2.HTTPException:
             pass
         except Exception, e:
-            message = u'Server "{0}" could not be backed up (Reason: {1}).'.format(server.name, e)
+            message = u'"{0}" game could not be saved (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
@@ -546,7 +546,7 @@ class ServerRestoreForm(form.Form):
         if versions:
             for v in versions:
                 generation = v['generation']
-                name = "{0} - {1}".format(human_date(v['updated'], timezone), human_size(v['size']))
+                name = "{0} ({1})".format(human_date(v['updated'], timezone), human_size(v['size']))
                 if v.get('timeDeleted', None):
                     self.generation.choices.append((generation, name))
 
@@ -583,7 +583,7 @@ class ServerRestoreHandler(AdminHandlerBase):
             if server is None:
                 self.abort(404)
             if not server.is_gce:
-                self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
+                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
             form = ServerRestoreForm(
                 formdata=self.request.POST,
                 versions=gcs.get_versions(server.key.urlsafe()),
@@ -598,11 +598,11 @@ class ServerRestoreHandler(AdminHandlerBase):
                         break
                 message = u"Saved game restored."
                 if name:
-                    message = u"Saved game ({0}) restored.".format(name)
+                    message = u"Saved game {0} restored.".format(name)
                 logging.info(message)
                 self.session.add_flash(message, level='info')
                 time.sleep(1)
-                self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
+                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
         except Exception, e:
             message = "Problem restoring game: {0}".format(e)
             logging.error(message)
