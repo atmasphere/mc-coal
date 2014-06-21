@@ -558,7 +558,7 @@ class ServerRestoreHandler(AdminHandlerBase):
                 self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
             form = ServerRestoreForm(formdata=self.request.POST, versions=gcs.get_versions(server.key.urlsafe()))
             if form.validate():
-                gcs.restore_generation(server_key, form.generation.data)
+                gcs.restore_generation(server.key.urlsafe(), form.generation.data)
                 name = None
                 for choice in form.generation.choices:
                     if choice[0] == form.generation.data:
