@@ -521,6 +521,7 @@ class ServerBackupHandler(AdminHandlerBase):
 
 
 def human_size(size):
+    size = int(size)
     for x in ['bytes', 'KB', 'MB', 'GB']:
         if size < 1024.0:
             return "%3.1f%s" % (size, x)
