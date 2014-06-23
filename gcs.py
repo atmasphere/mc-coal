@@ -46,6 +46,25 @@ def get_versions(server_key):
     return versions
 
 
+def copy_archive(server_key, source_object):
+    service = get_gcs_service()
+    bucket = get_default_bucket_name()
+    object = get_gcs_archive_name(server_key)
+    request = service.objects().copy(
+        sourceBucket=bucket,
+        sourceObject=source_object,
+        destinationBucket=bucket,
+        destinationObject=object,
+        body={}
+    )
+    try:
+        request.execute()
+    except HttpError as e:
+        if e.resp.status != 404 and e.resp.status != 401:
+            logging.error("Error ({0}) calling {1}".format(e.resp, getattr(e, 'operationType', None)))
+        raise
+
+
 def restore_generation(server_key, generation):
     service = get_gcs_service()
     bucket = get_default_bucket_name()

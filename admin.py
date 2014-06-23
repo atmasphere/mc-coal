@@ -2,6 +2,9 @@ import fix_path  # noqa
 
 import logging
 import time
+import zipfile
+
+import cloudstorage
 
 from dateutil import parser
 
@@ -765,6 +768,14 @@ class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler, U
         self.send_blob(blob_key, save_as="{0}.zip".format(server.name or server.key.urlsafe()))
 
 
+def validate_server_archive(gcs_file):
+    valid = False
+    if zipfile.is_zipfile(gcs_file):
+        zip_infos = gcs_file.infolist()
+        logging.info(repr(zip_infos))
+    return valid
+
+
 class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase):
     def get_server_by_key(self, key, abort=True):
         try:
@@ -781,7 +792,16 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase)
     def post(self, key):
         server = self.get_server_by_key(key)
         file_info = self.get_file_infos()[0]
-        logging.info("Filename: {0}  Objectname: {1}".format(file_info.filename, file_info.gs_object_name))
+        filename = file_info.filename
+        object_name = file_info.gs_object_name[3:]
+        logging.info("Filename: {0}  Objectname: {1}".format(filename, object_name))
+        gcs_file = cloudstorage.open(object_name)
+        if validate_server_archive(gcs_file):
+            prefix = "/{0}".format(gcs.get_default_bucket_name())
+            object_name.index(prefix)
+            gcs_object_name = object_name[len(prefix):]
+            gcs.copy_archive(server.key.urlsafe(), gcs_object_name)
+            cloudstorage.delete(object_name)
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
