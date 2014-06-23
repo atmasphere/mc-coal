@@ -775,7 +775,7 @@ def validate_server_archive(gcs_file):
         zip_infos = zf.infolist()
         logging.info("zip_infos:")
         for zi in zip_infos:
-            logging.info(repr(zi))
+            logging.info(zi.filename)
     return valid
 
 
@@ -797,7 +797,6 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase)
         file_info = self.get_file_infos()[0]
         filename = file_info.filename
         object_name = file_info.gs_object_name[3:]
-        logging.info("Filename: {0}  Objectname: {1}".format(filename, object_name))
         gcs_file = cloudstorage.open(object_name)
         if validate_server_archive(gcs_file):
             prefix = "/{0}".format(gcs.get_default_bucket_name())
