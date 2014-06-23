@@ -753,7 +753,7 @@ class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler, U
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
         server = self.get_server_by_key(key)
-        blobstore_filename = "gs{0}/{1}".format(
+        blobstore_filename = "/gs/{0}/{1}".format(
             gcs.get_default_bucket_name(), gcs.get_gcs_archive_name(server.key.urlsafe())
         )
         blob_key = blobstore.create_gs_key(blobstore_filename)
