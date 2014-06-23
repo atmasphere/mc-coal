@@ -783,7 +783,7 @@ def validate_server_archive(gcs_file):
     return valid
 
 
-class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase):
+class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserHandler):
     def get_server_by_key(self, key, abort=True):
         try:
             server_key = ndb.Key(urlsafe=key)

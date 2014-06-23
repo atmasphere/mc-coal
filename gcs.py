@@ -47,6 +47,7 @@ def get_versions(server_key):
 
 
 def copy_archive(server_key, source_object):
+    logging.info("source_object: {0}".format(source_object))
     service = get_gcs_service()
     bucket = get_default_bucket_name()
     object = get_gcs_archive_name(server_key)
