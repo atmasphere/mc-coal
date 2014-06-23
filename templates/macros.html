@@ -94,7 +94,7 @@
                 <h4>Admin Tools: &nbsp;
                 {% if server.is_gce %}
                     <a href="{{ uri_for('server_gce', key=server.key.urlsafe()) }}">Edit</a> | 
-                    <a href="{{ uri_for('server_backup_download', key=server.key.urlsafe() }}">Download</a>
+                    <a href="{{ uri_for('server_backup_download', key=server.key.urlsafe()) }}">Download</a>
                 {% else %}
                     <a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a>
                 {% endif %}
