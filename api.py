@@ -422,6 +422,7 @@ class ServerPropertiesForm(form.Form):
     spawn_animals = RestfulBooleanField(validators=[validators.Optional()])
     spawn_monsters = RestfulBooleanField(validators=[validators.Optional()])
     player_idle_timeout = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=60)])
+    max_players = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=10000)])
     spawn_protection = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=64)])
     enable_command_block = RestfulBooleanField(validators=[validators.Optional()])
     snooper_enabled = RestfulBooleanField(validators=[validators.Optional()])
