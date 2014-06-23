@@ -803,7 +803,7 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserHandl
             object_name = file_info.gs_object_name[3:]
             gcs_file = cloudstorage.open(object_name)
             if validate_server_archive(gcs_file):
-                prefix = "/{0}".format(gcs.get_default_bucket_name())
+                prefix = "/{0}/".format(gcs.get_default_bucket_name())
                 object_name.index(prefix)
                 gcs_object_name = object_name[len(prefix):]
                 gcs.copy_archive(server.key.urlsafe(), gcs_object_name)
