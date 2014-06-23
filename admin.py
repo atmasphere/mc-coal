@@ -773,9 +773,13 @@ def validate_server_archive(gcs_file):
     if zipfile.is_zipfile(gcs_file):
         zf = zipfile.ZipFile(gcs_file, 'r')
         zip_infos = zf.infolist()
-        logging.info("zip_infos:")
-        for zi in zip_infos:
-            logging.info(zi.filename)
+        filenames = [zi.filename for zi in zip_infos]
+        required_filenames = ['server.properties', 'world/']
+        valid = True
+        for r in required_filenames:
+            if r not in filenames:
+                valid = False
+                break
     return valid
 
 
@@ -793,17 +797,30 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase)
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
-        server = self.get_server_by_key(key)
-        file_info = self.get_file_infos()[0]
-        filename = file_info.filename
-        object_name = file_info.gs_object_name[3:]
-        gcs_file = cloudstorage.open(object_name)
-        if validate_server_archive(gcs_file):
-            prefix = "/{0}".format(gcs.get_default_bucket_name())
-            object_name.index(prefix)
-            gcs_object_name = object_name[len(prefix):]
-            gcs.copy_archive(server.key.urlsafe(), gcs_object_name)
+        try:
+            server = self.get_server_by_key(key)
+            file_info = self.get_file_infos()[0]
+            object_name = file_info.gs_object_name[3:]
+            gcs_file = cloudstorage.open(object_name)
+            if validate_server_archive(gcs_file):
+                prefix = "/{0}".format(gcs.get_default_bucket_name())
+                object_name.index(prefix)
+                gcs_object_name = object_name[len(prefix):]
+                gcs.copy_archive(server.key.urlsafe(), gcs_object_name)
+                message = u'Minecraft server successfully uploaded'
+                self.session.add_flash(message, level='info')
+            else:
+                message = u'Invalid minecraft server archive'
+                logging.error(message)
+                self.session.add_flash(message, level='error')
+        except Exception as e:
+            message = u'Minecraft server archive could not be uploaded (Reason: {1})'.format(e)
+            logging.error(message)
+            self.session.add_flash(message, level='error')
+        try:
             cloudstorage.delete(object_name)
+        except Exception as e:
+            logging.error("Problem deleting uploaded server archive {0} (Reason: {1})".format(object_name, e))
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
