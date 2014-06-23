@@ -33,9 +33,17 @@ class ServerStatusHandler(webapp2.RequestHandler):
         instance.stop_if_idle()
 
 
+class ServerBackupHandler(webapp2.RequestHandler):
+    def get(self):
+        servers = Server.query_running()
+        for server in servers:
+            server.backup()
+
+
 application = webapp2.WSGIApplication(
     [
         webapp2.Route('/cron/server/status', ServerStatusHandler, name='cron_server_status'),
+        webapp2.Route('/cron/server/backup', ServerBackupHandler, name='cron_server_backup')
     ],
     debug=not ON_SERVER
 )

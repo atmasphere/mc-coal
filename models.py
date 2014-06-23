@@ -569,6 +569,10 @@ class Server(ndb.Model):
         return cls.query().filter(cls.active == True).order(-cls.created)  # noqa
 
     @classmethod
+    def query_running(cls):
+        return cls.query_all().filter(cls.is_running == True)  # noqa
+
+    @classmethod
     def reserved_ports(cls, ignore_server=None):
         ports = []
         for server in cls.query_all():
