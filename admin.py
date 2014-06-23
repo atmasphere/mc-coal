@@ -814,7 +814,7 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase)
                 logging.error(message)
                 self.session.add_flash(message, level='error')
         except Exception as e:
-            message = u'Minecraft server archive could not be uploaded (Reason: {1})'.format(e)
+            message = u'Minecraft server archive could not be uploaded (Reason: {0})'.format(e)
             logging.error(message)
             self.session.add_flash(message, level='error')
         try:
