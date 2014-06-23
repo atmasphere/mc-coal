@@ -737,12 +737,22 @@ class ServerCommandHandler(AdminHandlerBase):
 
 
 class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler, UserBase):
+    def get_server_by_key(self, key, abort=True):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+            if server is not None and not server.active:
+                server = None
+        except Exception:
+            server = None
+        if abort and not server:
+            self.abort(404)
+        self.request.server = server
+        return self.request.server
+
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
-        server = self.get_server_by_key(key, abort=False)
-        if server is None:
-            self.redirect_to_server('home')
-            return
+        server = self.get_server_by_key(key)
         blobstore_filename = "gs{0}/{1}".format(
             gcs.get_default_bucket_name(), gcs.get_gcs_archive_name(server.key.urlsafe())
         )
