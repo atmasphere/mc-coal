@@ -781,7 +781,7 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase)
     def post(self, key):
         server = self.get_server_by_key(key)
         file_info = self.get_file_infos()[0]
-        logging.info(file_info)
+        logging.info("Filename: {0}  Objectname: {1}".format(file_info.filename, file_info.gs_object_name))
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
