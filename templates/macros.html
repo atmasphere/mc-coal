@@ -93,8 +93,13 @@
             {% if user.admin %}
                 <h4>Admin Tools: &nbsp;
                 {% if server.is_gce %}
-                    <a href="{{ uri_for('server_gce', key=server.key.urlsafe()) }}">Edit</a> | 
+                    <a href="{{ uri_for('server_gce', key=server.key.urlsafe()) }}">Edit</a>
+                     | 
                     <a href="{{ uri_for('server_backup_download', key=server.key.urlsafe()) }}">Download</a>
+                    {% if server.is_stopped or server.is_unknown %}
+                        | 
+                        <a href="{{ uri_for('server_restore', key=server.key.urlsafe()) }}">Restore</a>
+                    {% endif %}
                 {% else %}
                     <a href="{{ uri_for('server', key=server.key.urlsafe()) }}">Edit</a>
                 {% endif %}
@@ -139,11 +144,6 @@
                         <form action="{{ uri_for('server_start', key=server.key.urlsafe()) }}" method="post">
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary">Play</button>
-                            </div>
-                        </form>
-                         <form action="{{ uri_for('server_restore', key=server.key.urlsafe()) }}">
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Restore</button>
                             </div>
                         </form>
                    {% elif user.admin %}

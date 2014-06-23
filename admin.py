@@ -773,7 +773,9 @@ def validate_server_archive(gcs_file):
     if zipfile.is_zipfile(gcs_file):
         zf = zipfile.ZipFile(gcs_file, 'r')
         zip_infos = zf.infolist()
-        logging.info(repr(zip_infos))
+        logging.info("zip_infos:")
+        for zi in zip_infos:
+            logging.info(repr(zi))
     return valid
 
 
