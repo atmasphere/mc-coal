@@ -798,6 +798,7 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserHandl
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
         try:
+            object_name = None
             server = self.get_server_by_key(key)
             file_info = self.get_file_infos()[0]
             object_name = file_info.gs_object_name[3:]
