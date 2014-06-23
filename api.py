@@ -349,7 +349,7 @@ class ServerKeyHandler(ServerBaseHandler):
 SERVER_PROPERTIES_FIELDS = [
     'server_port', 'motd', 'white_list', 'gamemode', 'force_gamemode', 'level_type', 'level_seed', 'generator_settings',
     'difficulty', 'pvp', 'hardcore', 'allow_flight', 'allow_nether', 'max_build_height', 'generate_structures',
-    'spawn_npcs', 'spawn_animals', 'spawn_monsters', 'player_idle_timeout', 'spawn_protection', 'enable_command_block',
+    'spawn_npcs', 'spawn_animals', 'spawn_monsters', 'player_idle_timeout', 'max_players', 'spawn_protection', 'enable_command_block',
     'snooper_enabled', 'resource_pack', 'op_permission_level'
 ]
 SERVER_PROPERTIES_FIELD_FUNCTIONS = {

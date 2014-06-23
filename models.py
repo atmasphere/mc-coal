@@ -614,6 +614,7 @@ class MinecraftProperties(ServerModel):
     spawn_animals = ndb.BooleanProperty(default=True)
     spawn_monsters = ndb.BooleanProperty(default=True)
     player_idle_timeout = ndb.IntegerProperty(default=0)
+    max_players = ndb.IntegerProperty(default=20)
     spawn_protection = ndb.IntegerProperty(default=16)
     enable_command_block = ndb.BooleanProperty(default=False)
     snooper_enabled = ndb.BooleanProperty(default=True)

@@ -251,6 +251,11 @@ class ServerPropertiesForm(ServerForm):
         validators=[validators.NumberRange(min=0, max=60)],
         default=0
     )
+    max_players = fields.IntegerField(
+        u'The maximum number of players that can play on the server at the same time',
+        validators=[validators.NumberRange(min=0, max=10000)],
+        default=20
+    )
     spawn_protection = fields.IntegerField(
         u'Radius of spawn area protection',
         validators=[validators.NumberRange(min=0, max=64)],
