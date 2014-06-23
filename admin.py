@@ -21,7 +21,7 @@ import gce
 import gcs
 from models import Server, User, MinecraftDownload, Command
 from server_handler import ServerHandlerBase, PagingHandler
-from user_auth import ON_SERVER, UserHandler, authentication_required, authenticate, authenticate_admin
+from user_auth import ON_SERVER, UserBase, UserHandler, authentication_required, authenticate, authenticate_admin
 
 
 RESULTS_PER_PAGE = 50
@@ -736,7 +736,7 @@ class ServerCommandHandler(AdminHandlerBase):
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
-class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler):
+class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler, UserBase):
     @authentication_required(authenticate=authenticate_admin)
     def get(self, key):
         server = self.get_server_by_key(key, abort=False)
