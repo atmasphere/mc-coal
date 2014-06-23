@@ -800,19 +800,24 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserHandl
         try:
             object_name = None
             server = self.get_server_by_key(key)
-            file_info = self.get_file_infos()[0]
-            object_name = file_info.gs_object_name[3:]
-            gcs_file = cloudstorage.open(object_name)
-            if validate_server_archive(gcs_file):
-                prefix = "/{0}/".format(gcs.get_default_bucket_name())
-                object_name.index(prefix)
-                gcs_object_name = object_name[len(prefix):]
-                gcs.copy_archive(server.key.urlsafe(), gcs_object_name)
-                message = u'Minecraft server successfully uploaded'
-                self.session.add_flash(message, level='info')
+            file_infos = self.get_file_infos()
+            if file_infos:
+                file_info = file_infos[0]
+                object_name = file_info.gs_object_name[3:]
+                gcs_file = cloudstorage.open(object_name)
+                if validate_server_archive(gcs_file):
+                    prefix = "/{0}/".format(gcs.get_default_bucket_name())
+                    object_name.index(prefix)
+                    gcs_object_name = object_name[len(prefix):]
+                    gcs.copy_archive(server.key.urlsafe(), gcs_object_name)
+                    message = u'Minecraft server successfully uploaded'
+                    self.session.add_flash(message, level='info')
+                else:
+                    message = u'Invalid minecraft server archive'
+                    logging.error(message)
+                    self.session.add_flash(message, level='error')
             else:
-                message = u'Invalid minecraft server archive'
-                logging.error(message)
+                message = u'No file chosen'
                 self.session.add_flash(message, level='error')
         except Exception as e:
             message = u'Minecraft server archive could not be uploaded (Reason: {0})'.format(e)
