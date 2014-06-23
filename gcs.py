@@ -39,7 +39,6 @@ def get_versions(server_key):
         result = request.execute()
         items = result.get('items', [])
         versions = sorted(items, key=lambda k: k['updated'], reverse=True)
-        logging.info("Versions: {0}".format(versions))
     except HttpError as e:
         if e.resp.status != 404 and e.resp.status != 401:
             logging.error("Error ({0}) calling {1}".format(e.resp, getattr(e, 'operationType', None)))

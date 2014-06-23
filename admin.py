@@ -5,7 +5,8 @@ import time
 
 from dateutil import parser
 
-from google.appengine.ext import ndb
+from google.appengine.ext import blobstore, ndb
+from google.appengine.ext.webapp import blobstore_handlers
 
 import pytz
 
@@ -735,6 +736,20 @@ class ServerCommandHandler(AdminHandlerBase):
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
+class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler):
+    @authentication_required(authenticate=authenticate_admin)
+    def get(self, key):
+        server = self.get_server_by_key(key, abort=False)
+        if server is None:
+            self.redirect_to_server('home')
+            return
+        blobstore_filename = "gs{0}/{1}".format(
+            gcs.get_default_bucket_name(), gcs.get_gcs_archive_name(server.key.urlsafe())
+        )
+        blob_key = blobstore.create_gs_key(blobstore_filename)
+        self.send_blob(blob_key, save_as="{0}.zip".format(server.name or server.key.urlsafe()))
+
+
 class MinecraftDownloadForm(form.Form):
     version = fields.StringField(u'Version', validators=[validators.DataRequired(), UniqueVersion()])
     url = fields.StringField(u'Download URL', validators=[validators.URL(), VersionUrlExists()])
@@ -956,6 +971,7 @@ routes = [
     RedirectRoute('/admin/servers/<key>/deactivate', handler=ServerDeactivateHandler, strict_slash=True, name="server_deactivate"),  # noqa
     RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
     RedirectRoute('/admin/servers/<key>/backup', handler=ServerBackupHandler, strict_slash=True, name="server_backup"),  # noqa
+    RedirectRoute('/admin/servers/<key>/download', handler=ServerBackupDownloadHandler, strict_slash=True, name="server_backup_download"),  # noqa
     RedirectRoute('/admin/servers/<key>/restore', handler=ServerRestoreHandler, strict_slash=True, name="server_restore"),  # noqa
     RedirectRoute('/admin/servers/<key>/restart', handler=ServerRestartHandler, strict_slash=True, name="server_restart"),  # noqa
     RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),
