@@ -202,6 +202,15 @@ def make_fifo(server_dir):
     return fifo
 
 
+def write_server_command(server_dir, command):
+    fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
+    with open(fifo, 'a+') as fifo_file:
+        if command:
+            if command[-1] != u'\n':
+                command += u'\n'
+            fifo_file.write(command.encode('ISO-8859-2', errors='ignore'))
+
+
 def make_run_server_script(server_dir, server_memory, fifo):
     mc_jar = os.path.join(server_dir, MINECRAFT_SERVER_JAR_FILENAME)
     log4j_config = os.path.join(server_dir, LOG4J_CONFIG_FILENAME)
@@ -369,9 +378,7 @@ def start_server(server_key, **kwargs):
 
 def stop_minecraft(server_key, server_dir):
     try:
-        fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
-        with open(fifo, 'a+') as fifo_file:
-            fifo_file.write('stop\n')
+        write_server_command(server_dir, 'stop')
         with open(os.path.join(server_dir, SERVER_PID_FILENAME), 'r') as f:
             pid = f.read()
         while pid_exists(int(pid)):
@@ -382,19 +389,15 @@ def stop_minecraft(server_key, server_dir):
 
 def minecraft_save_off(server_key, server_dir):
     try:
-        fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
-        with open(fifo, 'a+') as fifo_file:
-            fifo_file.write('save-all\n')
-            fifo_file.write('save-off\n')
+        write_server_command(server_dir, 'save-all')
+        write_server_command(server_dir, 'save-off')
     except Exception as e:
         logger.error("Error ({0}) turning off save for server {1}".format(e, server_key))
 
 
 def minecraft_save_on(server_key, server_dir):
     try:
-        fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
-        with open(fifo, 'a+') as fifo_file:
-            fifo_file.write('save-on\n')
+        write_server_command(server_dir, 'save-on')
     except Exception as e:
         logger.error("Error ({0}) turning on save for server {1}".format(e, server_key))
 
@@ -473,9 +476,7 @@ def backup_server(server_key, **kwargs):
     # Archive server_dir
     archive_successful = False
     archive = get_archive_file_path(server_key)
-    fifo = os.path.join(server_dir, COMMAND_FIFO_FILENAME)
-    with open(fifo, 'a+') as fifo_file:
-        fifo_file.write(u"/say Saving game...\n")
+    write_server_command(server_dir, '/say Saving game...')
     try:
         # Pause saving
         minecraft_save_off(server_key, server_dir)
@@ -494,8 +495,7 @@ def backup_server(server_key, **kwargs):
     try:
         if archive_successful:
             upload_zip_to_gcs(server_key, archive)
-            with open(fifo, 'a+') as fifo_file:
-                fifo_file.write(u"/say Game saved.\n")
+            write_server_command(server_dir, '/say Game saved.')
     except Exception as e:
         logger.error("Error ({0}) uploading archived server {1}".format(e, server_key))
 
