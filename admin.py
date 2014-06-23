@@ -771,7 +771,7 @@ class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler, U
 def validate_server_archive(gcs_file):
     valid = False
     if zipfile.is_zipfile(gcs_file):
-        zf = zipfile.open(gcs_file)
+        zf = zipfile.ZipFile(gcs_file, 'r')
         zip_infos = zf.infolist()
         logging.info(repr(zip_infos))
     return valid
