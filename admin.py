@@ -566,13 +566,18 @@ class ServerRestoreHandler(AdminHandlerBase):
                 versions=gcs.get_versions(server.key.urlsafe()),
                 timezone=self.request.user.timezone
             )
+            url = webapp2.uri_for('server_uploaded', key=server.key.urlsafe())
+            upload_url = blobstore.create_upload_url(
+                url, gs_bucket_name="{0}/uploads/".format(gcs.get_default_bucket_name())
+            )
         except Exception, e:
             logging.error(u"Error GETting GCE server restore: {0}".format(e))
             self.abort(404)
         context = {
             'edit_server': server,
             'form': form,
-            'action': webapp2.uri_for('server_restore', key=server.key.urlsafe())
+            'action': webapp2.uri_for('server_restore', key=server.key.urlsafe()),
+            'upload_url': upload_url
         }
         self.render_template('server_restore.html', context=context)
 
@@ -758,6 +763,26 @@ class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler, U
         )
         blob_key = blobstore.create_gs_key(blobstore_filename)
         self.send_blob(blob_key, save_as="{0}.zip".format(server.name or server.key.urlsafe()))
+
+
+class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase):
+    def get_server_by_key(self, key, abort=True):
+        try:
+            server_key = ndb.Key(urlsafe=key)
+            server = server_key.get()
+        except Exception:
+            server = None
+        if abort and not server:
+            self.abort(404)
+        self.request.server = server
+        return self.request.server
+
+    @authentication_required(authenticate=authenticate_admin)
+    def post(self, server_key):
+        server = self.get_server_by_key(server_key)
+        file_info = self.get_file_infos()[0]
+        logging.info(file_info)
+        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
 
 
 class MinecraftDownloadForm(form.Form):
@@ -982,6 +1007,7 @@ routes = [
     RedirectRoute('/admin/servers/<key>/start', handler=ServerStartHandler, strict_slash=True, name="server_start"),
     RedirectRoute('/admin/servers/<key>/backup', handler=ServerBackupHandler, strict_slash=True, name="server_backup"),  # noqa
     RedirectRoute('/admin/servers/<key>/download', handler=ServerBackupDownloadHandler, strict_slash=True, name="server_backup_download"),  # noqa
+    RedirectRoute('/admin/servers/<key>/uploaded', handler=ServerUploadedHandler, strict_slash=True, name="server_uploaded"),  # noqa
     RedirectRoute('/admin/servers/<key>/restore', handler=ServerRestoreHandler, strict_slash=True, name="server_restore"),  # noqa
     RedirectRoute('/admin/servers/<key>/restart', handler=ServerRestartHandler, strict_slash=True, name="server_restart"),  # noqa
     RedirectRoute('/admin/servers/<key>/stop', handler=ServerStopHandler, strict_slash=True, name="server_stop"),

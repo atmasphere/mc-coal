@@ -16,5 +16,12 @@
                 </div>
             </form>
         </div>
+        <div class="box">
+            Upload A Server Archive:
+            <form action="{{ upload_url }}" method="POST" enctype="multipart/form-data">
+                Choose File: <input type="file" name="file">
+                <input type="submit" name="submit" value="Submit">
+            </form>
+        </div>
     </div>
 {% endblock %}
