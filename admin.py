@@ -824,7 +824,8 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserHandl
             logging.error(message)
             self.session.add_flash(message, level='error')
         try:
-            cloudstorage.delete(object_name)
+            if object_name:
+                cloudstorage.delete(object_name)
         except Exception as e:
             logging.error("Problem deleting uploaded server archive {0} (Reason: {1})".format(object_name, e))
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
