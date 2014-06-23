@@ -778,8 +778,8 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase)
         return self.request.server
 
     @authentication_required(authenticate=authenticate_admin)
-    def post(self, server_key):
-        server = self.get_server_by_key(server_key)
+    def post(self, key):
+        server = self.get_server_by_key(key)
         file_info = self.get_file_infos()[0]
         logging.info(file_info)
         self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
