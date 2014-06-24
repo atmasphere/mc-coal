@@ -11,6 +11,12 @@ indexes:
   - name: created
     direction: desc
 
+- kind: Server
+  properties:
+  - name: active
+  - name: is_running
+  - name: created
+
 - kind: LogLine
   ancestor: yes
   properties:
