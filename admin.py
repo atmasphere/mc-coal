@@ -16,7 +16,7 @@ import pytz
 import webapp2
 from webapp2_extras.routes import RedirectRoute
 
-from wtforms import form, fields, validators
+from wtforms import form, fields, validators, ValidationError
 
 from forms import StringListField, AtLeastOneAdmin, UniqueUsernames
 from forms import UniquePort, UniqueVersion, VersionUrlExists
@@ -269,6 +269,9 @@ class ServerPropertiesForm(ServerForm):
         u'Prompt clients to download resource pack from this URL', default=''
     )
     op_permission_level = fields.SelectField(u'Ops permission level', default='3')
+    eula_agree = fields.BooleanField(
+        u"Agree to Mojang's EULA (https://account.mojang.com/documents/minecraft_eula)", default=False
+    )
 
     def __init__(self, server=None, *args, **kwargs):
         super(ServerPropertiesForm, self).__init__(*args, **kwargs)
@@ -310,6 +313,10 @@ class ServerPropertiesForm(ServerForm):
             ('2', 'Can use /clear, /difficulty, /effect, /gamemode, /gamerule, /give, and /tp, and can edit command blocks'),  # noqa
             ('3', 'Can use /ban, /deop, /kick, and /op')
         ]
+
+    def validate_eula_agree(form, field):
+        if not field.data:
+            raise ValidationError("You must agree to the Mojang Minecraft EULA")
 
 
 class ServerCreateGceHandler(UserHandler):

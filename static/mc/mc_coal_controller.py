@@ -38,6 +38,7 @@ CHUNKSIZE = 2 * 1024 * 1024
 COMMAND_FIFO_FILENAME = 'command-fifo'
 MINECRAFT_SERVER_JAR_FILENAME = 'minecraft_server.jar'
 LOG4J_CONFIG_FILENAME = 'log4j2.xml'
+EULA_FILENAME = 'eula.txt'
 SERVER_KEY_FILENAME = 'server_key'
 AGENT_PID_FILENAME = 'agent.pid'
 SERVER_PID_FILENAME = 'server.pid'
@@ -179,6 +180,8 @@ def copy_server_files(port, minecraft_url, server_properties):
     server_dir = get_server_dir(port)
     mc = get_minecraft_version(minecraft_url)
     shutil.copy2(mc, server_dir)
+    if not os.path.exists(os.path.join(server_dir, EULA_FILENAME)):
+        shutil.copy2(os.path.join(COAL_DIR, EULA_FILENAME), server_dir)
     shutil.copy2(os.path.join(COAL_DIR, LOG4J_CONFIG_FILENAME), server_dir)
     copy_server_properties(port, server_properties)
     filenames = [

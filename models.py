@@ -620,6 +620,7 @@ class MinecraftProperties(ServerModel):
     snooper_enabled = ndb.BooleanProperty(default=True)
     resource_pack = ndb.StringProperty()
     op_permission_level = ndb.IntegerProperty(default=3)
+    eula_agree = ndb.BooleanProperty(default=False)
 
     @property
     def server(self):
