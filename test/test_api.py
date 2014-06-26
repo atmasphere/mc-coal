@@ -1285,6 +1285,8 @@ class ServerPlayTest(AdminApiTest):
         )
         self.server.is_gce = True
         self.server.version = '1.7.4'
+        self.server.mc_properties.eula_agree = True
+        self.server.mc_properties.put()
         self.server.put()
 
     def test_post(self):

@@ -141,7 +141,8 @@ class ServerCreateGceTest(AdminAuthTest):
             'memory': '1G',
             'motd': 'Welcome',
             'white_list': True,
-            'idle_timeout': 10
+            'idle_timeout': 10,
+            'eula_agree': True
         })
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
@@ -172,7 +173,8 @@ class ServerCreateGceTest(AdminAuthTest):
             'motd': 'Welcome',
             'white_list': True,
             'server_port': 25565,
-            'idle_timeout': 10
+            'idle_timeout': 10,
+            'eula_agree': True
         })
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
@@ -202,7 +204,8 @@ class ServerCreateGceTest(AdminAuthTest):
             'motd': 'Welcome',
             'white_list': True,
             'server_port': 25565,
-            'idle_timeout': 10
+            'idle_timeout': 10,
+            'eula_agree': True
         })
         response = self.post(params={
             'name': 'new server',
@@ -211,7 +214,8 @@ class ServerCreateGceTest(AdminAuthTest):
             'motd': 'Welcome',
             'white_list': True,
             'server_port': 25565,
-            'idle_timeout': 10
+            'idle_timeout': 10,
+            'eula_agree': True
         })
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
@@ -233,7 +237,8 @@ class ServerCreateGceTest(AdminAuthTest):
             'motd': 'Welcome',
             'white_list': True,
             'server_port': 25565,
-            'idle_timeout': 0
+            'idle_timeout': 0,
+            'eula_agree': True
         })
         self.assertEqual(1, Server.query().count())
         self.assertEqual(1, Client.query().count())
@@ -291,7 +296,8 @@ class ServerKeyGceTest(AdminAuthTest):
                 'version': self.server.version,
                 'memory': '1G',
                 'server_port': 25565,
-                'idle_timeout': 10
+                'idle_timeout': 10,
+                'eula_agree': True
             }
         )
         self.assertEqual(1, Server.query().count())
@@ -317,7 +323,8 @@ class ServerKeyGceTest(AdminAuthTest):
                 'version': self.server.version,
                 'memory': '1G',
                 'server_port': 25565,
-                'idle_timeout': 10
+                'idle_timeout': 10,
+                'eula_agree': True
             }
         )
         self.assertEqual(1, Server.query().count())
@@ -342,7 +349,8 @@ class ServerKeyGceTest(AdminAuthTest):
                 'version': self.server.version,
                 'memory': '1G',
                 'server_port': '',
-                'idle_timeout': 10
+                'idle_timeout': 10,
+                'eula_agree': True
             }
         )
         self.assertEqual(1, Server.query().count())
