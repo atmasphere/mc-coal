@@ -141,11 +141,15 @@
                 </strong>
                 {% if server.is_gce %}
                     {% if server.is_stopped or server.is_unknown %}
-                        <form action="{{ uri_for('server_start', key=server.key.urlsafe()) }}" method="post">
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Play</button>
-                            </div>
-                        </form>
+                        {% if server.mc_properties.eula_agree %}
+                            <form action="{{ uri_for('server_start', key=server.key.urlsafe()) }}" method="post">
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Play</button>
+                                </div>
+                            </form>
+                        {% else %}
+                            You must <a href="{{ uri_for('server_gce', key=server.key.urlsafe()) }}">agree</a> to the Mojang Minecraft EULA to Play
+                        {% endif %}
                    {% elif user.admin %}
                         {% if not server.is_queued %}
                             <form action="{{ uri_for('server_restart', key=server.key.urlsafe()) }}">
