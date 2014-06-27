@@ -43,7 +43,7 @@ MC_PROP_URL="$PROJECT_MC_URL/server.properties"
 wget $MC_PROP_URL -O server.properties
 
 MC_EULA_URL="$PROJECT_MC_URL/eula.txt"
-wget $MC_PROP_URL -O eula.txt
+wget $MC_EULA_URL -O eula.txt
 
 LOG4J2_URL="$PROJECT_MC_URL/log4j2.xml"
 wget $LOG4J2_URL -O log4j2.xml
