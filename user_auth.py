@@ -177,30 +177,36 @@ class AuthHandler(UserHandler):
             return
         user = self.auth.store.user_model.get_by_auth_id(auth_id)
         if user:
-            # Existing user
             self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
         else:
-            # New user
-            ok, user = self.auth.store.user_model.create_user(auth_id, email=email, nickname=nickname)
+            ok = False
+            if username is not None:
+                user = User.lookup(username=username)
+                if user is not None:
+                    user.add_auth_id(auth_id)
+                    ok = True
+            if not ok:
+                ok, user = self.auth.store.user_model.create_user(auth_id, email=email, nickname=nickname)
             if ok:
                 self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
                 next_url = webapp2.uri_for('user_profile', next_url=next_url or webapp2.uri_for('main'))
             else:
-                user = None
                 self.auth.unset_session()
-                logging.error('create_user() returned False with strings: %s' % user)
-        if is_admin and not (user.active and user.admin):
-            user.active = True
-            user.admin = True
-        user.last_login = datetime.datetime.utcnow()
-        if username is not None and not User.lookup(username=username):
-            user.add_username(username)
-        user.put()
-        if ON_SERVER:
-            time.sleep(2)
-        if not (user and user.active and next_url):
-            next_url = webapp2.uri_for('main')
-        self.redirect(next_url)
+                user = None
+                next_url = None
+        if user:
+            if is_admin and not (user.active and user.admin):
+                user.active = True
+                user.admin = True
+            user.last_login = datetime.datetime.utcnow()
+            if username is not None and not User.lookup(username=username):
+                user.add_username(username)
+            user.put()
+            if ON_SERVER:
+                time.sleep(2)
+            if not user.active:
+                next_url = webapp2.uri_for('main')
+        self.redirect(next_url or webapp2.uri_for('main'))
 
 
 class GoogleAppEngineUserHandler(AuthHandler):

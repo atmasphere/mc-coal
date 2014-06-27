@@ -356,7 +356,7 @@ class GoogleAppEngineUserClaimHandler(MainHandlerBase):
         gae_user = google_users.get_current_user()
         auth_id = User.get_gae_user_auth_id(gae_user=gae_user) if gae_user else None
         existing_user = self.auth.store.user_model.get_by_auth_id(auth_id)
-        if existing_user is not None:
+        if existing_user is not None and user.key != existing_user.key:
             user.merge(existing_user)
         else:
             user.add_auth_id(auth_id)
@@ -378,7 +378,7 @@ class UsernameClaimHandler(MainHandlerBase):
                     user = self.request.user
                     auth_id = User.get_mojang_auth_id(uuid=uuid)
                     existing_user = self.auth.store.user_model.get_by_auth_id(auth_id)
-                    if existing_user is not None:
+                    if existing_user is not None and user.key != existing_user.key:
                         user.merge(existing_user)
                     existing_user = User.lookup(username=u)
                     if existing_user is not None and user.key != existing_user.key:
