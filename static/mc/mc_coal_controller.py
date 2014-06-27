@@ -178,7 +178,7 @@ def copy_server_properties(port, server_properties):
 
 
 def copy_eula(port):
-    dt = datetime.datetime.utc_now()
+    dt = datetime.datetime.utcnow()
     default_eula = os.path.join(COAL_DIR, EULA_FILENAME)
     server_dir = get_server_dir(port)
     new_eula = os.path.join(server_dir, EULA_FILENAME)
