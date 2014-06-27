@@ -376,6 +376,10 @@ class UsernameClaimHandler(MainHandlerBase):
                 u, uuid, access_token = mojang_authentication(username, password)
                 if u:
                     user = self.request.user
+                    auth_id = User.get_mojang_auth_id(uuid=uuid)
+                    existing_user = self.auth.store.user_model.get_by_auth_id(auth_id)
+                    if existing_user is not None:
+                        user.merge(existing_user)
                     existing_user = User.lookup(username=u)
                     if existing_user is not None and user.key != existing_user.key:
                         user.merge(existing_user)
