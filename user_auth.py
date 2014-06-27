@@ -199,7 +199,7 @@ class AuthHandler(UserHandler):
                 user.active = True
                 user.admin = True
             user.last_login = datetime.datetime.utcnow()
-            if username is not None and not User.lookup(username=username):
+            if username is not None:
                 user.add_username(username)
             user.put()
             if ON_SERVER:
