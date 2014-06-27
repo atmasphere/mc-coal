@@ -117,6 +117,14 @@ input[type="text"] {
     border: 1px solid rgba(0,0,0,0.5);
 }
 
+input[type="password"] {
+    font: 500 14px/1.45em "Lato", "Helvetica Neue", arial, helvetica, sans-serif;
+    padding: 5px;
+    color: rgba(255,255,255,0.9);
+    background-color: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,0,0,0.5);
+}
+
 .wrap:before, .wrap:after { content: ""; display: table; }
 .wrap:after { clear: both; }
 .wrap { *zoom: 1; } /*IE7*/

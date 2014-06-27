@@ -2,8 +2,10 @@ import fix_path  # noqa
 
 import logging
 import os
+import urllib2
 
 from google.appengine.api import lib_config
+from google.appengine.api import users as google_users
 from google.appengine.ext import blobstore
 from google.appengine.ext import ndb
 from google.appengine.ext.webapp import blobstore_handlers
@@ -18,11 +20,11 @@ from wtforms import form, fields, validators
 
 from base_handler import uri_for_pagination
 from channel import ServerChannels
-from forms import UniqueUsername, ValidTimezone
-from models import Player, LogLine, PlaySession, ScreenShot, Command, Server, UsernameClaim
+from forms import ValidTimezone
+from models import User, Player, LogLine, PlaySession, ScreenShot, Command, Server, MojangException
 import search
 from server_handler import ServerHandlerBase, PagingHandler
-from user_auth import UserBase, authentication_required, authenticate
+from user_auth import UserBase, authentication_required, authenticate, mojang_authentication
 
 
 ON_SERVER = not os.environ.get('SERVER_SOFTWARE', 'Development').startswith('Development')
@@ -289,7 +291,8 @@ class UserProfileForm(form.Form):
 
 
 class UsernameClaimForm(form.Form):
-    username = fields.StringField(u'Username', validators=[validators.DataRequired(), UniqueUsername()])
+    username = fields.StringField(u'Username', validators=[validators.DataRequired()])
+    password = fields.PasswordField(u'Password', validators=[validators.DataRequired()])
 
 
 class UserProfileHandler(MainHandlerBase):
@@ -299,7 +302,14 @@ class UserProfileHandler(MainHandlerBase):
         user = self.request.user
         form = UserProfileForm(obj=user)
         claim_form = UsernameClaimForm()
-        context = {'edit_user': user, 'form': form, 'claim_form': claim_form, 'next_url': next_url}
+        gae_claim_uri = get_gae_claim_uri(self, next_url)
+        context = {
+            'edit_user': user,
+            'form': form,
+            'claim_form': claim_form,
+            'gae_claim_uri': gae_claim_uri,
+            'next_url': next_url
+        }
         self.render_template('user_profile.html', context=context)
 
     @authentication_required(authenticate=authenticate)
@@ -314,8 +324,44 @@ class UserProfileHandler(MainHandlerBase):
             user.put()
             self.redirect(next_url)
         claim_form = UsernameClaimForm()
-        context = {'edit_user': user, 'form': form, 'claim_form': claim_form, 'next_url': next_url}
+        gae_claim_uri = get_gae_claim_uri(self, next_url)
+        context = {
+            'edit_user': user,
+            'form': form,
+            'claim_form': claim_form,
+            'gae_claim_uri': gae_claim_uri,
+            'next_url': next_url
+        }
         self.render_template('user_profile.html', context=context)
+
+
+def get_gae_callback_uri(handler, next_url=None):
+    try:
+        callback_url = handler.uri_for('gae_claim_callback')
+    except:
+        callback_url = '/gae_claim_callback'
+    if next_url:
+        callback_url = "{0}?next_url={1}".format(callback_url, urllib2.quote(next_url))
+    return callback_url
+
+
+def get_gae_claim_uri(handler, next_url=None):
+    return google_users.create_login_url(get_gae_callback_uri(handler, next_url=next_url))
+
+
+class GoogleAppEngineUserClaimHandler(MainHandlerBase):
+    @authentication_required(authenticate=authenticate)
+    def get(self):
+        gae_user = google_users.get_current_user()
+        auth_id = User.get_gae_user_auth_id(gae_user=gae_user) if gae_user else None
+        user = self.auth.store.user_model.get_by_auth_id(auth_id)
+        if user is not None:
+            self.request.user.merge(user)
+        else:
+            if auth_id not in self.request.user.auth_ids:
+                self.request.user.auth_ids.append(auth_id)
+            self.request.user.put()
+        self.redirect(webapp2.uri_for('user_profile'))
 
 
 class UsernameClaimHandler(MainHandlerBase):
@@ -325,7 +371,23 @@ class UsernameClaimHandler(MainHandlerBase):
         form = UsernameClaimForm(self.request.POST)
         if form.validate():
             username = form.username.data
-            UsernameClaim.get_or_create(username=username, user_key=self.request.user.key)
+            password = form.password.data
+            try:
+                u, uuid, access_token = mojang_authentication(username, password)
+                if u:
+                    user = User.lookup(username=u)
+                    if user is not None:
+                        self.request.user.merge(user)
+                    else:
+                        self.request.user.add_username(u)
+                        auth_id = User.get_mojang_auth_id(uuid=uuid)
+                        if auth_id not in self.request.user.auth_ids:
+                            self.request.user.auth_ids.append(auth_id)
+                        self.request.user.put()
+            except MojangException as me:
+                message = u'Mojang authentication failed (Reason: {0}).'.format(me)
+                logging.error(message)
+                self.session.add_flash(message, level='error')
         self.redirect(next_url)
 
 
@@ -339,6 +401,7 @@ coal_config = lib_config.register('COAL', {
 application = webapp2.WSGIApplication(
     [
         RedirectRoute('/', handler=MainHandler, name="main"),
+        RedirectRoute('/gae_claim_callback', handler=GoogleAppEngineUserClaimHandler, name='gae_claim_callback'),  # noqa
         RedirectRoute('/players/claim', handler=UsernameClaimHandler, strict_slash=True, name="username_claim"),
         RedirectRoute('/chats', handler=ChatsHandler, strict_slash=True, name="naked_chats"),
         RedirectRoute('/players', handler=PlayersHandler, strict_slash=True, name="naked_players"),

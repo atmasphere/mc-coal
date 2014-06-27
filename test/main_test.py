@@ -66,11 +66,15 @@ class MainBaseTest(BaseTest, WebTest):
         self.assertIn('Login', response.body)
 
     def assertMethodNotAllowed(self, response):
-        error = u'Response did not return a 405 METHOD NOT ALLOWED (status code was {0})\nBody: {1}'.format(response.status_int, response.body)
+        error = u'Response did not return a 405 METHOD NOT ALLOWED (status code was {0})\nBody: {1}'.format(
+            response.status_int, response.body
+        )
         self.assertEqual(response.status_int, 405, error)
 
     def assertCreated(self, response):
-        error = u'Response did not return a 201 CREATED (status code was {0})\nBody: {1}'.format(response.status_int, response.body)
+        error = u'Response did not return a 201 CREATED (status code was {0})\nBody: {1}'.format(
+            response.status_int, response.body
+        )
         self.assertEqual(response.status_int, 201, error)
 
     def setUp(self):
@@ -80,12 +84,17 @@ class MainBaseTest(BaseTest, WebTest):
     def get(self, url=None, params=None, headers=None):
         url = url or self.url
         self.app.reset()
-        return self.app.get(url, params=params, headers=headers, extra_environ=self.extra_environ, status="*", expect_errors=True)
+        return self.app.get(
+            url, params=params, headers=headers, extra_environ=self.extra_environ, status="*", expect_errors=True
+        )
 
     def post(self, url=None, params='', headers=None, upload_files=None):
         url = url or self.url
         self.app.reset()
-        return self.app.post(url, params=params, headers=headers, extra_environ=self.extra_environ, status="*", upload_files=upload_files, expect_errors=True)
+        return self.app.post(
+            url, params=params, headers=headers, extra_environ=self.extra_environ, status="*",
+            upload_files=upload_files, expect_errors=True
+        )
 
     def test_get_with_slash(self):
         if 'GET' in self.ALLOWED and self.url:

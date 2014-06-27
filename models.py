@@ -23,7 +23,7 @@ from filters import datetime_filter
 from image import NdbImage
 from patterns import (
     UNKNOWN_TAG, TIMESTAMP_TAG, LOGIN_TAG, LOGOUT_TAG, CHAT_TAG, STOPPING_TAG, STARTING_TAG, DEATH_TAG,
-    ACHIEVEMENT_TAG, CLAIM_TAG, CHANNEL_TAGS_SET, REGEX_TAGS
+    ACHIEVEMENT_TAG, CHANNEL_TAGS_SET, REGEX_TAGS
 )
 from server_queue import start_server, backup_server, restart_server, stop_server
 import search
@@ -41,6 +41,10 @@ SERVER_HAS_STARTED = 'HAS_STARTED'
 SERVER_HAS_STOPPED = 'HAS_STOPPED'
 SERVER_RUNNING = 'RUNNING'
 SERVER_STOPPED = 'STOPPED'
+
+
+class MojangException(Exception):
+    pass
 
 
 def seconds_since_epoch(dt):
@@ -89,12 +93,15 @@ class User(auth_models.User):
         return self.nickname or self.email
 
     @property
-    def unauthenticated_claims(self):
-        return UsernameClaim.query_unauthenticated_by_user_key(self.key).fetch()
-
-    @property
     def timezone(self):
         return name_to_timezone(self.timezone_name)
+
+    @property
+    def is_gae_user(self):
+        for auth_id in self.auth_ids:
+            if auth_id.startswith('gaeuser:'):
+                return True
+        return False
 
     def get_server_username(self, server_key):
         for username in self.usernames:
@@ -155,6 +162,23 @@ class User(auth_models.User):
             return self.is_username(player.username)
         return False
 
+    def merge(self, user):
+        if self.key == user.key:
+            return
+        for auth_id in user.auth_ids:
+            if auth_id not in self.auth_ids:
+                self.auth_ids.append(auth_id)
+        for username in user.usernames:
+            if username not in self.usernames:
+                self.usernames.append(username)
+        self.put_async()
+        screenshots = []
+        for screenshot in ScreenShot.query_by_user_key(user.key):
+            screenshot.user_key = self.key
+            screenshots.append(screenshot)
+        ndb.put_multi(screenshots)
+        user.key.delete()
+
     @classmethod
     def _pre_delete_hook(cls, key):
         user = key.get()
@@ -171,10 +195,6 @@ class User(auth_models.User):
         return 'gaeuser:{0}'.format(gae_user_id) if gae_user_id else None
 
     @classmethod
-    def get_by_gae_user(cls, gae_user_id=None, gae_user=None):
-        return cls.get_by_auth_id(cls.get_gae_user_auth_id(gae_user_id=gae_user_id, gae_user=gae_user))
-
-    @classmethod
     def create_by_gae_user(cls, gae_user=None):
         if not gae_user:
             gae_user = users.get_current_user()
@@ -189,6 +209,10 @@ class User(auth_models.User):
     @classmethod
     def get_indie_auth_id(cls, me=None):
         return 'indieuser:{0}'.format(me) if me else None
+
+    @classmethod
+    def get_mojang_auth_id(cls, uuid):
+        return 'mojang:{0}'.format(uuid) if uuid else None
 
     @classmethod
     def lookup(cls, email=None, username=None):
@@ -216,56 +240,6 @@ class User(auth_models.User):
     @classmethod
     def query_admin(cls):
         return cls.query().filter(User.admin == True)  # noqa
-
-
-@ae_ndb_serializer
-class UsernameClaim(ndb.Model):
-    user_key = ndb.KeyProperty()
-    username = ndb.StringProperty()
-    code = ndb.StringProperty()
-    authenticated = ndb.DateTimeProperty()
-    created = ndb.DateTimeProperty(auto_now_add=True)
-    updated = ndb.DateTimeProperty(auto_now=True)
-
-    def _pre_put_hook(self):
-        if self.code is None:
-            self.code = ''.join([random.choice(UNICODE_ASCII_DIGITS) for x in xrange(5)])
-
-    @classmethod
-    def authenticate(cls, username, code):
-        claim_query = cls.query()
-        claim_query = claim_query.filter(cls.username == username)
-        claim_query = claim_query.filter(cls.code == code)
-        claim_query = claim_query.filter(cls.authenticated == None)  # noqa
-        claim = claim_query.get()
-        if claim is not None:
-            user = claim.user_key.get()
-            if user is not None:
-                claim.authenticated = datetime.datetime.utcnow()
-                claim.put()
-                user.add_username(username)
-                user.put()
-                return True
-        return False
-
-    @classmethod
-    def get_or_create(cls, username, user_key):
-        claim_query = cls.query(ancestor=user_key)
-        claim_query = claim_query.filter(cls.username == username)
-        claim_query = claim_query.filter(cls.user_key == user_key)
-        claim_query = claim_query.filter(cls.authenticated == None)  # noqa
-        claim = claim_query.get()
-        if claim is None:
-            claim = cls(parent=user_key, username=username, user_key=user_key)
-            claim.put()
-        return claim
-
-    @classmethod
-    def query_unauthenticated_by_user_key(cls, user_key):
-        claim_query = cls.query(ancestor=user_key)
-        claim_query = claim_query.filter(cls.user_key == user_key)
-        claim_query = claim_query.filter(cls.authenticated == None)  # noqa
-        return claim_query
 
 
 @ae_ndb_serializer
@@ -383,6 +357,8 @@ class Server(ndb.Model):
         if self.is_gce and not (self.is_running or self.is_queued_start):
             if self.minecraft_url is None:
                 raise Exception("No valid minecraft version specified for server")
+            if not self.mc_properties.eula_agree:
+                raise Exception("You must agree to the Mojang Minecraft EULA to Play")
             start_server(self, reserved_ports=Server.reserved_ports(ignore_server=self))
             self.update_status(status=SERVER_QUEUED_START)
 
@@ -829,13 +805,6 @@ class LogLine(UsernameModel):
                 server.update_status(SERVER_HAS_STARTED)
             if STOPPING_TAG in log_line.tags:
                 server.update_status(SERVER_HAS_STOPPED)
-        if CLAIM_TAG in log_line.tags:
-            if UsernameClaim.authenticate(log_line.username, log_line.code):
-                message = "Username claim succeeded."
-            else:
-                message = "Username claim failed."
-            chat = u"/tell {0} {1}".format(log_line.username, message)
-            Command.push(log_line.server_key, 'COAL', chat)
         return log_line
 
     @classmethod

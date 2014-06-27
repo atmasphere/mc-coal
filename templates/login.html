@@ -1,19 +1,22 @@
 {% extends "base.html" %}
+{% import 'macros.html' as macros %}
 
 {% block title %}Login{% endblock %}
 
 {% block content %}
     <div class="box">
-        <h2><a href="{{ gae_login_uri }}">Log In With Google</a></h2>
+        <h1>Sign In With Mojang</h1>
+        <h2><form action="{{ uri_for('mojang_login', next_url=next_url) }}" method="post">
+          <label>Mojang Username:</label>
+          {{ macros.with_errors(mojang_login_form.username, size="50") }}
+          <label>Mojang Password:</label>
+          {{ macros.with_errors(mojang_login_form.password, size="50") }}
+          <div class="form-actions"><button type="submit">Submit</button></div>
+        </form></h2>
+        <h3>Your Mojang password is never saved. It is only transferred once to Mojang via a secure connection in order to authenticate.</h3>
     </div>
+    <h1>OR</h1>
     <div class="box">
-        <h2>Log In With <a href="http://indieauth.com">IndieAuth</a>:
-        <form action="http://indieauth.com/auth" method="get">
-          <label>Web Address:</label>
-          <input type="text" name="me" placeholder="yourdomain.com" />
-          <button type="submit">Sign In</button>
-          <input type="hidden" name="redirect_uri" value="{{ ia_redirect_uri }}" />
-        </form>
-        </h2>
+        <h2><a href="{{ gae_login_uri }}"><img src="/img/google_sign_in.png"></a></h2>
     </div>
 {% endblock %}

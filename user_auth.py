@@ -9,14 +9,16 @@ import time
 import urllib2
 import urlparse
 
-from google.appengine.api import users, urlfetch
+from google.appengine.api import users, urlfetch, app_identity
 
 import webapp2
 from webapp2_extras import auth, sessions
 from webapp2_extras.routes import RedirectRoute
 
+from wtforms import form, fields, validators
+
 from base_handler import JinjaHandler
-from models import User
+from models import User, MojangException
 
 
 ON_SERVER = not os.environ.get('SERVER_SOFTWARE', 'Development').startswith('Development')
@@ -34,16 +36,6 @@ def get_gae_callback_uri(handler, next_url=None):
 
 def get_gae_login_uri(handler, next_url=None):
     return users.create_login_url(get_gae_callback_uri(handler, next_url=next_url))
-
-
-def get_ia_callback_uri(handler, next_url=None):
-    try:
-        callback_url = handler.uri_for('ia_login_callback', _full=True)
-    except:
-        callback_url = '/ia_login_callback'
-    if next_url:
-        callback_url = "{0}?next_url={1}".format(callback_url, urllib2.quote(next_url))
-    return callback_url
 
 
 def get_login_uri(handler, next_url=None):
@@ -156,47 +148,53 @@ class UserHandler(JinjaHandler, UserBase):
         self.response.clear()
 
 
+class MojangLoginForm(form.Form):
+    username = fields.StringField(u'Username', validators=[validators.DataRequired()])
+    password = fields.PasswordField(u'Password', validators=[validators.DataRequired()])
+
+
 class LoginHandler(UserHandler):
     def get(self):
         next_url = self.request.params.get('next_url', None)
-        ia_redirect_uri = get_ia_callback_uri(self, next_url)
+        if self.logged_in:
+            self.redirect(next_url or webapp2.uri_for('main'))
+            return
         gae_login_uri = get_gae_login_uri(self, next_url)
+        form = MojangLoginForm()
         context = {
-            'ia_redirect_uri': ia_redirect_uri,
-            'gae_login_uri': gae_login_uri
+            'gae_login_uri': gae_login_uri,
+            'mojang_login_form': form,
+            'next_url': next_url
         }
         self.render_template('login.html', context=context)
 
 
 class AuthHandler(UserHandler):
-    def login_auth_id(self, auth_id, is_admin=False, email=None, nickname=None):
+    def login_auth_id(self, auth_id, is_admin=False, email=None, nickname=None, username=None):
         next_url = self.request.params.get('next_url', None)
+        if self.logged_in:
+            self.redirect(next_url or webapp2.uri_for('main'))
+            return
         user = self.auth.store.user_model.get_by_auth_id(auth_id)
         if user:
             # Existing user
             self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
         else:
-            if not self.logged_in:
-                # New user
-                ok, user = self.auth.store.user_model.create_user(auth_id, email=email, nickname=nickname)
-                if ok:
-                    self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
-                    next_url = webapp2.uri_for('user_profile', next_url=next_url or webapp2.uri_for('main'))
-                else:
-                    user = None
-                    self.auth.unset_session()
-                    logging.error('create_user() returned False with strings: %s' % user)
+            # New user
+            ok, user = self.auth.store.user_model.create_user(auth_id, email=email, nickname=nickname)
+            if ok:
+                self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
+                next_url = webapp2.uri_for('user_profile', next_url=next_url or webapp2.uri_for('main'))
             else:
-                # Existing logged-in user with new auth_id
-                user = self.user
-                if auth_id not in user.auth_ids:
-                    user.auth_ids.append(auth_id)
-                user.email = user.email or email
-                user.nickname = user.nickname or nickname
+                user = None
+                self.auth.unset_session()
+                logging.error('create_user() returned False with strings: %s' % user)
         if is_admin and not (user.active and user.admin):
             user.active = True
             user.admin = True
         user.last_login = datetime.datetime.utcnow()
+        if username is not None and not User.lookup(username=username):
+            user.add_username(username)
         user.put()
         if ON_SERVER:
             time.sleep(2)
@@ -215,28 +213,67 @@ class GoogleAppEngineUserHandler(AuthHandler):
         self.login_auth_id(auth_id, is_admin=is_admin, email=email, nickname=nickname)
 
 
-class IndieAuthUserHandler(AuthHandler):
-    def login_callback(self):
-        token = self.request.params.get('token', None)
-        url = "http://indieauth.com/verify?token={0}".format(token)
-        response = urlfetch.fetch(url)
-        auth_data = json.loads(response.content)
-        error = auth_data.get('error', None)
-        error_description = auth_data.get('error', None)
-        if error is not None:
-            message = "IndieAuth Error {0}: {1}".format(error, error_description)
-            logging.error(message)
-            raise Exception(message)
-        me = auth_data.get('me', None)
-        if me:
-            me = urlparse.urlparse(me).netloc or me
-        auth_id = User.get_indie_auth_id(me=me)
-        self.login_auth_id(auth_id, nickname=me)
+def mojang_authentication(username, password):
+    u = uuid = access_token = None
+    headers = {
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "agent": {
+            "name": "Minecraft",
+            "version": 1
+        },
+        "username": username,
+        "password": password,
+        "clientToken": "{0}.appspot.com".format(app_identity.get_application_id())
+    }
+    result = urlfetch.fetch(
+        url="https://authserver.mojang.com/authenticate",
+        payload=json.dumps(payload),
+        method=urlfetch.POST,
+        headers=headers
+    )
+    data = json.loads(result.content)
+    access_token = data.get('accessToken', None)
+    if access_token:
+        uuid = data['selectedProfile']['id']
+        u = data['selectedProfile']['name']
+    else:
+        message = data.get('errorMessage', None)
+        if message:
+            raise MojangException(message)
+    return u, uuid, access_token
+
+
+class MojangUserHandler(AuthHandler):
+    def post(self):
+        next_url = self.request.params.get('next_url', webapp2.uri_for('main'))
+        form = MojangLoginForm(self.request.POST)
+        if form.validate():
+            username = form.username.data
+            password = form.password.data
+            try:
+                u, uuid, access_token = mojang_authentication(username, password)
+                if u:
+                    auth_id = User.get_mojang_auth_id(uuid=uuid)
+                    self.login_auth_id(auth_id, nickname=u, username=u)
+                    self.redirect(next_url)
+                    return
+            except MojangException as me:
+                message = u'Mojang authentication failed (Reason: {0}).'.format(me)
+                logging.error(message)
+                self.session.add_flash(message, level='error')
+        gae_login_uri = get_gae_login_uri(self, next_url)
+        context = {
+            'gae_login_uri': gae_login_uri,
+            'mojang_login_form': form
+        }
+        self.render_template('login.html', context=context)
 
 
 routes = [
     RedirectRoute('/login', handler='user_auth.LoginHandler', name='login'),
     RedirectRoute('/logout', handler='user_auth.UserHandler:logout', name='logout'),
     RedirectRoute('/gae_login_callback', handler='user_auth.GoogleAppEngineUserHandler:login_callback', name='gae_login_callback'),  # noqa
-    RedirectRoute('/ia_login_callback', handler='user_auth.IndieAuthUserHandler:login_callback', name='ia_login_callback')  # noqa
+    RedirectRoute('/mojang_login', handler='user_auth.MojangUserHandler', name='mojang_login')
 ]

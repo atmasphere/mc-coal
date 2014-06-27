@@ -1,5 +1,11 @@
 import fix_dev_path  # noqa
 
+import json
+
+import minimock
+
+from google.appengine.api import urlfetch
+
 from main_test import AuthTest, ServerAuthTest
 from models import Server, Command
 
@@ -65,27 +71,48 @@ class UserProfileTest(AuthTest):
         self.assertOK(response)
 
 
+class Object(object):
+    pass
+
+
 class UsernameClaimTest(AuthTest):
     URL = '/players/claim'
     ALLOWED = ['POST']
 
-    def __init__(self, *args, **kwargs):
-        super(UsernameClaimTest, self).__init__(*args, **kwargs)
-        self.params = {'username': 'steve'}
+    def setUp(self):
+        super(UsernameClaimTest, self).setUp()
+        self.params = {'username': 'steve', 'password': 'a_password'}
+        self.response_data = Object()
+        self.response_data.content = json.dumps({
+            "accessToken": "random access token",
+            "clientToken": "mc-coal",
+            "availableProfiles": [
+                {
+                    "id": "profile identifier",
+                    "name": "steve",
+                }
+            ],
+            "selectedProfile": {
+                "id": "profile identifier",
+                "name": "steve",
+            }
+        })
+        minimock.mock('urlfetch.fetch', returns=self.response_data, tracker=None)
+
+    def tearDown(self):
+        super(UsernameClaimTest, self).tearDown()
+        minimock.restore()
 
     def test_post_auth(self):
         self.log_in_user()
         response = self.post(params=self.params)
-        self.assertRedirects(response)
-        self.assertLoggedIn(response)
-
-    def test_post_no_auth(self):
-        response = self.post(params=self.params)
+        self.assertIn('steve', self.current_user.usernames)
         self.assertRedirects(response)
 
     def test_post_inactive(self):
         self.log_in_user(email='hacker@example.com', is_active=False)
         response = self.post(params=self.params)
+        self.assertNotIn('steve', self.current_user.usernames)
         self.assertRedirects(response)
 
     def test_post_logout(self):
@@ -109,11 +136,6 @@ class UsernameClaimTest(AuthTest):
         response = self.post()
         self.assertRedirects(response)
         self.assertLoggedIn(response)
-
-    def test_post(self):
-        self.log_in_user()
-        response = self.post(params=self.params)
-        self.assertRedirects(response)
 
 
 class HomeTest(ServerAuthTest):

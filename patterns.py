@@ -14,7 +14,6 @@ STOPPING_TAG = 'stopping'
 STARTING_TAG = 'starting'
 DEATH_TAG = 'death'
 ACHIEVEMENT_TAG = 'achievement'
-CLAIM_TAG = 'claim'
 COAL_TAG = 'coal'
 LOGIN_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGIN_TAG]
 LOGOUT_TAGS = [TIMESTAMP_TAG, CONNECTION_TAG, LOGOUT_TAG]
@@ -24,7 +23,6 @@ STOPPING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STOPPING_TAG]
 STARTING_TAGS = [TIMESTAMP_TAG, SERVER_TAG, STARTING_TAG]
 DEATH_TAGS = [TIMESTAMP_TAG, DEATH_TAG]
 ACHIEVEMENT_TAGS = [TIMESTAMP_TAG, ACHIEVEMENT_TAG]
-CLAIM_TAGS = [TIMESTAMP_TAG, CLAIM_TAG]
 COAL_TAGS = [TIMESTAMP_TAG, COAL_TAG]
 TIMESTAMP_TAGS = [TIMESTAMP_TAG, UNKNOWN_TAG]
 CHANNEL_TAGS_SET = set(['login', 'logout', 'chat', 'death', 'achievement'])
@@ -46,12 +44,6 @@ REGEX_TAGS = [
             ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \[Server\] \<COAL\> (?P<chat>.+)",
         ],
         COAL_TAGS
-    ),
-    (
-        [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] \<(?P<username>\w+)\> coal:claim:(?P<code>.+)",
-        ],
-        CLAIM_TAGS
     ),
     (
         [
