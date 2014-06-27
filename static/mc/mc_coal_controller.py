@@ -181,7 +181,7 @@ def copy_eula(port):
     dt = datetime.datetime.utcnow()
     default_eula = os.path.join(COAL_DIR, EULA_FILENAME)
     server_dir = get_server_dir(port)
-    new_eula = os.path.join(server_dir, EULA_FILENAME)
+    new_eula = os.path.join(server_dir, EULA_FILENAME+".new")
     if not os.path.exists(new_eula):
         with open(new_eula, "w") as fout:
             with open(default_eula, "r") as fin:
