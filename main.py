@@ -352,15 +352,15 @@ def get_gae_claim_uri(handler, next_url=None):
 class GoogleAppEngineUserClaimHandler(MainHandlerBase):
     @authentication_required(authenticate=authenticate)
     def get(self):
+        user = self.request.user
         gae_user = google_users.get_current_user()
         auth_id = User.get_gae_user_auth_id(gae_user=gae_user) if gae_user else None
-        user = self.auth.store.user_model.get_by_auth_id(auth_id)
-        if user is not None:
-            self.request.user.merge(user)
+        existing_user = self.auth.store.user_model.get_by_auth_id(auth_id)
+        if existing_user is not None:
+            user.merge(existing_user)
         else:
-            if auth_id not in self.request.user.auth_ids:
-                self.request.user.auth_ids.append(auth_id)
-            self.request.user.put()
+            user.add_auth_id(auth_id)
+            user.put()
         self.redirect(webapp2.uri_for('user_profile'))
 
 
@@ -375,15 +375,15 @@ class UsernameClaimHandler(MainHandlerBase):
             try:
                 u, uuid, access_token = mojang_authentication(username, password)
                 if u:
-                    user = User.lookup(username=u)
-                    if user is not None:
-                        self.request.user.merge(user)
+                    user = self.request.user
+                    existing_user = User.lookup(username=u)
+                    if existing_user is not None and user.key != existing_user.key:
+                        user.merge(existing_user)
                     else:
-                        self.request.user.add_username(u)
+                        user.add_username(u)
                         auth_id = User.get_mojang_auth_id(uuid=uuid)
-                        if auth_id not in self.request.user.auth_ids:
-                            self.request.user.auth_ids.append(auth_id)
-                        self.request.user.put()
+                        user.add_auth_id(auth_id)
+                        user.put()
             except MojangException as me:
                 message = u'Mojang authentication failed (Reason: {0}).'.format(me)
                 logging.error(message)

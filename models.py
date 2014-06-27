@@ -128,6 +128,10 @@ class User(auth_models.User):
                 raise Exception("Username already taken: {0}".format(username))
         self.usernames = usernames
 
+    def add_auth_id(self, auth_id):
+        if auth_id not in self.auth_ids:
+            self.auth_ids.append(auth_id)
+
     def get_player(self, server_key):
         if self.username:
             return Player.get_or_create(server_key, self.username)
@@ -166,8 +170,7 @@ class User(auth_models.User):
         if self.key == user.key:
             return
         for auth_id in user.auth_ids:
-            if auth_id not in self.auth_ids:
-                self.auth_ids.append(auth_id)
+            self.add_auth_id(auth_id)
         for username in user.usernames:
             if username not in self.usernames:
                 self.usernames.append(username)
