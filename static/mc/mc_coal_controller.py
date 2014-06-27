@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import base64
+import datetime
 import errno
 import httplib
 import fnmatch
@@ -176,13 +177,26 @@ def copy_server_properties(port, server_properties):
                 fout.write(line)
 
 
+def copy_eula(port):
+    default_eula = os.path.join(COAL_DIR, EULA_FILENAME)
+    server_dir = get_server_dir(port)
+    new_eula = os.path.join(server_dir, EULA_FILENAME)
+    if not os.path.exists(new_eula):
+        with open(new_eula, "w") as fout:
+            with open(default_eula, "r") as fin:
+                for line in fin:
+                    if line.startswith('TIMESTAMP'):
+                        # Fri Jun 27 04:04:26 UTC 2014
+                        line = "#{:%a %b %d %H:%M:%S UTC %Y}".format(datetime.datetime.utc_now())
+                    fout.write(line)
+
+
 def copy_server_files(port, minecraft_url, server_properties):
     server_dir = get_server_dir(port)
     mc = get_minecraft_version(minecraft_url)
     shutil.copy2(mc, server_dir)
-    if not os.path.exists(os.path.join(server_dir, EULA_FILENAME)):
-        shutil.copy2(os.path.join(COAL_DIR, EULA_FILENAME), server_dir)
     shutil.copy2(os.path.join(COAL_DIR, LOG4J_CONFIG_FILENAME), server_dir)
+    copy_eula(port)
     copy_server_properties(port, server_properties)
     filenames = [
         'timezones.py',
