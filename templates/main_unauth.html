@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Main{% endblock %}
+{% block page_name %}Main{% endblock %}
+{% block content %}
+    <div class="box">
+        <h5>{{ title }}</h5>
+        <p>{{ description }}</p>
+        <h1><a href="{{ uri_for('login') }}">Login/Register</a></h1>
+    </div>
+    <br/>
+    <div class="box">
+        <p><strong>MC COAL</strong>: Minecraft Community Online Activity Log<br/><br/>
+        <a href="http://mc-coal.org">MC COAL</a> is an open-source project aimed at helping to build and maintain community around multi-player <a href="http://minecraft.net">Minecraft</a> worlds. It can also optionally provide powerful and simple Minecraft multi-player server hosting and management.<br/><br/>
+
+        <a href="https://github.com/mc-coal/mc-coal">COAL</a> is a web application. It is written in python and runs on the <a href="https://cloud.google.com/">Google Cloud Platform</a>.<br/><br/>
+
+        Check out the <a href="http://docs.mc-coal.org/">Documentation</a> and start your own COAL-Powered minecraft community!</p>
+    </div>
+{% endblock %}

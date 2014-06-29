@@ -28,7 +28,9 @@
         {% block menu %}
         <nav>
             <ul>
-                <li class="user"><a href="{{ uri_for('user_profile') }}">{{ user.name|truncate(15, True) }}</a></li>{% if user.admin %}<a href="{{ uri_for('admin') }}"><li {% if nav=="Admin" %}class="on"{% endif %}>Admin</li></a>{% endif %}{% if server %}<a href="{{ uri_for('screenshots', server_key=server.key.urlsafe()) }}"><li {% if nav=="ScreenShots" %}class="on"{% endif %}>Screens</li></a><a href="{{ uri_for('players', server_key=server.key.urlsafe()) }}"><li {% if nav=="Players" %}class="on"{% endif %}>Players</li></a><a href="{{ uri_for('play_sessions', server_key=server.key.urlsafe()) }}"><li {% if nav=="Sessions" %}class="on"{% endif %}>Sessions</li></a><a href="{{ uri_for('chats', server_key=server.key.urlsafe()) }}"><li {% if nav=="Chats" %}class="on"{% endif %}>Chats</li></a>{% endif %}
+                {% if user and user.active %}
+                    <li class="user"><a href="{{ uri_for('user_profile') }}">{{ user.name|truncate(15, True) }}</a></li>{% if user.admin %}<a href="{{ uri_for('admin') }}"><li {% if nav=="Admin" %}class="on"{% endif %}>Admin</li></a>{% endif %}{% if server %}<a href="{{ uri_for('screenshots', server_key=server.key.urlsafe()) }}"><li {% if nav=="ScreenShots" %}class="on"{% endif %}>Screens</li></a><a href="{{ uri_for('players', server_key=server.key.urlsafe()) }}"><li {% if nav=="Players" %}class="on"{% endif %}>Players</li></a><a href="{{ uri_for('play_sessions', server_key=server.key.urlsafe()) }}"><li {% if nav=="Sessions" %}class="on"{% endif %}>Sessions</li></a><a href="{{ uri_for('chats', server_key=server.key.urlsafe()) }}"><li {% if nav=="Chats" %}class="on"{% endif %}>Chats</li></a>{% endif %}
+                {% endif %}
             </ul>
         </nav>
         {% endblock %}
@@ -51,7 +53,7 @@
     <footer>
         {% block footer %}
         <div id="footer">
-            <span class="copy">&copy; Copyright 2014&nbsp;&nbsp;<a href="http://mc-coal.org" target="_blank">The MineCraft Community Online Activity Log</a></span>
+            <span class="copy">&copy; Copyright 2014&nbsp;&nbsp;<a href="http://mc-coal.org" target="_blank">MC COAL: MC Community Online Access Log</a></span>
             <span class="right">
                 <div class="left code_credit">
                     Code: <a href="http://thomasbohmbach.com" target="_blank">Thomas Bohmbach, Jr.</a><br>

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Main{% endblock %}
+{% block page_name %}Main{% endblock %}
+{% block content %}
+    <div class="box">
+        <h5>{{ title }}</h5>
+        <p>{{ description }}</p>
+    </div>
+    <br/>
+    <div class="box">
+        <p>You have successfully registered/logged in but your account has not yet been activated by an administrator. An email was sent to the admins when you registered by logging in for the first time.</p>
+        <h1><a href="{{ uri_for('logout') }}">Logout</a></h1>
+    </div>
+{% endblock %}

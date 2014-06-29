@@ -9,7 +9,7 @@ import time
 import urllib2
 import urlparse
 
-from google.appengine.api import users, urlfetch, app_identity
+from google.appengine.api import users, urlfetch, app_identity, mail
 
 import webapp2
 from webapp2_extras import auth, sessions
@@ -157,7 +157,10 @@ class LoginHandler(UserHandler):
     def get(self):
         next_url = self.request.params.get('next_url', None)
         if self.logged_in:
-            self.redirect(next_url or webapp2.uri_for('main'))
+            if self.user.active:
+                self.redirect(next_url or webapp2.uri_for('main'))
+            else:
+                self.redirect(webapp2.uri_for('main'))
             return
         gae_login_uri = get_gae_login_uri(self, next_url)
         form = MojangLoginForm()
@@ -167,6 +170,21 @@ class LoginHandler(UserHandler):
             'next_url': next_url
         }
         self.render_template('login.html', context=context)
+
+
+def send_new_user_email(user):
+    for admin in User.query_admin():
+        if admin.email:
+            body = 'New user registration: {0}.\n\n<a href="{1}">Click here</a> to activate or delete the new user.'.format(  # noqa
+                user.name,
+                webapp2.uri_for('user', key=user.key.urlsafe(), _full=True)
+            )
+            mail.send_mail(
+                sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
+                to=admin.email,
+                subject="New user registration: {0}".format(user.name),
+                body=body
+            )
 
 
 class AuthHandler(UserHandler):
@@ -187,6 +205,8 @@ class AuthHandler(UserHandler):
                     ok = True
             if not ok:
                 ok, user = self.auth.store.user_model.create_user(auth_id, email=email, nickname=nickname)
+                if ok:
+                    send_new_user_email(user)
             if ok:
                 self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
                 next_url = webapp2.uri_for('user_profile', next_url=next_url or webapp2.uri_for('main'))

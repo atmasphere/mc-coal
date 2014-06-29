@@ -42,17 +42,24 @@ class MainPagingHandler(MainHandlerBase, PagingHandler):
 
 
 class MainHandler(MainHandlerBase):
-    @authentication_required(authenticate=authenticate)
     def get(self):
-        servers = Server.query_all().fetch(100)
-        if self.request.user and self.request.user.active:
-            if servers and len(servers) == 1:
-                self.redirect(webapp2.uri_for('home', server_key=servers[0].key.urlsafe()))
-                return
-        context = {
-            'servers': servers
-        }
-        self.render_template('main.html', context=context)
+        context = {'title': coal_config.TITLE, 'description': coal_config.DESCRIPTION}
+        if self.user:
+            if self.user.active:
+                servers = Server.query_all().fetch(100)
+                if servers and len(servers) == 1:
+                    self.redirect(webapp2.uri_for('home', server_key=servers[0].key.urlsafe()))
+                    return
+                context = {
+                    'servers': servers
+                }
+                self.render_template('main.html', context=context)
+            else:
+                message = u'Inactive Account'
+                self.session.add_flash(message, level='error')
+                self.render_template('main_inactive.html', context=context)
+        else:
+            self.render_template('main_unauth.html', context=context)
 
 
 class HomeHandler(MainHandlerBase):
@@ -398,7 +405,8 @@ class UsernameClaimHandler(MainHandlerBase):
 coal_config = lib_config.register('COAL', {
     'SECRET_KEY': 'a_secret_string',
     'COOKIE_MAX_AGE': 2592000,
-    'OAUTH_TOKEN_EXPIRES_IN': 3600
+    'TITLE': 'An MC-COAL Installation',
+    'DESCRIPTION': 'This is an installation of the MC-COAL open source project'
 })
 
 
