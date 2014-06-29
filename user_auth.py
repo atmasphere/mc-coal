@@ -175,14 +175,16 @@ class LoginHandler(UserHandler):
 def send_new_user_email(user):
     for admin in User.query_admin():
         if admin.email:
-            body = 'New user registration: {0}.\n\nYou can click the URL below to activate, edit, or remove the new user account.\n\n{1}'.format(  # noqa
+            body = 'User registration: {0}\n\nStatus: {1}\n\nYou can click the URL below to {2}, edit, or remove the user account.\n\n{3}'.format(  # noqa
                 user.name,
+                'ACTIVE' if user.active else 'INACTIVE',
+                'inactivate' if user.active else 'activate',
                 webapp2.uri_for('user', key=user.key.urlsafe(), _full=True)
             )
             mail.send_mail(
                 sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
                 to=admin.email,
-                subject="New user registration: {0}".format(user.name),
+                subject="User registration: {0}".format(user.name),
                 body=body
             )
 
