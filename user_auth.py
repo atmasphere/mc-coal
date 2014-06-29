@@ -175,7 +175,7 @@ class LoginHandler(UserHandler):
 def send_new_user_email(user):
     for admin in User.query_admin():
         if admin.email:
-            body = 'New user registration: {0}.\n\n<a href="{1}">Click here</a> to activate or delete the new user.'.format(  # noqa
+            body = 'New user registration: {0}.\n\nYou can click the URL below to activate, edit, or remove the new user account.\n\n{1}'.format(  # noqa
                 user.name,
                 webapp2.uri_for('user', key=user.key.urlsafe(), _full=True)
             )
