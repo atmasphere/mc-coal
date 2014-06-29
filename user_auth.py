@@ -155,7 +155,7 @@ class MojangLoginForm(form.Form):
 
 class LoginHandler(UserHandler):
     def get(self):
-        next_url = self.request.params.get('next_url', None)
+        next_url = self.request.params.get('next_url', webapp2.uri_for('main'))
         if self.logged_in:
             if self.user.active:
                 self.redirect(next_url or webapp2.uri_for('main'))
