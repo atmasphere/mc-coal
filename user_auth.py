@@ -294,7 +294,8 @@ class MojangUserHandler(AuthHandler):
         gae_login_uri = get_gae_login_uri(self, next_url)
         context = {
             'gae_login_uri': gae_login_uri,
-            'mojang_login_form': form
+            'mojang_login_form': form,
+            'next_url': next_url
         }
         self.render_template('login.html', context=context)
 
