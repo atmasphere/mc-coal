@@ -38,10 +38,10 @@
 {%- endmacro %}
 
 {% macro with_errors(field) %}
-  <div class="form_field control-group {% if field.errors %}error{% endif %}">
+  <div class="form_field {% if field.errors %}error{% endif %}">
     {% if field.errors %}
       {{ field(**kwargs) }}
-      <ul class="help-inline errors">{% for error in field.errors %}<li>{{ error|e }}</li>{% endfor %}</ul>
+      <ul class="errors">{% for error in field.errors %}<li>{{ error|e }}</li>{% endfor %}</ul>
     {% else %}
       {{ field(**kwargs) }}
     {% endif %}
@@ -76,7 +76,7 @@
     {% endif %}
     <div class="title box wrap">
         <div class="left">
-            <h1><a href="{{ uri_for('home', server_key=server.key.urlsafe()) }}">{{ server.name }}</a></h1>
+            <h1><a href="{{ uri_for('home', server_key=server.url_key) }}">{{ server.name }}</a></h1>
             <h4>Day {{ server.server_day }} / Time {{ server.server_time }}
             {% if server.is_raining != None %}
                 {% if server.is_raining %}

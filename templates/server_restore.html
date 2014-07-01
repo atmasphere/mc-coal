@@ -12,7 +12,7 @@
                 {{ macros.with_errors(form.generation, class="span3") }}
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Restore</button>
-                    <a class="btn" href="{{ uri_for('home', server_key=edit_server.key.urlsafe()) }}">Cancel</a>
+                    <a class="btn" href="{{ uri_for('home', server_key=edit_server.url_key) }}">Cancel</a>
                 </div>
             </form>
         </div>
@@ -23,7 +23,7 @@
                 Choose File: <input type="file" name="file">
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Upload</button>
-                    <a class="btn" href="{{ uri_for('home', server_key=edit_server.key.urlsafe()) }}">Cancel</a>
+                    <a class="btn" href="{{ uri_for('home', server_key=edit_server.url_key) }}">Cancel</a>
                 </div>
             </form>
         </div>

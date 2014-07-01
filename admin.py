@@ -18,7 +18,7 @@ from webapp2_extras.routes import RedirectRoute
 
 from wtforms import form, fields, validators, ValidationError
 
-from forms import StringListField, AtLeastOneAdmin, UniqueUsernames
+from forms import StringListField, AtLeastOneAdmin, UniqueUsernames, UniqueShortName
 from forms import UniquePort, UniqueVersion, VersionUrlExists
 import gce
 import gcs
@@ -153,6 +153,20 @@ class UserRemoveHandler(AdminHandlerBase):
 
 class ServerForm(form.Form):
     name = fields.StringField(u'Name', [validators.Required()])
+    short_name = fields.StringField(u'Short Name', [UniqueShortName()])
+
+    def __init__(self, server=None, *args, **kwargs):
+        super(ServerForm, self).__init__(*args, **kwargs)
+        self.server = server
+
+
+def set_form_short_name(server, form):
+    short_name = form.short_name.data or None
+    if server.set_short_name(short_name):
+        return True
+    else:
+        form.short_name.errors.append("Short name '{0}' is already assigned to another server".format(short_name))
+        return False
 
 
 class ServerCreateHandler(UserHandler):
@@ -168,7 +182,10 @@ class ServerCreateHandler(UserHandler):
             form = ServerForm(formdata=self.request.POST)
             if form.validate():
                 server = Server.create(name=form.name.data, is_gce=False)
-                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+                if not set_form_short_name(server, form):
+                    message = "Short name '{0}' is already assigned to another server".format(form.short_name.data)
+                    self.session.add_flash(message, level='warning')
+                self.redirect(webapp2.uri_for('home', server_key=server.url_key))
         except Exception, e:
             logging.error(u"Error POSTing server: {0}".format(e))
             self.abort(404)
@@ -186,7 +203,7 @@ class ServerEditHandler(UserHandler):
                 self.abort(404)
             if server.is_gce:
                 self.redirect(webapp2.uri_for('server_gce', key=server.key.urlsafe()))
-            form = ServerForm(obj=server)
+            form = ServerForm(obj=server, server=server)
         except Exception, e:
             logging.error(u"Error GETting server: {0}".format(e))
             self.abort(404)
@@ -200,11 +217,12 @@ class ServerEditHandler(UserHandler):
             server = server_key.get()
             if server is None:
                 self.abort(404)
-            form = ServerForm(formdata=self.request.POST)
+            form = ServerForm(formdata=self.request.POST, server=server)
             if form.validate():
-                server.name = form.name.data
-                server.put()
-                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+                if set_form_short_name(server, form):
+                    server.name = form.name.data
+                    server.put()
+                    self.redirect(webapp2.uri_for('home', server_key=server.url_key))
         except Exception, e:
             logging.error(u"Error POSTing server: {0}".format(e))
             self.abort(404)
@@ -273,9 +291,8 @@ class ServerPropertiesForm(ServerForm):
         u"Agree to Mojang's EULA (https://account.mojang.com/documents/minecraft_eula)", default=False
     )
 
-    def __init__(self, server=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(ServerPropertiesForm, self).__init__(*args, **kwargs)
-        self.server = server
         self.version.choices = [
             (d.version, d.version) for d in MinecraftDownload.query().fetch(100)
         ]
@@ -354,7 +371,10 @@ class ServerCreateGceHandler(UserHandler):
                         else:
                             setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()
-                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+                if not set_form_short_name(server, form):
+                    message = "Short name '{0}' is already assigned to another server".format(form.short_name.data)
+                    self.session.add_flash(message, level='warning')
+                self.redirect(webapp2.uri_for('home', server_key=server.url_key))
         except Exception, e:
             logging.error(u"Error POSTing GCE server: {0}".format(e))
             self.abort(404)
@@ -374,6 +394,7 @@ class ServerEditGceHandler(UserHandler):
                 self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
             form = ServerPropertiesForm(
                 obj=server.mc_properties,
+                server=server,
                 name=server.name,
                 version=server.version,
                 memory=server.memory,
@@ -399,29 +420,30 @@ class ServerEditGceHandler(UserHandler):
                 self.abort(404)
             form = ServerPropertiesForm(formdata=self.request.POST, server=server)
             if form.validate():
-                server.is_gce = True
-                server.name = form.name.data
-                server.version = form.version.data
-                server.memory = form.memory.data
-                server.operator = form.operator.data or None
-                server.idle_timeout = form.idle_timeout.data
-                server.put()
-                mc_properties = server.mc_properties
-                for prop in form:
-                    if prop.name not in ['name', 'version', 'memory', 'operator', 'idle_timeout']:
-                        if prop.name == 'server_port':
-                            if prop.data is not None:
+                if set_form_short_name(server, form):
+                    server.is_gce = True
+                    server.name = form.name.data
+                    server.version = form.version.data
+                    server.memory = form.memory.data
+                    server.operator = form.operator.data or None
+                    server.idle_timeout = form.idle_timeout.data
+                    server.put()
+                    mc_properties = server.mc_properties
+                    for prop in form:
+                        if prop.name not in ['name', 'version', 'memory', 'operator', 'idle_timeout']:
+                            if prop.name == 'server_port':
+                                if prop.data is not None:
+                                    setattr(mc_properties, prop.name, int(prop.data))
+                                else:
+                                    setattr(mc_properties, prop.name, None)
+                            elif prop.type == 'IntegerField' or prop.name in [
+                                'gamemode', 'difficulty', 'op_permission_level'
+                            ]:
                                 setattr(mc_properties, prop.name, int(prop.data))
                             else:
-                                setattr(mc_properties, prop.name, None)
-                        elif prop.type == 'IntegerField' or prop.name in [
-                            'gamemode', 'difficulty', 'op_permission_level'
-                        ]:
-                            setattr(mc_properties, prop.name, int(prop.data))
-                        else:
-                            setattr(mc_properties, prop.name, prop.data)
-                mc_properties.put()
-                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+                                setattr(mc_properties, prop.name, prop.data)
+                    mc_properties.put()
+                    self.redirect(webapp2.uri_for('home', server_key=server.url_key))
         except Exception, e:
             logging.error(u"Error POSTing GCE server: {0}".format(e))
             self.abort(404)
@@ -490,7 +512,7 @@ class ServerStartHandler(AdminHandlerBase):
             time.sleep(1)
         except Exception, e:
             logging.error(u"Error starting server: {0}".format(e))
-        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+        self.redirect(webapp2.uri_for('home', server_key=server.url_key))
 
 
 class ServerBackupHandler(AdminHandlerBase):
@@ -505,7 +527,7 @@ class ServerBackupHandler(AdminHandlerBase):
             context = {}
             context['question'] = u'Save "{0}" game?'.format(server.name)
             context['confirmed_url'] = webapp2.uri_for('server_backup', key=server.key.urlsafe())
-            context['cancelled_url'] = webapp2.uri_for('home', server_key=server.key.urlsafe())
+            context['cancelled_url'] = webapp2.uri_for('home', server_key=server.url_key)
             self.render_template('confirm.html', context=context)
         except webapp2.HTTPException:
             pass
@@ -513,7 +535,7 @@ class ServerBackupHandler(AdminHandlerBase):
             message = u'"{0}" game could not be saved (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
-            self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+            self.redirect(webapp2.uri_for('home', server_key=server.url_key))
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
@@ -533,7 +555,7 @@ class ServerBackupHandler(AdminHandlerBase):
             message = u'"{0}" game could not be saved (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
-        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+        self.redirect(webapp2.uri_for('home', server_key=server.url_key))
 
 
 def human_size(size):
@@ -604,7 +626,7 @@ class ServerRestoreHandler(AdminHandlerBase):
             if server is None:
                 self.abort(404)
             if not server.is_gce:
-                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+                self.redirect(webapp2.uri_for('home', server_key=server.url_key))
             form = ServerRestoreForm(
                 formdata=self.request.POST,
                 versions=gcs.get_versions(server.key.urlsafe()),
@@ -623,7 +645,7 @@ class ServerRestoreHandler(AdminHandlerBase):
                 logging.info(message)
                 self.session.add_flash(message, level='info')
                 time.sleep(1)
-                self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+                self.redirect(webapp2.uri_for('home', server_key=server.url_key))
         except Exception, e:
             message = "Problem restoring game: {0}".format(e)
             logging.error(message)
@@ -648,7 +670,7 @@ class ServerRestartHandler(AdminHandlerBase):
             context = {}
             context['question'] = u'Restart server "{0}"?'.format(server.name)
             context['confirmed_url'] = webapp2.uri_for('server_restart', key=server.key.urlsafe())
-            context['cancelled_url'] = webapp2.uri_for('home', server_key=server.key.urlsafe())
+            context['cancelled_url'] = webapp2.uri_for('home', server_key=server.url_key)
             self.render_template('confirm.html', context=context)
         except webapp2.HTTPException:
             pass
@@ -656,7 +678,7 @@ class ServerRestartHandler(AdminHandlerBase):
             message = u'Server "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
-            self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+            self.redirect(webapp2.uri_for('home', server_key=server.url_key))
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
@@ -676,7 +698,7 @@ class ServerRestartHandler(AdminHandlerBase):
             message = u'Server "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
-        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+        self.redirect(webapp2.uri_for('home', server_key=server.url_key))
 
 
 class ServerStopHandler(AdminHandlerBase):
@@ -691,7 +713,7 @@ class ServerStopHandler(AdminHandlerBase):
             context = {}
             context['question'] = u'Pause server "{0}"?'.format(server.name)
             context['confirmed_url'] = webapp2.uri_for('server_stop', key=server.key.urlsafe())
-            context['cancelled_url'] = webapp2.uri_for('home', server_key=server.key.urlsafe())
+            context['cancelled_url'] = webapp2.uri_for('home', server_key=server.url_key)
             self.render_template('confirm.html', context=context)
         except webapp2.HTTPException:
             pass
@@ -699,7 +721,7 @@ class ServerStopHandler(AdminHandlerBase):
             message = u'Server "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
-            self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+            self.redirect(webapp2.uri_for('home', server_key=server.url_key))
 
     @authentication_required(authenticate=authenticate_admin)
     def post(self, key):
@@ -719,7 +741,7 @@ class ServerStopHandler(AdminHandlerBase):
             message = u'Server "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
-        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+        self.redirect(webapp2.uri_for('home', server_key=server.url_key))
 
 
 class CommandForm(form.Form):
@@ -753,7 +775,7 @@ class ServerCommandHandler(AdminHandlerBase):
             message = u'Command "{0}" could not be send to server "{1}" (Reason: {2}).'.format(command, server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
-        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+        self.redirect(webapp2.uri_for('home', server_key=server.url_key))
 
 
 class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler, UserBase):
@@ -777,7 +799,7 @@ class ServerBackupDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler, U
             gcs.get_default_bucket_name(), gcs.get_gcs_archive_name(server.key.urlsafe())
         )
         blob_key = blobstore.create_gs_key(blobstore_filename)
-        self.send_blob(blob_key, save_as="{0}.zip".format(server.name or server.key.urlsafe()))
+        self.send_blob(blob_key, save_as="{0}.zip".format(server.short_name or server.name or server.key.urlsafe()))
 
 
 def validate_server_archive(gcs_file):
@@ -840,7 +862,7 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserHandl
                 cloudstorage.delete(object_name)
         except Exception as e:
             logging.error("Problem deleting uploaded server archive {0} (Reason: {1})".format(object_name, e))
-        self.redirect(webapp2.uri_for('home', server_key=server.key.urlsafe()))
+        self.redirect(webapp2.uri_for('home', server_key=server.url_key))
 
 
 class MinecraftDownloadForm(form.Form):

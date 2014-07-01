@@ -284,7 +284,7 @@ class UserKeyHandler(JsonHandler):
 
 
 SERVER_FIELDS = [
-    'name', 'address', 'running_version', 'status',
+    'name', 'short_name', 'address', 'running_version', 'status',
     'server_day', 'server_time', 'is_raining', 'is_thundering'
 ]
 SERVER_FIELD_FUNCTIONS = {

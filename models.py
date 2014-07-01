@@ -17,6 +17,8 @@ from PIL import Image, ImageFilter
 
 from restler.decorators import ae_ndb_serializer
 
+from slugify import slugify
+
 from channel import ServerChannels
 
 from filters import datetime_filter
@@ -218,7 +220,7 @@ class User(auth_models.User):
         return 'mojang:{0}'.format(uuid) if uuid else None
 
     @classmethod
-    def lookup(cls, email=None, username=None):
+    def lookup(cls, email=None, username=None, short_name=None):
         if email is not None or username is not None:
             query = cls.query()
             if email is not None:
@@ -277,6 +279,7 @@ class MinecraftDownload(ndb.Model):
 @ae_ndb_serializer
 class Server(ndb.Model):
     name = ndb.StringProperty()
+    short_name = ndb.StringProperty()
     is_gce = ndb.BooleanProperty(default=False)
     version = ndb.StringProperty()
     running_version = ndb.StringProperty()
@@ -355,6 +358,26 @@ class Server(ndb.Model):
                 playing_usernames.append(open_session.username)
                 open_sessions.append(open_session)
         return open_sessions
+
+    @property
+    def url_key(self):
+        if self.short_name:
+            return self.short_name
+        return self.key.urlsafe()
+
+    def set_short_name(self, short_name):
+        short_name = slugify(short_name) if short_name else None
+        if short_name == self.short_name:
+            return True
+        if not short_name or auth_models.Unique.create("Server.short_name.{0}".format(short_name)):
+            old_short_name = self.short_name
+            self.short_name = short_name
+            self.put()
+            if old_short_name:
+                auth_models.Unique.delete_multi(["Server.short_name.{0}".format(old_short_name)])
+            return True
+        else:
+            return False
 
     def start(self):
         if self.is_gce and not (self.is_running or self.is_queued_start):
@@ -506,6 +529,7 @@ class Server(ndb.Model):
         self.active = False
         self.status = SERVER_UNKNOWN
         self.idle = None
+        self.set_short_name(None)
         self.put()
 
     @classmethod
@@ -513,6 +537,7 @@ class Server(ndb.Model):
         instance = key.get()
         if instance.agent_key is not None:
             instance.agent_key.delete()
+        instance.set_short_name(None)
 
     @classmethod
     def create(cls, **kwargs):
@@ -550,6 +575,10 @@ class Server(ndb.Model):
     @classmethod
     def query_running(cls):
         return cls.query_all().filter(cls.is_running == True)  # noqa
+
+    @classmethod
+    def get_by_short_name(cls, short_name):
+        return cls.query_all().filter(cls.short_name == short_name).get()
 
     @classmethod
     def reserved_ports(cls, ignore_server=None):

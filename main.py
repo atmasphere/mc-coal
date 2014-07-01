@@ -48,7 +48,7 @@ class MainHandler(MainHandlerBase):
             if self.user.active:
                 servers = Server.query_all().fetch(100)
                 if servers and len(servers) == 1:
-                    self.redirect(webapp2.uri_for('home', server_key=servers[0].key.urlsafe()))
+                    self.redirect(webapp2.uri_for('home', server_key=servers[0].url_key))
                     return
                 context = {
                     'servers': servers
@@ -218,9 +218,9 @@ class ScreenShotUploadHandler(MainHandlerBase):
 
 class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserBase):
     def redirect_to_server(self, route_name):
-        server_keys = Server.query_all().fetch(2, keys_only=True)
-        if server_keys and len(server_keys) == 1:
-            self.redirect(webapp2.uri_for(route_name, server_key=server_keys[0].urlsafe()))
+        servers = Server.query_all().fetch(2)
+        if servers and len(servers) == 1:
+            self.redirect(webapp2.uri_for(route_name, server_key=servers[0].url_key))
         else:
             self.redirect(webapp2.uri_for('main'))
 
@@ -243,7 +243,7 @@ class ScreenShotUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserB
             return
         blob_info = self.get_uploads('file')[0]
         ScreenShot.create(server.key, self.request.user, blob_info=blob_info)
-        self.redirect(webapp2.uri_for('screenshots', server_key=server.key.urlsafe()))
+        self.redirect(webapp2.uri_for('screenshots', server_key=server.url_key))
 
 
 class ScreenShotsHandler(MainPagingHandler):
@@ -286,7 +286,7 @@ class ScreenShotRemoveHandler(MainHandlerBase):
                 screenshot.key.delete()
         except Exception, e:
             logging.error(u"Error removing screen shot: {0}".format(e))
-        self.redirect(webapp2.uri_for('screenshots', server_key=server.key.urlsafe()))
+        self.redirect(webapp2.uri_for('screenshots', server_key=server.key.url_key))
 
 
 class UserProfileForm(form.Form):
@@ -410,6 +410,16 @@ coal_config = lib_config.register('COAL', {
 })
 
 
+def get_home_redirect(handler, *args, **kwargs):
+    short_name = kwargs.get('short_name', None)
+    if not short_name:
+        return handler.uri_for('main')
+    server = Server.get_by_short_name(short_name)
+    if not server:
+        return handler.uri_for('main')
+    return handler.uri_for('home', server_key=server.short_name)
+
+
 application = webapp2.WSGIApplication(
     [
         RedirectRoute('/', handler=MainHandler, name="main"),
@@ -448,3 +458,4 @@ from oauth import routes as oauth_routes
 routes = admin_routes + user_auth_routes + api_routes + image_routes + oauth_routes
 for route in routes:
     application.router.add(route)
+application.router.add(RedirectRoute('/<short_name>', handler=webapp2.RedirectHandler, defaults={'_uri': get_home_redirect}, name="home_redirect"))

@@ -34,5 +34,5 @@
         </div>
     </div>
 
-    {{ macros.previous_next_uri('players', server_key=server.key.urlsafe(), next_cursor=next_cursor, previous_cursor=previous_cursor) }}
+    {{ macros.previous_next_uri('players', server_key=server.url_key, next_cursor=next_cursor, previous_cursor=previous_cursor) }}
 {% endblock %}

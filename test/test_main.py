@@ -196,7 +196,7 @@ class NakedChatsTest(NakedTest):
 
     def setUp(self):
         super(NakedChatsTest, self).setUp()
-        self.redirect_to = '/servers/{0}/chats'.format(self.server.key.urlsafe())
+        self.redirect_to = '/servers/{0}/chats'.format(self.server.url_key)
 
     def test_get(self):
         self.log_in_user()

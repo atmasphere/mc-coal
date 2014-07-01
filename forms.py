@@ -45,6 +45,21 @@ class StringListField(fields.Field):
                 yield item
 
 
+class UniqueShortName(object):
+    def __init__(self, server=None):
+        self.server = server
+
+    def __call__(self, form, field):
+        server = self.server or form.server
+        short_name = field.data
+        s = Server.get_by_short_name(short_name)
+        if s is not None:
+            if server is None or s.key != server.key:
+                raise validators.ValidationError(
+                    "Short name '{0}' is already assigned to another server".format(short_name)
+                )
+
+
 class UniqueUsername(object):
     def __call__(self, form, field):
         username = field.data

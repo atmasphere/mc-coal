@@ -7,6 +7,8 @@ import string
 
 from google.appengine.ext import blobstore, testbed, ndb
 
+import webapp2_extras.appengine.auth.models as auth_models
+
 import minimock
 
 from base_test import BaseTest
@@ -188,6 +190,21 @@ class ServerTest(BaseTest):
         self.server2.active = False
         self.server2.put()
         self.assertEqual([25567],  models.Server.reserved_ports(ignore_server=self.server))
+
+    def test_short_name(self):
+        self.assertTrue(self.server.set_short_name('My Server'))
+        self.assertEqual('my-server', self.server.short_name)
+        self.assertEqual(1, auth_models.Unique.query().count())
+        self.assertTrue(self.server.set_short_name('my-server'))
+        self.assertTrue(self.server.set_short_name(''))
+        self.assertIsNone(self.server.short_name)
+        self.assertEqual(0, auth_models.Unique.query().count())
+
+    def test_short_name_2(self):
+        self.assertTrue(self.server.set_short_name(u"\u5317\u4EB0"))
+        self.assertEqual('bei-jing', self.server.short_name)
+        self.assertIsNotNone(models.Server.get_by_short_name('bei-jing'))
+        self.assertIsNone(models.Server.get_by_short_name(u"\u5317\u4EB0"))
 
 
 class LogLineTest(BaseTest):

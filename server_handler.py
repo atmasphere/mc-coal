@@ -19,19 +19,22 @@ class ServerHandlerBase(UserHandler):
         return template_context
 
     def redirect_to_server(self, route_name):
-        server_keys = Server.query_all().fetch(2, keys_only=True)
-        if server_keys and len(server_keys) == 1:
-            self.redirect(webapp2.uri_for(route_name, server_key=server_keys[0].urlsafe()))
+        servers = Server.query_all().fetch(2)
+        if servers and len(servers) == 1:
+            self.redirect(webapp2.uri_for(route_name, server_key=servers[0].url_key))
         else:
             self.redirect(webapp2.uri_for('main'))
 
     def get_server_by_key(self, key, abort=True):
-        try:
-            server_key = ndb.Key(urlsafe=key)
-            server = server_key.get()
-            if server is not None and not server.active:
-                server = None
-        except Exception:
+        if key:
+            try:
+                server_key = ndb.Key(urlsafe=key)
+                server = server_key.get()
+            except Exception:
+                server = Server.get_by_short_name(key)
+        else:
+            server = None
+        if server is not None and not server.active:
             server = None
         if abort and not server:
             self.abort(404)

@@ -23,7 +23,7 @@
     <h2 class="box wrap">
         <div class="left">Chats</div>
 
-        <form action="{{ uri_for('chats', server_key=server.key.urlsafe()) }}" method="GET" id="search">
+        <form action="{{ uri_for('chats', server_key=server.url_key) }}" method="GET" id="search">
             <input type="text" name="q" class="sprite" value="{{ query_string }}"/>
         </form>
         <div class="sound_toggle">
@@ -41,7 +41,7 @@
             <div class="name">{{ username }}</div>
 
             <div class="chat">
-                <form action="{{ uri_for('chats', server_key=server.key.urlsafe()) }}" method="POST" id="chatform">
+                <form action="{{ uri_for('chats', server_key=server.url_key) }}" method="POST" id="chatform">
                     <input type="text" name="chat" placeholder="Say something... {% if not server.is_running %}The server isn't running but chats will be saved.{% endif %}"/>
                 </form>
             </div>
@@ -52,7 +52,7 @@
     </div>
 </div>
 
-{{ macros.infinite_scroll_uri('chats', server_key=server.key.urlsafe(), next_cursor=next_cursor) }}
+{{ macros.infinite_scroll_uri('chats', server_key=server.url_key, next_cursor=next_cursor) }}
 {% endblock %}
 
 {% block js %}
