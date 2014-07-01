@@ -396,6 +396,7 @@ class ServerEditGceHandler(UserHandler):
                 obj=server.mc_properties,
                 server=server,
                 name=server.name,
+                short_name=server.short_name,
                 version=server.version,
                 memory=server.memory,
                 operator=server.operator or '',
