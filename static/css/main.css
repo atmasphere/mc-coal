@@ -123,7 +123,7 @@ p {
 
 label {
     font: 500 14px/1.45em "Lato", "Helvetica Neue", arial, helvetica, sans-serif;
-    padding: 15px;
+    margin-left: 15px;
 }
 
 input[type="text"] {
@@ -145,7 +145,6 @@ input[type="password"] {
 .form_field {
     font: 500 14px/1.45em "Lato", "Helvetica Neue", arial, helvetica, sans-serif;
     margin-left: 15px;
-    bottom-padding: 5px;
 }
 
 .error {
@@ -179,6 +178,11 @@ input[type="password"] {
 .box {
     color: rgba(255,255,255,0.9);
     background-color: rgba(0,0,0,0.75);
+}
+
+.warning-box {
+    color: rgba(255,255,255,0.9);
+    background-color: rgba(255,0,0,0.75);
 }
 
 .pad {
