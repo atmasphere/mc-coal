@@ -366,6 +366,11 @@ class Server(ndb.Model):
         return self.key.urlsafe()
 
     def set_short_name(self, short_name):
+        try:
+            ndb.Key(urlsafe=short_name)
+            return False  # Can't set the short_name to a valid key
+        except:
+            pass
         short_name = slugify(short_name) if short_name else None
         if short_name == self.short_name:
             return True

@@ -1,4 +1,5 @@
 from google.appengine.api import urlfetch
+from google.appengine.ext import ndb
 
 import pytz
 
@@ -52,6 +53,13 @@ class UniqueShortName(object):
     def __call__(self, form, field):
         server = self.server or form.server
         short_name = field.data
+        try:
+            ndb.Key(urlsafe=short_name)
+            raise validators.ValidationError(
+                "Short name can't be a valid key string".format(short_name)
+            )
+        except:
+            pass
         s = Server.get_by_short_name(short_name)
         if s is not None:
             if server is None or s.key != server.key:

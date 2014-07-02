@@ -6,16 +6,21 @@
 
 {% block content %}
     <div class="player_list players">
-        <div class="box">
-            <form action="{{ action }}" method="post">
-                <label>Choose {{edit_server.name }} saved game to restore:</label>
-                {{ macros.with_errors(form.generation, class="span3") }}
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Restore</button>
-                    <a class="btn" href="{{ uri_for('home', server_key=edit_server.url_key) }}">Cancel</a>
-                </div>
-            </form>
-        </div>
+        {% if current_version %}
+            <div class="box">
+                Last Saved Game: {{ current_version }}
+            </div>
+            <div class="box">
+                <form action="{{ action }}" method="post">
+                    <label>Choose {{edit_server.name }} saved game to restore:</label>
+                    {{ macros.with_errors(form.generation, class="span3") }}
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Restore</button>
+                        <a class="btn" href="{{ uri_for('home', server_key=edit_server.url_key) }}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        {% endif %}
         <br/>
         <div class="box">
             Upload A Server Archive:

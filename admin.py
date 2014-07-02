@@ -600,8 +600,15 @@ class ServerRestoreHandler(AdminHandlerBase):
                 self.abort(404)
             if not server.is_gce:
                 self.redirect(webapp2.uri_for('server', key=server.key.urlsafe()))
+            versions = gcs.get_versions(server.key.urlsafe())
+            current_version = versions[0] if versions else None
+            if current_version:
+                current_version_name = "{0} ({1})".format(
+                    human_date(current_version['updated'], self.request.user.timezone),
+                    human_size(current_version['size'])
+                )
             form = ServerRestoreForm(
-                versions=gcs.get_versions(server.key.urlsafe()),
+                versions=versions,
                 timezone=self.request.user.timezone
             )
             url = webapp2.uri_for('server_uploaded', key=server.key.urlsafe())
@@ -613,6 +620,7 @@ class ServerRestoreHandler(AdminHandlerBase):
             self.abort(404)
         context = {
             'edit_server': server,
+            'current_version': current_version_name if current_version else None,
             'form': form,
             'action': webapp2.uri_for('server_restore', key=server.key.urlsafe()),
             'upload_url': upload_url
