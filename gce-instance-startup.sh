@@ -34,7 +34,13 @@ PROJECT_MC_URL="https://$PROJECT_ID.appspot.com/mc"
 echo $PROJECT_ID > project_id
 
 INSTANCE_NAME=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/instance-name)
-echo $INSTANCE_NAME > instance-name
+echo $INSTANCE_NAME > instance_name
+
+CLIENT_ID=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/client-id)
+echo $CLIENT_ID > client_id
+
+SECRET=$(curl http://metadata/computeMetadata/v1beta1/instance/attributes/secret)
+echo $SECRET > secret
 
 TIMEZONES_URL="$PROJECT_MC_URL/timezones.py"
 wget $TIMEZONES_URL -O timezones.py

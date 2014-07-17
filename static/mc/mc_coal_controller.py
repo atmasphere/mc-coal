@@ -26,6 +26,8 @@ from apiclient.http import MediaFileUpload, MediaIoBaseDownload
 from oauth2client import gce
 import httplib2
 
+import requests
+
 TQ_API_SCOPE = 'https://www.googleapis.com/auth/taskqueue'
 TQ_API_VERSION = 'v1beta2'
 STORAGE_API_SCOPE = 'https://www.googleapis.com/auth/devstorage.full_control'
@@ -34,7 +36,7 @@ COAL_DIR = '/coal/'
 SERVERS_DIR = os.path.join(COAL_DIR, 'servers')
 ARCHIVES_DIR = os.path.join(COAL_DIR, 'archives')
 MINECRAFT_DIR = os.path.join(COAL_DIR, 'minecraft')
-NUM_RETRIES = 5
+NUM_RETRIES = 10
 CHUNKSIZE = 2 * 1024 * 1024
 COMMAND_FIFO_FILENAME = 'command-fifo'
 MINECRAFT_SERVER_JAR_FILENAME = 'minecraft_server.jar'
@@ -46,13 +48,90 @@ SERVER_PID_FILENAME = 'server.pid'
 RUN_SERVER_FILENAME = 'run_server.sh'
 AGENT_FILENAME = 'mc_coal_agent.py'
 MC_COAL_DIRNAME = 'mc_coal'
-RETRY_ERRORS = (httplib2.HttpLib2Error, IOError, httplib.ResponseNotReady)
+START_EVENT = 'START_SERVER'
+STOP_EVENT = 'STOP_SERVER'
 
 # Globals
+client = None
 logger = None
 project = None
 app_bucket = None
 external_ip = None
+
+
+class ControllerClient(object):
+    def __init__(self, host, client_id, secret, access_token=None, refresh_token=None, *args, **kwargs):
+        self.host = host
+        self.scheme = 'https'
+        if self.host == 'localhost:8080':
+            self.scheme = 'http'
+        self.client_id = client_id
+        self.secret = secret
+        self.access_token = access_token
+        self.refresh_token = refresh_token
+        super(ControllerClient, self).__init__(*args, **kwargs)
+
+    @property
+    def headers(self):
+        if self.access_token:
+            return {
+                'Authorization': 'Bearer {0}'.format(self.access_token)
+            }
+        return None
+
+    def request_tokens(self):
+        url = "{0}://{1}/oauth/v1/token".format(self.scheme, self.host)
+        data = {
+            'client_id': self.client_id,
+            'client_secret': self.secret,
+            'scope': 'controller'
+        }
+        if self.refresh_token is None:
+            data['grant_type'] = 'authorization_code'
+            data['code'] = self.secret
+            data['redirect_uri'] = '/'
+        else:
+            data['grant_type'] = 'refresh_token'
+            data['refresh_token'] = self.refresh_token
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+            token_response = response.json()
+            self.access_token = token_response['access_token']
+            self.refresh_token = token_response['refresh_token']
+        except requests.exceptions.RequestException:
+            self.access_token = None
+            self.refresh_token = None
+            raise
+
+    def get(self, url, params=None):
+        url = "{0}://{1}{2}".format(self.scheme, self.host, url)
+        response = requests.get(url, data=params, headers=self.headers)
+        if response.status_code == 401:
+            self.request_tokens()
+            response = requests.get(url, data=params, headers=self.headers)
+        response.raise_for_status()
+        return response
+
+    def post(self, url, params):
+        url = "{0}://{1}{2}".format(self.scheme, self.host, url)
+        response = requests.post(url, data=params, headers=self.headers)
+        if response.status_code == 401:
+            self.request_tokens()
+            response = requests.post(url, data=params, headers=self.headers)
+        response.raise_for_status()
+        return response
+
+    def post_event(self, server_key, event, completed):
+        try:
+            params = {
+                'server_key': server_key,
+                'event': event,
+                'completed': completed
+            }
+            self.post("/api/v1/controllers/event", params=params)
+        except Exception as e:
+            logger.error("Error ({0}) calling event API".format(str(e)))
 
 
 def init_external_ip():
@@ -247,50 +326,47 @@ def make_run_server_script(server_dir, server_memory, fifo):
 
 
 def load_zip_from_gcs(server_key):
+    name = get_gcs_archive_name(server_key)
     credentials = gce.AppAssertionCredentials(scope=STORAGE_API_SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
     archive = get_archive_file_path(server_key)
-    try:
+    retry = True
+    while retry:
         with file(archive, 'w') as f:
-            name = get_gcs_archive_name(server_key)
             request = service.objects().get_media(bucket=app_bucket, object=name)
             media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
             tries = 0
             done = False
             while not done:
-                error = None
                 try:
-                    progress, done = media.next_chunk()
-                except HttpError, err:
-                    error = err
-                    if err.resp.status < 500:
-                        raise
-                except RETRY_ERRORS, err2:
-                    error = err2
-                if error:
-                    tries += 1
-                    if tries > NUM_RETRIES:
-                        raise error
-                    sleeptime = random.random() * (2**tries)
-                    logger.error(
-                        "Error ({0}) downloading archive for server {1}. Sleeping {2} seconds.".format(
-                            str(error), server_key, sleeptime
-                        )
-                    )
-                    time.sleep(sleeptime)
-                else:
+                    status, done = media.next_chunk()
                     tries = 0
-        return True
-    except HttpError, err:
-        if err.resp.status == 404:
-            return False
-        else:
-            os.remove(archive)
-            raise
-    except Exception:
-        os.remove(archive)
-        raise
+                    progress = int(status.progress() * 100)
+                    if done:  # Done
+                        retry = False
+                        progress = 100
+                    client.post_event(server_key, START_EVENT, progress)
+                except HttpError as e:
+                    if e.resp.status in [404]:  # Start download all over again
+                        os.remove(archive)
+                        done = True
+                    elif e.resp.status in [500, 502, 503, 504]:  # Retry with backoff
+                        tries += 1
+                        if tries > NUM_RETRIES:
+                            os.remove(archive)
+                            return False
+                        sleeptime = 2**tries
+                        logger.error(
+                            "Error ({0}) downloading archive for server {1}. Sleeping {2} seconds.".format(
+                                str(e), server_key, sleeptime
+                            )
+                        )
+                        time.sleep(sleeptime)
+                    else:
+                        os.remove(archive)
+                        return False
+    return True
 
 
 def load_zip(server_key):
@@ -447,40 +523,46 @@ def zip_server_dir(server_dir, archive_file):
                         zf.write(absname, arcname)
 
 
-def upload_zip_to_gcs(server_key, archive_file):
+def upload_zip_to_gcs(server_key, archive_file, backup=False):
+    name = get_gcs_archive_name(server_key)
     credentials = gce.AppAssertionCredentials(scope=STORAGE_API_SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
-    media = MediaFileUpload(archive_file, chunksize=CHUNKSIZE, resumable=True)
-    if not media.mimetype():
-        media = MediaFileUpload(archive_file, 'application/zip', resumable=True)
-    name = get_gcs_archive_name(server_key)
-    request = service.objects().insert(bucket=app_bucket, name=name, media_body=media)
-    tries = 0
-    response = None
-    while response is None:
-        error = None
-        try:
-            progress, response = request.next_chunk()
-        except HttpError, err:
-            error = err
-            if err.resp.status < 500:
-                raise
-        except RETRY_ERRORS, err2:
-            error = err2
-        if error:
-            tries += 1
-            if tries > NUM_RETRIES:
-                raise error
-            sleeptime = random.random() * (2**tries)
-            logger.error(
-                "Error ({0}) uploading archive for server {1}. Sleeping {2} seconds.".format(
-                    str(error), server_key, sleeptime
-                )
-            )
-            time.sleep(sleeptime)
-        else:
-            tries = 0
+    retry = True
+    while retry:
+        media = MediaFileUpload(archive_file, chunksize=CHUNKSIZE, resumable=True)
+        if not media.mimetype():
+            media = MediaFileUpload(archive_file, 'application/zip', resumable=True)
+        request = service.objects().insert(bucket=app_bucket, name=name, media_body=media)
+        progress = 0
+        tries = 0
+        response = None
+        while response is None:
+            try:
+                status, response = request.next_chunk()
+                tries = 0
+                progress = int(status.progress() * 100)
+                if response is not None:  # Done
+                    retry = False
+                    progress = 100
+                if not backup:
+                    client.post_event(server_key, STOP_EVENT, progress)
+            except HttpError as e:
+                if e.resp.status in [404]:  # Start upload all over again
+                    response = None
+                elif e.resp.status in [500, 502, 503, 504]:  # Retry with backoff
+                    tries += 1
+                    if tries > NUM_RETRIES:
+                        raise
+                    sleeptime = 2**tries
+                    logger.error(
+                        "Error ({0}) uploading archive for server {1}. Sleeping {2} seconds.".format(
+                            str(e), server_key, sleeptime
+                        )
+                    )
+                    time.sleep(sleeptime)
+                else:
+                    raise
     os.remove(archive_file)
 
 
@@ -512,9 +594,10 @@ def backup_server(server_key, **kwargs):
         logger.error("Error ({0}) unpausing saves for server {1}".format(e, server_key))
     try:
         if archive_successful:
-            upload_zip_to_gcs(server_key, archive)
+            upload_zip_to_gcs(server_key, archive, backup=True)
             write_server_command(server_dir, '/say Game saved.')
     except Exception as e:
+        write_server_command(server_dir, '/say Game save failed.')
         logger.error("Error ({0}) uploading archived server {1}".format(e, server_key))
 
 
@@ -643,6 +726,7 @@ def init_logger(debug=False, logfile='controller.log'):
 
 
 def main(argv):
+    global client
     global project
     global app_bucket
     global logger
@@ -658,6 +742,11 @@ def main(argv):
     try:
         with open('/coal/project_id', 'r') as f:
             project = f.read().strip()
+        with open('/coal/client_id', 'r') as f:
+            client_id = f.read().strip()
+        with open('/coal/secret', 'r') as f:
+            secret = f.read().strip()
+        client = ControllerClient('{0}.appspot.com'.format(project), client_id, secret)
         app_bucket = '{0}.appspot.com'.format(project)
         credentials = gce.AppAssertionCredentials(scope=TQ_API_SCOPE)
         http = credentials.authorize(httplib2.Http())

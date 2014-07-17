@@ -41,8 +41,13 @@ SERVER_QUEUED_RESTART = 'QUEUED_RESTART'
 SERVER_QUEUED_STOP = 'QUEUED_STOP'
 SERVER_HAS_STARTED = 'HAS_STARTED'
 SERVER_HAS_STOPPED = 'HAS_STOPPED'
+SERVER_LOADING = 'LOADING'
+SERVER_LOADED = 'LOADED'
+SERVER_SAVING = 'SAVING'
+SERVER_SAVED = 'SAVED'
 SERVER_RUNNING = 'RUNNING'
 SERVER_STOPPED = 'STOPPED'
+INSTANCE_UNKNOWN = 'UNKNOWN'
 
 
 class MojangException(Exception):
@@ -289,14 +294,19 @@ class Server(ndb.Model):
     idle_timeout = ndb.IntegerProperty(default=5)
     active = ndb.BooleanProperty(default=True)
     status = ndb.StringProperty(default=SERVER_UNKNOWN)
+    completed = ndb.IntegerProperty(default=None)
     is_running = ndb.ComputedProperty(lambda self: self.status == SERVER_RUNNING)
     is_stopped = ndb.ComputedProperty(lambda self: self.status == SERVER_STOPPED)
-    is_queued_start = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED_START)
+    is_queued_start = ndb.ComputedProperty(lambda self: self.status in [SERVER_QUEUED_START, SERVER_LOADING, SERVER_LOADED])  # noqa
     is_queued_restart = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED_RESTART)
-    is_queued_stop = ndb.ComputedProperty(lambda self: self.status == SERVER_QUEUED_STOP)
+    is_queued_stop = ndb.ComputedProperty(lambda self: self.status in [SERVER_QUEUED_STOP, SERVER_SAVING, SERVER_SAVED])
     is_queued = ndb.ComputedProperty(
-        lambda self: self.status in [SERVER_QUEUED_START, SERVER_QUEUED_RESTART, SERVER_QUEUED_STOP]
+        lambda self: self.status in [
+            SERVER_QUEUED_START, SERVER_QUEUED_RESTART, SERVER_QUEUED_STOP, SERVER_LOADING, SERVER_LOADED, SERVER_SAVING
+        ]
     )
+    is_loading = ndb.ComputedProperty(lambda self: self.status == SERVER_LOADING)
+    is_saving = ndb.ComputedProperty(lambda self: self.status == SERVER_SAVING)
     is_unknown = ndb.ComputedProperty(lambda self: self.status == SERVER_UNKNOWN)
     last_ping = ndb.DateTimeProperty()
     last_server_day = ndb.IntegerProperty()
@@ -420,7 +430,7 @@ class Server(ndb.Model):
 
     def update_status(
         self, status=None, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None,
-        num_overloads=None, ms_behind=None, skipped_ticks=None, address=None, timestamp=None
+        num_overloads=None, ms_behind=None, skipped_ticks=None, address=None, timestamp=None, completed=None
     ):
         changed = False
         now = datetime.datetime.utcnow()
@@ -432,15 +442,23 @@ class Server(ndb.Model):
             if self.idle:
                 self.idle = None
             changed = True
+        elif status in [SERVER_LOADING, SERVER_LOADED, SERVER_SAVING, SERVER_SAVED]:
+            if completed is not None:
+                self.completed = completed
+            if status == SERVER_SAVED:
+                status = SERVER_HAS_STOPPED
+                self.queued = None
+            changed = True
         elif status is not None and self.queued is not None:
             # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually
             if (
-                (previous_status == SERVER_QUEUED_START and status != SERVER_HAS_STARTED) or
+                (previous_status in [SERVER_QUEUED_START, SERVER_LOADING, SERVER_LOADED] and status != SERVER_HAS_STARTED) or  # noqa
                 (previous_status == SERVER_QUEUED_RESTART and status != SERVER_HAS_STARTED) or
-                (previous_status == SERVER_QUEUED_STOP and status != SERVER_HAS_STOPPED)
+                (previous_status == SERVER_QUEUED_STOP and (status != SERVER_HAS_STOPPED or self.is_gce))
             ):
                 status = previous_status
             else:
+                self.completed = None
                 self.queued = None
                 changed = True
         # No status provided, check for timeout
@@ -456,7 +474,7 @@ class Server(ndb.Model):
             changed = True
         # Update address
         address = address or self.address
-        if status is SERVER_STOPPED and not self.mc_properties.server_port:
+        if status is SERVER_HAS_STOPPED and not self.mc_properties.server_port:
             address = None
         if address != self.address:
             self.address = address
@@ -493,7 +511,7 @@ class Server(ndb.Model):
             if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):
                 changed = True
         # Close all open play sessions if newly running or stopped
-        if status == SERVER_STOPPED:
+        if status == SERVER_HAS_STOPPED:
             if status != previous_status and previous_status != SERVER_UNKNOWN:
                 PlaySession.close_all_current(self.key, now)
         # Put server changes
@@ -508,7 +526,10 @@ class Server(ndb.Model):
             self.put()
             # Email admins
             send_email = previous_status != status
-            if status in [SERVER_QUEUED_START, SERVER_QUEUED_RESTART, SERVER_QUEUED_STOP]:
+            if status in [
+                SERVER_QUEUED_START, SERVER_QUEUED_RESTART, SERVER_QUEUED_STOP,
+                SERVER_LOADING, SERVER_LOADED, SERVER_SAVING, SERVER_SAVED
+            ]:
                 send_email = False
             if status == SERVER_UNKNOWN and previous_status == SERVER_STOPPED:
                 send_email = False

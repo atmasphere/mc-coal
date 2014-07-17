@@ -3,6 +3,8 @@ import fix_path  # noqa
 import datetime
 import httplib2
 import logging
+import random
+import string
 
 from apiclient import discovery
 from apiclient.errors import HttpError
@@ -13,7 +15,6 @@ from google.appengine.ext import ndb
 from oauth2client.appengine import AppAssertionCredentials
 
 from gcs import verify_bucket
-
 
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
 API_VERSION = 'v1'
@@ -30,6 +31,8 @@ FIREWALL_NAME = 'coal-firewall'
 COAL_BOOT_DISK_NAME = 'coal-boot-disk'
 COAL_DISK_NAME = 'coal-disk'
 GCE_MAX_IDLE_SECONDS = 600  # 10 minutes
+UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
+CONTROLLER_CLIENT_ID = 'coal-controller'
 
 
 class Instance(ndb.Model):
@@ -39,6 +42,7 @@ class Instance(ndb.Model):
     disk_size = ndb.IntegerProperty(default=100)
     backup_depth = ndb.IntegerProperty(default=10)
     server_key = ndb.KeyProperty(default=None)
+    client_key = ndb.KeyProperty(default=None)
     idle = ndb.DateTimeProperty()
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
@@ -55,10 +59,18 @@ class Instance(ndb.Model):
     def coal_disk_name(self):
         return '{0}-{1}'.format(COAL_DISK_NAME, self.key.id())
 
+    @property
+    def client(self):
+        return self.client_key.get() if self.client_key else None
+
     def start(self):
         status = self.get_status()
         if status != 'UNPROVISIONED':
             logging.warning("Trying to start instance whose status is '{0}'".format(status))
+            return
+        client = self.get_or_create_client()
+        if client is None:
+            logging.warning("Could not create client for instance '{0}'".format(self.name))
             return
         project_id = get_project_id()
         project_url = '%s%s' % (GCE_URL, project_id)
@@ -115,6 +127,14 @@ class Instance(ndb.Model):
                     {
                         'key': 'instance-name',
                         'value': self.name
+                    },
+                    {
+                        'key': 'client_id',
+                        'value': client.client_id
+                    },
+                    {
+                        'key': 'secret',
+                        'value': client.secret
                     }
                 ]
             }]
@@ -206,9 +226,38 @@ class Instance(ndb.Model):
                     address = configs['natIP']
         return address
 
+    def get_or_create_client(self):
+        client = self.client
+        if client is None:
+            from oauth import Client, authorization_provider
+            existing_client = True
+            while existing_client:
+                random_int = ''.join([random.choice(UNICODE_ASCII_DIGITS) for x in xrange(5)])
+                client_id = Client.get_key_name("{0}-{1}".format(CONTROLLER_CLIENT_ID, random_int))
+                client_key = Client.get_key(client_id)
+                existing_client = client_key.get()
+            client = Client(
+                key=client_key,
+                client_id=client_id,
+                instance_key=self.key,
+                redirect_uris=['/'],
+                scope=['controller'],
+                secret=authorization_provider.generate_client_secret()
+            )
+            client.put()
+            self.client_key = client.key
+            self.put()
+        return client
+
     @classmethod
     def singleton(cls):
         return cls.get_or_insert('singleton')
+
+    @classmethod
+    def _pre_delete_hook(cls, key):
+        instance = key.get()
+        if instance.client_key is not None:
+            instance.client_key.delete()
 
 
 def get_project_id():

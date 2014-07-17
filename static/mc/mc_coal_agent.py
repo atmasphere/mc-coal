@@ -206,7 +206,6 @@ def ping_host(running, server_day, server_time, raining, thundering):
         params['skipped_ticks'] = recent_overloads[2]
         if address:
             params['address'] = address
-
         response_json = client.post("/api/v1/agents/ping", params=params).json()
         commands = response_json['commands']
         if commands:

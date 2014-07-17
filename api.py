@@ -21,7 +21,10 @@ from models import Server, MinecraftProperties, MinecraftDownload, User, Player,
 from models import LogLine, Command, ScreenShot
 from models import CHAT_TAG, DEATH_TAG, ACHIEVEMENT_TAG
 from models import SERVER_UNKNOWN, SERVER_RUNNING, SERVER_STOPPED, SERVER_QUEUED_START, SERVER_QUEUED_STOP
-from oauth import Client, authenticate_agent_oauth_required, authenticate_user_required, authenticate_admin_required
+from models import SERVER_LOADING, SERVER_LOADED, SERVER_SAVING, SERVER_SAVED
+from server_queue import START_EVENT, STOP_EVENT
+from oauth import Client, authenticate_agent_oauth_required, authenticate_controller_oauth_required
+from oauth import authenticate_user_required, authenticate_admin_required
 from user_auth import authentication_required
 
 
@@ -193,6 +196,45 @@ class LastLineHandler(JsonHandler):
         response = {
             'lastline': last_log_line.line if last_log_line is not None else None,
         }
+        self.json_response(response, status_code=200)
+
+
+class EventForm(form.Form):
+    server_key = fields.StringField(validators=[validators.DataRequired()])
+    event = fields.StringField(validators=[validators.DataRequired()])
+    completed = fields.IntegerField(validators=[validators.Optional()])
+
+
+class EventHandler(JsonHandler):
+    @authentication_required(authenticate=authenticate_controller_oauth_required, request_property_name='authentication')  # noqa
+    @validate_params(form_class=EventForm)
+    def post(self):
+        client = Client.get_by_client_id(self.request.authentication.client_id)
+        instance = client.instance
+        if instance is not None:
+            form = self.request.form
+            try:
+                server_key = ndb.Key(urlsafe=form.server_key.data)
+                server = server_key.get()
+            except Exception:
+                server = None
+            if server:
+                event = form.event.data
+                completed = form.completed.data
+                status = None
+                if event == START_EVENT:
+                    if completed < 100:
+                        status = SERVER_LOADING
+                    else:
+                        status = SERVER_LOADED
+                if event == STOP_EVENT:
+                    if completed < 100:
+                        status = SERVER_SAVING
+                    else:
+                        status = SERVER_SAVED
+                if status:
+                    server.update_status(status=status)
+        response = {}
         self.json_response(response, status_code=200)
 
 
@@ -1037,6 +1079,8 @@ routes = [
     webapp2.Route('/api/v1/agents/ping', 'api.PingHandler', name='api_agents_ping'),
     webapp2.Route('/api/v1/agents/logline', 'api.LogLineHandler', name='api_agents_logline'),
     webapp2.Route('/api/v1/agents/lastline', 'api.LastLineHandler', name='api_agents_lastline'),
+
+    webapp2.Route('/api/v1/controllers/event', 'api.EventHandler', name='api_controllers_event'),
 
     webapp2.Route('/api/v1/users/<key>', 'api.UserKeyHandler', name='api_data_user_key'),
     webapp2.Route('/api/v1/users', 'api.UsersHandler', name='api_data_users'),

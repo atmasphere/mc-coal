@@ -29,6 +29,7 @@ coal_config = lib_config.register('COAL', {
 class Client(ndb.Model):
     client_id = ndb.StringProperty(required=True)
     server_key = ndb.KeyProperty()
+    instance_key = ndb.KeyProperty()
     name = ndb.StringProperty()
     uri = ndb.StringProperty()
     logo_uri = ndb.StringProperty()
@@ -51,6 +52,9 @@ class Client(ndb.Model):
     def server(self):
         return self.server_key.get() if self.server_key else None
 
+    def instance(self):
+        return self.instance_key.get() if self.instance_key else None
+
     def validate_secret(self, secret):
         if self.secret is not None and not self.is_secret_expired:
             return secret == self.secret
@@ -64,6 +68,16 @@ class Client(ndb.Model):
             client = Client.get_key(client_or_id).get()
         if client is not None:
             return client.server_key is not None
+        return False
+
+    @classmethod
+    def is_controller(cls, client_or_id):
+        if isinstance(client_or_id, cls):
+            client = client_or_id
+        else:
+            client = Client.get_key(client_or_id).get()
+        if client is not None:
+            return client.instance_key is not None
         return False
 
     @classmethod
@@ -395,6 +409,12 @@ class COALAgentResourceProvider(COALResourceProvider):
 agent_resource_provider = COALAgentResourceProvider()
 
 
+class COALControllerResourceProvider(COALResourceProvider):
+    SCOPE = 'controller'
+
+controller_resource_provider = COALControllerResourceProvider()
+
+
 class BaseSecureForm(SessionSecureForm):
     SECRET_KEY = coal_config.SECRET_KEY
     TIME_LIMIT = datetime.timedelta(minutes=20)
@@ -531,6 +551,18 @@ def authenticate_agent_oauth(handler):
 
 def authenticate_agent_oauth_required(handler):
     authorization = authenticate_agent_oauth(handler)
+    if authorization is None:
+        handler.abort(401)
+    return authorization
+
+
+def authenticate_controller_oauth(handler):
+    authorization = controller_resource_provider.get_authorization()
+    return authorization if authorization is not None and authorization.is_valid else None
+
+
+def authenticate_controller_oauth_required(handler):
+    authorization = authenticate_controller_oauth(handler)
     if authorization is None:
         handler.abort(401)
     return authorization
