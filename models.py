@@ -460,7 +460,7 @@ class Server(ndb.Model):
             if (
                 (previous_status in [SERVER_QUEUED_START, SERVER_LOADING, SERVER_LOADED] and status != SERVER_HAS_STARTED) or  # noqa
                 (previous_status == SERVER_QUEUED_RESTART and status != SERVER_HAS_STARTED) or
-                (previous_status == SERVER_QUEUED_STOP and (status != SERVER_HAS_STOPPED or self.is_gce))
+                (previous_status in [SERVER_QUEUED_STOP, SERVER_SAVING] and (status != SERVER_HAS_STOPPED or self.is_gce))  # noqa
             ):
                 status = previous_status
             else:
