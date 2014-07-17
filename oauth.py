@@ -189,7 +189,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
         return False
 
     def validate_redirect_uri(self, client_id, redirect_uri):
-        if Client.is_agent(client_id):
+        if Client.is_agent(client_id) or Client.is_controller(client_id):
             return True
         client = Client.get_by_client_id(client_id)
         if client is not None and redirect_uri in client.redirect_uris:
@@ -210,7 +210,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
         return True
 
     def validate_access(self, client_id):
-        if Client.is_agent(client_id):
+        if Client.is_agent(client_id) or Client.is_controller(client_id):
             return True
         return webapp2.get_request().user.is_client_id_authorized(client_id)
 
@@ -218,6 +218,11 @@ class COALAuthorizationProvider(AuthorizationProvider):
         if Client.is_agent(client_id):
             agent = Client.get_by_client_id(client_id)
             if code is not None and scope is not None and code == agent.secret and scope in agent.scope:
+                return code
+            return None
+        if Client.is_controller(client_id):
+            controller = Client.get_by_client_id(client_id)
+            if code is not None and scope is not None and code == controller.secret and scope in controller.scope:
                 return code
             return None
         key = AuthorizationCode.get_key(client_id, code)
@@ -254,7 +259,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
         token.put()
 
     def discard_authorization_code(self, client_id, code):
-        if not Client.is_agent(client_id):
+        if not Client.is_agent(client_id) and not Client.is_controller(client_id):
             key = AuthorizationCode.get_key(client_id, code)
             key.delete()
 
@@ -264,7 +269,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
             token.key.delete()
 
     def discard_client_user_tokens(self, client_id, user_key):
-        if not Client.is_agent(client_id):
+        if not Client.is_agent(client_id) and not Client.is_controller(client_id):
             token_query = Token.query()
             token_query = token_query.filter(Token.client_id == client_id)
             token_query = token_query.filter(Token.user_key == user_key)

@@ -2,6 +2,7 @@ import fix_path  # noqa
 
 from cStringIO import StringIO
 import datetime
+import logging
 import re
 import random
 import string
@@ -432,6 +433,11 @@ class Server(ndb.Model):
         self, status=None, last_ping=None, server_day=None, server_time=None, is_raining=None, is_thundering=None,
         num_overloads=None, ms_behind=None, skipped_ticks=None, address=None, timestamp=None, completed=None
     ):
+        logging.info(
+            "Updating Status (current: {0}, queued: {1}, new: {2}, completed: {3}".format(
+                self.status, self.queued, status, completed
+            )
+        )
         changed = False
         now = datetime.datetime.utcnow()
         timeout = now - datetime.timedelta(minutes=5)
@@ -524,6 +530,11 @@ class Server(ndb.Model):
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
+            logging.info(
+                "Changed Status (status: {0}, queued: {1}".format(
+                    self.status, self.queued
+                )
+            )
             # Email admins
             send_email = previous_status != status
             if status in [
