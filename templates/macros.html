@@ -68,6 +68,9 @@
             {% set status = 'queued' %}
             {% set status_text = 'Prologue...' %}
             {% set completed = server.completed %}
+            {% if completed != None %}
+                {% set status_text = 'Remember...' %}
+            {% endif %}
         {% elif server.is_queued_restart %}
             {% set status = 'queued' %}
             {% set status_text = 'Resolution...' %}
@@ -75,6 +78,9 @@
             {% set status = 'queued' %}
             {% set status_text = 'Epilogue...' %}
             {% set completed = server.completed %}
+            {% if completed != None %}
+                {% set status_text = 'Memorize...' %}
+            {% endif %}
        {% endif %}
     {% endif %}
     <div class="title box wrap">

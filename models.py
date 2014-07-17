@@ -453,6 +453,7 @@ class Server(ndb.Model):
                 self.completed = completed
             if status == SERVER_SAVED:
                 status = SERVER_HAS_STOPPED
+                self.completed = None
                 self.queued = None
             changed = True
         elif status is not None and self.queued is not None:
