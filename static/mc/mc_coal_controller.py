@@ -131,7 +131,7 @@ class ControllerClient(object):
             }
             self.post("/api/v1/controllers/event", params=params)
         except Exception as e:
-            logger.error("Error ({0}) calling event API: {1}".format(str(e), e.response.raw))
+            logger.error("Error ({0}) calling event API: {1}".format(str(e), e.response.text))
 
 
 def init_external_ip():
