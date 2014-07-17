@@ -233,7 +233,7 @@ class EventHandler(JsonHandler):
                     else:
                         status = SERVER_SAVED
                 if status:
-                    server.update_status(status=status)
+                    server.update_status(status=status, completed=completed)
         response = {}
         self.json_response(response, status_code=200)
 

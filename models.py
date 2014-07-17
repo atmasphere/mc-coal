@@ -434,7 +434,7 @@ class Server(ndb.Model):
         num_overloads=None, ms_behind=None, skipped_ticks=None, address=None, timestamp=None, completed=None
     ):
         logging.info(
-            "Updating Status (current: {0}, queued: {1}, new: {2}, completed: {3}".format(
+            "Updating Status (current: {0}, queued: {1}, new: {2}, completed: {3})".format(
                 self.status, self.queued, status, completed
             )
         )
@@ -522,19 +522,24 @@ class Server(ndb.Model):
                 PlaySession.close_all_current(self.key, now)
         # Put server changes
         if changed:
+            logging.info(
+                "Changed Status (previous: {0}, new: {1}, queued: {2})".format(
+                    self.status, status, self.queued
+                )
+            )
             if status == SERVER_HAS_STARTED:
                 status = SERVER_RUNNING
             elif status == SERVER_HAS_STOPPED:
                 status = SERVER_STOPPED
+            logging.info(
+                "Actual Changed Status (previous: {0}, new: {1}, queued: {2})".format(
+                    self.status, status, self.queued
+                )
+            )
             self.status = status
             if last_ping is not None:
                 self.last_ping = last_ping
             self.put()
-            logging.info(
-                "Changed Status (status: {0}, queued: {1}".format(
-                    self.status, self.queued
-                )
-            )
             # Email admins
             send_email = previous_status != status
             if status in [
