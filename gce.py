@@ -129,7 +129,7 @@ class Instance(ndb.Model):
                         'value': self.name
                     },
                     {
-                        'key': 'client_id',
+                        'key': 'client-id',
                         'value': client.client_id
                     },
                     {

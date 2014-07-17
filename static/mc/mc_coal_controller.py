@@ -342,7 +342,7 @@ def load_zip_from_gcs(server_key):
                 try:
                     status, done = media.next_chunk()
                     tries = 0
-                    progress = int(status.progress() * 100)
+                    progress = int(status.progress() * 100) if status is not None else 0
                     if done:  # Done
                         retry = False
                         progress = 100
@@ -541,7 +541,7 @@ def upload_zip_to_gcs(server_key, archive_file, backup=False):
             try:
                 status, response = request.next_chunk()
                 tries = 0
-                progress = int(status.progress() * 100)
+                progress = int(status.progress() * 100) if status is not None else 0
                 if response is not None:  # Done
                     retry = False
                     progress = 100
