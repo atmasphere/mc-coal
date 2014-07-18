@@ -3,7 +3,6 @@
 import base64
 import datetime
 import errno
-import httplib
 import fnmatch
 import json
 import logging
@@ -356,7 +355,7 @@ def load_zip_from_gcs(server_key):
                         if tries > NUM_RETRIES:
                             os.remove(archive)
                             return False
-                        sleeptime = 2**tries
+                        sleeptime = 2**max(5, tries)
                         logger.error(
                             "Error ({0}) downloading archive for server {1}. Sleeping {2} seconds.".format(
                                 str(e), server_key, sleeptime
@@ -534,7 +533,7 @@ def upload_zip_to_gcs(server_key, archive_file, backup=False):
         if not media.mimetype():
             media = MediaFileUpload(archive_file, 'application/zip', resumable=True)
         request = service.objects().insert(bucket=app_bucket, name=name, media_body=media)
-        progress = 0
+        progress = previous_progress = None
         tries = 0
         response = None
         while response is None:
@@ -545,8 +544,10 @@ def upload_zip_to_gcs(server_key, archive_file, backup=False):
                 if response is not None:  # Done
                     retry = False
                     progress = 100
-                if not backup:
-                    client.post_event(server_key, STOP_EVENT, progress)
+                if progress != previous_progress:
+                    if not backup:
+                        client.post_event(server_key, STOP_EVENT, progress)
+                previous_progress = progress
             except HttpError as e:
                 if e.resp.status in [404]:  # Start upload all over again
                     response = None
