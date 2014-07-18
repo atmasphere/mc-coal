@@ -723,12 +723,13 @@ class OAuthError(Unauthorized):
 
 class ResourceAuthorization(object):
     """A class containing an OAuth 2.0 authorization."""
-    is_oauth = False
-    is_valid = None
-    token = None
-    client_id = None
-    expires_in = None
-    error = None
+    def __init__(self):
+        self.is_oauth = False
+        self.is_valid = None
+        self.token = None
+        self.client_id = None
+        self.expires_in = None
+        self.error = None
 
     def raise_error_if_invalid(self):
         if not self.is_valid:
@@ -758,7 +759,8 @@ class ResourceProvider(Provider):
 
     def get_authorization(self):
         """Get authorization object representing status of authentication."""
-        auth = self.authorization_class()
+        auth_class = self.authorization_class
+        auth = auth_class()
         header = self.get_authorization_header()
         if not header or not header.split:
             return auth

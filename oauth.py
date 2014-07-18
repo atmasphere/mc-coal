@@ -381,7 +381,9 @@ authorization_provider = COALAuthorizationProvider()
 
 
 class COALResourceAuthorization(ResourceAuthorization):
-    user_key = None
+    def __init__(self, *args, **kwargs):
+        super(COALResourceAuthorization, self).__init__(*args, **kwargs)
+        self.user_key = None
 
 
 class COALResourceProvider(ResourceProvider):
