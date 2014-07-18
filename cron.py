@@ -22,7 +22,7 @@ class ServerStatusHandler(webapp2.RequestHandler):
                     server.idle = datetime.datetime.utcnow()
                     server.put()
                 server.stop_if_idle()
-                if server.is_running or server.is_queued_start:
+                if server.is_queued or server.is_running:
                     gce_server_running = True
                     if instance.idle:
                         instance.idle = None
