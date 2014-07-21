@@ -182,6 +182,14 @@ def get_gcs_archive_name(server_key):
     return 'worlds/{0}.zip'.format(server_key)
 
 
+def get_archives():
+    _, _, archive_files = os.walk(SERVERS_DIR).next()
+    archives = [
+        (os.path.splitext(archive_file)[0], os.path.join(ARCHIVES_DIR, archive_file)) for archive_file in archive_files if fnmatch.fnmatch(archive_file, '*.zip')
+    ]
+    return archives
+
+
 def read_server_key(port):
     server_key = None
     server_key_filename = os.path.join(SERVERS_DIR, str(port), SERVER_KEY_FILENAME)
@@ -763,7 +771,12 @@ def main(argv):
                 finally:
                     delete_tasks(service, completed_tasks)
             else:
-                time.sleep(10.0)
+                archives = get_archives()
+                if archives:
+                    server_key, archive_file = archives[0]
+                    upload_zip_to_gcs(server_key, archive_file, backup=True)
+                else:
+                    time.sleep(10.0)
     except KeyboardInterrupt:
         logger.info(u"Canceled")
     except SystemExit:
