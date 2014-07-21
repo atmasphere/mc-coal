@@ -184,7 +184,7 @@ class ServerCreateHandler(UserHandler):
                 server = Server.create(name=form.name.data, is_gce=False)
                 if not set_form_short_name(server, form):
                     message = "Short name '{0}' is already assigned to another server".format(form.short_name.data)
-                    self.session.add_flash(message, level='warning')
+                    self.session.add_flash(message, level='warn')
                 self.redirect(webapp2.uri_for('home', server_key=server.url_key))
         except Exception, e:
             logging.error(u"Error POSTing server: {0}".format(e))
@@ -373,7 +373,7 @@ class ServerCreateGceHandler(UserHandler):
                 mc_properties.put()
                 if not set_form_short_name(server, form):
                     message = "Short name '{0}' is already assigned to another server".format(form.short_name.data)
-                    self.session.add_flash(message, level='warning')
+                    self.session.add_flash(message, level='warn')
                 self.redirect(webapp2.uri_for('home', server_key=server.url_key))
         except Exception, e:
             logging.error(u"Error POSTing GCE server: {0}".format(e))

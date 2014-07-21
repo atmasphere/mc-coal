@@ -41,11 +41,16 @@ class MainPagingHandler(MainHandlerBase, PagingHandler):
     pass
 
 
+class UserEmailForm(form.Form):
+    email = fields.StringField(u'Contact Email', validators=[validators.Email(message=u'Invalid email address.')])
+
+
 class MainHandler(MainHandlerBase):
     def get(self):
         context = {'title': coal_config.TITLE, 'description': coal_config.DESCRIPTION}
-        if self.user:
-            if self.user.active:
+        user = self.user
+        if user:
+            if user.active:
                 servers = Server.query_all().fetch(100)
                 if servers and len(servers) == 1:
                     self.redirect(webapp2.uri_for('home', server_key=servers[0].url_key))
@@ -55,11 +60,28 @@ class MainHandler(MainHandlerBase):
                 }
                 self.render_template('main.html', context=context)
             else:
-                message = u'Inactive Account'
-                self.session.add_flash(message, level='error')
+                form = UserEmailForm(obj=user)
+                context['form'] = form
                 self.render_template('main_inactive.html', context=context)
         else:
             self.render_template('main_unauth.html', context=context)
+
+    def post(self):
+        user = self.user
+        if user and not user.active:
+            form = UserEmailForm(self.request.POST, user)
+            if form.validate():
+                user.email = form.email.data
+                user.put()
+                self.redirect(webapp2.uri_for('main'))
+            context = {
+                'title': coal_config.TITLE,
+                'description': coal_config.DESCRIPTION,
+                'form': form
+            }
+            self.render_template('main_inactive.html', context=context)
+        else:
+            self.redirect(webapp2.uri_for('main'))
 
 
 class HomeHandler(MainHandlerBase):
@@ -122,9 +144,7 @@ class ChatsHandler(MainPagingHandler):
             results, previous_cursor, next_cursor = self.get_results_with_cursors(
                 LogLine.query_latest_events(server.key), LogLine.query_oldest_events(server.key), RESULTS_PER_PAGE
             )
-
         context = {'chats': results, 'query_string': query_string or ''}
-
         if self.request.is_xhr:
             self.render_xhr_response(server.key, context, next_cursor)
         else:

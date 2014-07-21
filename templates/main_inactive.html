@@ -11,6 +11,12 @@
     <br/>
     <div class="box">
         <p>You have successfully registered/logged in but your account has not yet been activated by an administrator. An email was sent to the admins when you registered by logging in for the first time.</p>
+        <p>Please verify/set your email address so that the administrators can contact you if they have questions before activating your account.</p>
+        <form action="{{ uri_for('main') }}" method="post">
+            <label>Contact Email</label>
+            {{ macros.with_errors(form.email, size="50") }}
+            <p><button type="submit" class="btn btn-primary">Save</button></p>
+        </form>
         <h1><a href="{{ uri_for('logout') }}">Logout</a></h1>
     </div>
 {% endblock %}
