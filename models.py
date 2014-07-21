@@ -445,19 +445,17 @@ class Server(ndb.Model):
         # Set queued datetime
         if status in [SERVER_QUEUED_START, SERVER_QUEUED_RESTART, SERVER_QUEUED_STOP]:
             self.queued = datetime.datetime.utcnow()
-            if self.idle:
-                self.idle = None
+            self.idle = None
             changed = True
         elif status in [SERVER_LOADING, SERVER_LOADED, SERVER_SAVING, SERVER_SAVED]:
             if completed is not None:
                 self.completed = completed
                 self.queued = datetime.datetime.utcnow()
-                if self.idle:
-                    self.idle = None
+                self.idle = None
             if status == SERVER_SAVED:
                 status = SERVER_HAS_STOPPED
                 self.completed = None
-                self.queued = None
+                self.queued = datetime.datetime.utcnow()
             changed = True
         elif status is not None and self.queued is not None:
             # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually
@@ -479,6 +477,7 @@ class Server(ndb.Model):
                     status = SERVER_UNKNOWN
             elif self.queued < timeout:
                 self.queued = None
+                self.completed = None
                 status = SERVER_UNKNOWN
         if status != previous_status:
             changed = True
