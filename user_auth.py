@@ -283,8 +283,11 @@ class MojangUserHandler(AuthHandler):
             try:
                 u, uuid, access_token = mojang_authentication(username, password)
                 if u:
+                    email = None
+                    if '@' in username:
+                        email = username
                     auth_id = User.get_mojang_auth_id(uuid=uuid)
-                    self.login_auth_id(auth_id, nickname=u, username=u)
+                    self.login_auth_id(auth_id, nickname=u, username=u, email=email)
                     self.redirect(next_url)
                     return
             except MojangException as me:
