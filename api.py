@@ -780,7 +780,10 @@ class ChatHandler(MultiPageServerModelHandler):
             username = player.username
             if username not in self.request.user.usernames:
                 self.abort(403)
-        chat = u"/say {0}".format(self.request.form.chat.data)
+        if username:
+            chat = u"/say <{0}> {1}".format(username, self.request.form.chat.data)
+        else:
+            chat = u"/say {0}".format(self.request.form.chat.data)
         Command.push(server_key, username, chat)
         self.response.set_status(202)
 
