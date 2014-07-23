@@ -241,6 +241,18 @@ class User(auth_models.User):
         return cls.query().filter(cls.admin == True).count(keys_only=True, limit=2) < 2  # noqa
 
     @classmethod
+    def send_admin_email(cls, subject, body, admin=None):
+        admins = [admin] if admin else cls.query_admin()
+        for admin in admins:
+            if admin.email:
+                mail.send_mail(
+                    sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
+                    to=admin.email,
+                    subject=subject,
+                    body=body
+                )
+
+    @classmethod
     def query_all(cls):
         return cls.query().order(cls.created)
 
@@ -554,19 +566,14 @@ class Server(ndb.Model):
                 send_email = False
             if send_email:
                 for admin in User.query_admin():
-                    if admin.email:
-                        body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
-                            self.name,
-                            status,
-                            datetime_filter(datetime.datetime.utcnow(), timezone=admin.timezone),
-                            datetime_filter(self.last_ping, timezone=admin.timezone) if self.last_ping else 'NEVER'
-                        )
-                        mail.send_mail(
-                            sender='noreply@{0}.appspotmail.com'.format(app_identity.get_application_id()),
-                            to=admin.email,
-                            subject="{0} server status is {1}".format(self.name, status),
-                            body=body
-                        )
+                    subject = "{0} server status is {1}".format(self.name, status)
+                    body = 'The {0} server status is {1} as of {2}.\n\nThe last agent ping was on {3}'.format(
+                        self.name,
+                        status,
+                        datetime_filter(datetime.datetime.utcnow(), timezone=admin.timezone),
+                        datetime_filter(self.last_ping, timezone=admin.timezone) if self.last_ping else 'NEVER'
+                    )
+                    User.send_admin_email(subject, body, admin=admin)
 
     def deactivate(self):
         if self.is_running:
