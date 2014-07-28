@@ -1,0 +1,2 @@
+Unless otherwise noted in OTHER_LICENSES.txt, all project contents are
+Copyright 2014 Thomas Bohmbach, Jr.
