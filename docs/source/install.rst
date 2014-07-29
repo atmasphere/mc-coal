@@ -7,16 +7,21 @@ Prerequisites
 -------------
 
 * A free `Google Cloud Platform <https://cloud.google.com/>`_ account.
+* Optional But Recommended: A free `Github <https://github.com/>`_ account.
 
 -------------------------
 Deploy and Configure COAL
 -------------------------
 1. `Create a Google Cloud Project <https://cloud.google.com/console/project>`_ for your new COAL installation. Take note of the Project ID you select (e.g. `[my-project-id]`).
 2. Optionally, in ``Settings``, enable billing. COAL should be able to run comfortably under the daily free App Engine quota for most relatively small, lightly-populated worlds.
-3. Clone, fork, or download the `MC COAL code repository <https://github.com/mc-coal/mc-coal>`_. Make sure any new clone or fork is a private repository as it will contain sensitive information (like the ``COAL_SECRET_KEY``).
+3. `Fork <https://help.github.com/articles/fork-a-repo>`_, clone, or download the `MC COAL code repository <https://github.com/mc-coal/mc-coal>`_. Make sure any new fork or clone is a private repository as it will contain sensitive information (like the ``COAL_SECRET_KEY``).
+
+  .. note:: The master/trunk of the `MC COAL code repository <https://github.com/mc-coal/mc-coal>`_ will always contain the latest tagged, stable release. Ongoing (potentially unstable) development will be done on branches.
+
 4. Change the application name (i.e. ``mc-coal``) in the first line of `app.yaml <app.yaml>`_ to the Project ID you created above.
 5. Change the ``COAL_SECRET_KEY`` value in `appengine_config.py <appengine_config.py>`_ to a unique random value. You can use this `random.org link <http://www.random.org/strings/?num=1&len=20&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new>`_ to generate a unique string value.
 6. Complete the sub-steps below if you intend to host worlds on Google Compute Engine:
+
   a. In ``Settings`` enable billing if you haven't already. There is no daily free Google Compute Engine quota.
   b. In ``APIs``, make sure that ``Google Compute Engine``, ``Google Cloud Storage`` and ``Google Cloud Storage JSON API`` are ``ON``.
   c. In ``Permissions`` make note of the Google Compute Engine service account email address. This should be of the form ``[project number]@developer.gserviceaccount.com`` or ``[project number]@project.gserviceaccount.com``. Also, make sure there is an entry for ``[my-project-id]@appspot.gserviceaccount.com``. If it isn't there, add it as a owner member.
@@ -34,14 +39,26 @@ Deploy and Configure COAL
         - user_email: 1234567890@developer.gserviceaccount.com
 
 7. Deploy your modified code in either of two ways:
-  * Use the `App Engine python developer tools <https://developers.google.com/appengine/docs/python/tools/uploadinganapp>`_
-  * Use the new `Push-to-deploy <https://developers.google.com/appengine/docs/push-to-deploy>`_
 
-    .. note:: Due to a `bug in Google's push-to-deploy feature <https://code.google.com/p/googleappengine/issues/detail?id=10139>`_, if you are planning on hosting your worlds on Google Compute Engine you must also update your application's task queue configuration by using the App Engine developer tool ``appcfg``. See `The Development Environment <https://developers.google.com/appengine/docs/python/gettingstartedpython27/devenvironment>`_ for information on how to download and install the developer tools and `Updating Task Queue Configuration <https://developers.google.com/appengine/docs/python/tools/uploadinganapp#Python_Updating_Task_Queue_configuration>`_ for information on running ``appcfg`` to update the configuration.
+  * Use the `Push-to-Deploy Release Pipeline <https://developers.google.com/cloud/devtools/repo/push-to-deploy>`_ to deploy automatically from your github repository.
 
-8. Browse to your COAL administrator page at ``https://[my-project-id].appspot.com/admin``.
+    a. Finish the steps under `Setting up a Release Pipeline <https://developers.google.com/cloud/devtools/repo/push-to-deploy#setting_up_a_release_pipeline>`_
 
-  .. warning:: For bootstrapping purposes, the first user to request this page is made an administrator, so make sure to do this right away.
+    .. note:: You do not have to complete Step 1 (install Git on your local system) if you intend to deploy only from a Github-hosted fork of the `MC COAL code repository <https://github.com/mc-coal/mc-coal>`_.
+
+    b. Click the "Connect to a repository hosted on Github" button.
+    c. After authenticating with github, choose the clone or fork of the repository you created in step 3 above.
+    d. Choose the "Deploy Source Only" option.
+    e. Optionally enter your email address to receive status updates for your deployments.
+    f. Make a change to any file in your repository (for instance, add a blank line or comment to `appengine_config.py <appengine_config.py>`_) and save/push the change. This should cause google to initiate a deploy. If you entered your email address when setting up the Release Pipeline you should get an email when the deploy completes.
+
+  * If you are familiar with `Google Cloud Platform <https://cloud.google.com/>`_ python development, feel free to use the `App Engine python developer tools <https://developers.google.com/appengine/docs/python/tools/uploadinganapp>`_
+
+8. After the deployment has completed, browse to your COAL administrator page at ``https://[my-project-id].appspot.com/admin``.
+
+  .. note:: It may take a few minutes after an initial successful deployment for database indexes to build. If you get a 500 error response when browing your COAL site right after deployment, you might have to wait a few minutes for the indexes to finish building.
+
+  .. warning:: For bootstrapping purposes, the first user to request this page is made an administrator, so make sure to do this as soon as possible.
 
 =============
 World Hosting
@@ -53,9 +70,20 @@ Next, you'll set up your minecraft world(s). There are two options: let your COA
 Hosting Worlds On Google Compute Engine
 ----------------------------------------
 
-1. Create a new server by clicking your COAL ``Admin/Create GCE-Hosted World`` link to set up a new world and then hit the play button to start the server. This can take a few minutes if a GCE instance has to be started up for the first time.
-2. When the world status is "Playing" the IP address of the server will be shown. Use this IP address to connect your minecraft client to the new world.
-3. Play! No additional infrastructure set up needed.
+1. Define a new minecraft version by clicking your COAL ``Admin/Define New Minecraft Version/URL``.
+
+  a. Enter a version name (i.e. ``1.7.10``) and the URL where the Minecraft Server JAR for that version can be downloaded (i.e. ``https://s3.amazonaws.com/Minecraft.Download/versions/1.7.10/minecraft_server.1.7.10.jar``). A list of all available versions and server JAR download links is available at `mcversions.net <https://mcversions.net/>`_.
+
+  .. note:: MC-COAL has been tested with versions as far back as 1.4.7.
+
+2. Create a new server by clicking your COAL ``Admin/Create GCE-Hosted World`` link to set up a new world and then hit the play button to start the server. This can take a few minutes if a GCE instance has to be started up for the first time.
+3. When the world status is "Playing" the IP address of the server will be shown. Use this IP address to connect your minecraft client to the new world.
+4. Play! No additional infrastructure set up needed.
+5. Additional administrator settings are available by clicking your COAL ``Admin/Configure``.  Here you can modify settings such as the type of machine instance to use (which determines the speed of the CPU and amount of memory available), the size of the disk (larger disks are faster), the number of saved game versions to keep in the cloud, and whether to use a static IP address.
+
+  .. note:: Changes made on the Admin Configuration page won't be live until a new GCE instance is started. To shut down the currently running instance, click the "Kill Instance" button on the ``Admin`` page. To start a new instance, hit "Play" for one of your worlds.
+
+  .. warning:: Make sure all worlds are paused before killing the instance. Failure to do so may result in corrupted world files. Note that large worlds can take a few minutes to shutdown and save.
 
 -------------------------------
 Hosting Worlds On Other Servers
