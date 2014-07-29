@@ -70,16 +70,14 @@ Next, you'll set up your minecraft world(s). There are two options: let your COA
 Hosting Worlds On Google Compute Engine
 ----------------------------------------
 
-1. Define a new minecraft version by clicking your COAL ``Admin/Define New Minecraft Version/URL``.
+1. Define a new minecraft version in ``Admin/Define New Minecraft Version/URL``. Enter a version name (i.e. ``1.7.10``) and the URL where the Minecraft Server JAR for that version can be downloaded (i.e. ``https://s3.amazonaws.com/Minecraft.Download/versions/1.7.10/minecraft_server.1.7.10.jar``).
 
-  a. Enter a version name (i.e. ``1.7.10``) and the URL where the Minecraft Server JAR for that version can be downloaded (i.e. ``https://s3.amazonaws.com/Minecraft.Download/versions/1.7.10/minecraft_server.1.7.10.jar``). A list of all available versions and server JAR download links is available at `mcversions.net <https://mcversions.net/>`_.
+  .. note:: A list of all available versions and server JAR download links is available at `mcversions.net <https://mcversions.net/>`_. COAL has been tested with versions as far back as 1.4.7.
 
-  .. note:: MC-COAL has been tested with versions as far back as 1.4.7.
-
-2. Create a new server by clicking your COAL ``Admin/Create GCE-Hosted World`` link to set up a new world and then hit the play button to start the server. This can take a few minutes if a GCE instance has to be started up for the first time.
+2. Create a new server in ``Admin/Create GCE-Hosted World``. Then hit the play button to start the server. This can take a few minutes if a GCE instance has to be started up for the first time.
 3. When the world status is "Playing" the IP address of the server will be shown. Use this IP address to connect your minecraft client to the new world.
 4. Play! No additional infrastructure set up needed.
-5. Additional administrator settings are available by clicking your COAL ``Admin/Configure``.  Here you can modify settings such as the type of machine instance to use (which determines the speed of the CPU and amount of memory available), the size of the disk (larger disks are faster), the number of saved game versions to keep in the cloud, and whether to use a static IP address.
+5. Additional administrator settings are available in ``Admin/Configure``.  Here you can modify settings such as the type of machine instance to use (which determines the speed of the CPU and amount of memory available), the size of the disk (larger disks are faster), the number of saved game versions to keep in the cloud, and whether to use a static IP address.
 
   .. note:: Changes made on the Admin Configuration page won't be live until a new GCE instance is started. To shut down the currently running instance, click the "Kill Instance" button on the ``Admin`` page. To start a new instance, hit "Play" for one of your worlds.
 
