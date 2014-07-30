@@ -258,8 +258,16 @@ def mojang_authentication(username, password):
     data = json.loads(result.content)
     access_token = data.get('accessToken', None)
     if access_token:
-        uuid = data['selectedProfile']['id']
-        u = data['selectedProfile']['name']
+        selectedProfile = data.get('selectedProfile', None)
+        if selectedProfile:
+            uuid = selectedProfile['id']
+            u = selectedProfile['name']
+        else:
+            availableProfiles = data.get('availableProfiles', None)
+            if availableProfiles:
+                selectedProfile = availableProfiles[0]
+                uuid = selectedProfile['id']
+                u = selectedProfile['name']
     else:
         message = data.get('errorMessage', None)
         if message:
