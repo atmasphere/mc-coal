@@ -50,7 +50,7 @@ Deploy and Configure COAL
     c. After authenticating with github, choose the clone or fork of the repository you created in step 3 above.
     d. Choose the "Deploy Source Only" option.
     e. Optionally enter your email address to receive status updates for your deployments.
-    f. Make a change to any file in your repository (for instance, add a blank line or comment to `appengine_config.py <appengine_config.py>`_) and save/push the change. This should cause google to initiate a deploy. If you entered your email address when setting up the Release Pipeline you should get an email when the deploy completes.
+    f. Make a change to any file in your repository (for instance, add a blank line or comment to `appengine_config.py <appengine_config.py>`_) and save/push the change. This should initiate a deploy. If you entered your email address when setting up the Release Pipeline you should get an email when the deploy completes.
 
   * If you are familiar with `Google Cloud Platform <https://cloud.google.com/>`_ python development, feel free to use the `App Engine python developer tools <https://developers.google.com/appengine/docs/python/tools/uploadinganapp>`_
 

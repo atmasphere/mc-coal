@@ -1,7 +1,10 @@
+import logging
 import os
 
 import webapp2
 from webapp2_extras import jinja2
+
+from webob.exc import HTTPFound
 
 from filters import FILTERS
 
@@ -46,3 +49,12 @@ class JinjaHandler(webapp2.RequestHandler):
     def render_template(self, filename, context={}):
         context = self.get_template_context(context)
         self.response.write(self.jinja2.render_template(filename, **context))
+
+    def handle_exception(self, exception, debug):
+        if not isinstance(exception, HTTPFound):
+            logging.exception(exception)
+            self.response.write('An error occurred.')
+        if isinstance(exception, webapp2.HTTPException) or isinstance(exception, webapp2.HTTPFound):
+            self.response.set_status(exception.code)
+        else:
+            self.response.set_status(500)
