@@ -54,7 +54,7 @@ class JinjaHandler(webapp2.RequestHandler):
         if not isinstance(exception, HTTPFound):
             logging.exception(exception)
             self.response.write('An error occurred.')
-        if isinstance(exception, webapp2.HTTPException) or isinstance(exception, webapp2.HTTPFound):
+        if isinstance(exception, webapp2.HTTPException) or isinstance(exception, HTTPFound):
             self.response.set_status(exception.code)
         else:
             self.response.set_status(500)

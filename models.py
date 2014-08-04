@@ -472,8 +472,8 @@ class Server(ndb.Model):
         elif status is not None and self.queued is not None:
             # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually
             if (
-                (previous_status in [SERVER_QUEUED_START, SERVER_LOADING, SERVER_LOADED] and status != SERVER_HAS_STARTED) or  # noqa
-                (previous_status == SERVER_QUEUED_RESTART and status != SERVER_HAS_STARTED) or
+                (previous_status in [SERVER_QUEUED_START, SERVER_LOADING, SERVER_LOADED] and status != SERVER_HAS_STARTED and status != SERVER_RUNNING) or  # noqa
+                (previous_status == SERVER_QUEUED_RESTART and status != SERVER_HAS_STARTED and status != SERVER_RUNNING) or  # noqa
                 (previous_status in [SERVER_QUEUED_STOP, SERVER_SAVING] and (status != SERVER_HAS_STOPPED or self.is_gce))  # noqa
             ):
                 status = previous_status
