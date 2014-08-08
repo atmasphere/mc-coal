@@ -10,7 +10,7 @@ from google.appengine.ext import ndb
 from base_test import BaseTest
 from web_test import WebTest
 
-from oauth import Client, Token, coal_config
+from oauth import Client, Token, oauth_config
 import main
 import models
 
@@ -799,8 +799,8 @@ class TestHandlerTest(OauthTest):
         self.assertUnauthorized(response)
 
     def test_expired_token(self):
-        coal_config.OAUTH_TOKEN_EXPIRES_IN = 0
+        oauth_config.OAUTH_TOKEN_EXPIRES_IN = 0
         access_token, refresh_token = self.get_tokens()
         response = self.get(self.url, bearer_token=access_token)
-        coal_config._update_configs()
+        oauth_config._update_configs()
         self.assertUnauthorized(response)

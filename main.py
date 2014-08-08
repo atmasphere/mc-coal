@@ -47,7 +47,7 @@ class UserEmailForm(form.Form):
 
 class MainHandler(MainHandlerBase):
     def get(self):
-        context = {'title': coal_config.TITLE, 'description': coal_config.DESCRIPTION}
+        context = {'title': main_config.TITLE, 'description': main_config.DESCRIPTION}
         user = self.user
         if user:
             if user.active:
@@ -75,8 +75,8 @@ class MainHandler(MainHandlerBase):
                 user.put()
                 self.redirect(webapp2.uri_for('main'))
             context = {
-                'title': coal_config.TITLE,
-                'description': coal_config.DESCRIPTION,
+                'title': main_config.TITLE,
+                'description': main_config.DESCRIPTION,
                 'form': form
             }
             self.render_template('main_inactive.html', context=context)
@@ -422,7 +422,7 @@ class UsernameClaimHandler(MainHandlerBase):
         self.redirect(next_url)
 
 
-coal_config = lib_config.register('COAL', {
+main_config = lib_config.register('main', {
     'SECRET_KEY': 'a_secret_string',
     'COOKIE_MAX_AGE': 2592000,
     'TITLE': 'An MC-COAL Installation',
@@ -462,10 +462,10 @@ application = webapp2.WSGIApplication(
     ],
     config={
         'webapp2_extras.sessions': {
-            'secret_key': coal_config.SECRET_KEY,
-            'cookie_args': {'max_age': coal_config.COOKIE_MAX_AGE}
+            'secret_key': main_config.SECRET_KEY,
+            'cookie_args': {'max_age': main_config.COOKIE_MAX_AGE}
         },
-        'webapp2_extras.auth': {'user_model': 'models.User', 'token_max_age': coal_config.COOKIE_MAX_AGE}
+        'webapp2_extras.auth': {'user_model': 'models.User', 'token_max_age': main_config.COOKIE_MAX_AGE}
     },
     debug=not ON_SERVER
 )

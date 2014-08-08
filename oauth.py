@@ -19,9 +19,8 @@ from wtforms.ext.csrf.session import SessionSecureForm
 from user_auth import UserHandler, authentication_required, authenticate
 
 
-coal_config = lib_config.register('COAL', {
+oauth_config = lib_config.register('oauth', {
     'SECRET_KEY': 'a_secret_string',
-    'COOKIE_MAX_AGE': 2592000,
     'OAUTH_TOKEN_EXPIRES_IN': 3600
 })
 
@@ -160,7 +159,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
 
     @property
     def token_expires_in(self):
-        return coal_config.OAUTH_TOKEN_EXPIRES_IN
+        return oauth_config.OAUTH_TOKEN_EXPIRES_IN
 
     def generate_client_id(self, client_id=None):
         """Generate a unique client_id based on the given client_id, if any.
@@ -244,7 +243,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
         if key.get() is not None:
             raise Exception("duplicate_authorization_code")
         scope = scope.split() if scope else ['data']
-        auth_code = AuthorizationCode(key=key, code=code, client_id=client_id, scope=scope, user_key=user.key, expires_in=coal_config.OAUTH_TOKEN_EXPIRES_IN)  # noqa
+        auth_code = AuthorizationCode(key=key, code=code, client_id=client_id, scope=scope, user_key=user.key, expires_in=oauth_config.OAUTH_TOKEN_EXPIRES_IN)  # noqa
         auth_code.put()
 
     def persist_token_information(self, client_id, scope, access_token, token_type, expires_in, refresh_token, data):
@@ -423,7 +422,7 @@ controller_resource_provider = COALControllerResourceProvider()
 
 
 class BaseSecureForm(SessionSecureForm):
-    SECRET_KEY = coal_config.SECRET_KEY
+    SECRET_KEY = oauth_config.SECRET_KEY
     TIME_LIMIT = datetime.timedelta(minutes=20)
 
 

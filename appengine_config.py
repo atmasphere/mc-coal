@@ -1,7 +1,14 @@
-# COAL Configuration
+# main config
 
-COAL_SECRET_KEY = 'a_secret_string'
+main_SECRET_KEY = 'a_secret_string'
 
-COAL_TITLE = 'My MC-COAL Installation'
+main_TITLE = 'My COAL Installation'
 
-COAL_DESCRIPTION = 'This is my MC-COAL installation. There are many like it, but this one is mine.'
+main_DESCRIPTION = 'This is my COAL installation. There are many like it, but this one is mine.'
+
+
+# oauth config
+
+oauth_SECRET_KEY = main_SECRET_KEY  # Can optionally be a different secret string
+
+oauth_OAUTH_TOKEN_EXPIRES_IN = 3600*24*30  # Thirty days

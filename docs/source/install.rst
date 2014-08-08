@@ -14,12 +14,17 @@ Deploy and Configure COAL
 -------------------------
 1. `Create a Google Cloud Project <https://cloud.google.com/console/project>`_ for your new COAL installation. Take note of the Project ID you select (e.g. `[my-project-id]`).
 2. Optionally, in ``Settings``, enable billing. COAL should be able to run comfortably under the daily free App Engine quota for most relatively small, lightly-populated worlds.
-3. `Fork <https://help.github.com/articles/fork-a-repo>`_, clone, or download the `MC COAL code repository <https://github.com/mc-coal/mc-coal>`_. Make sure any new fork or clone is a private repository as it will contain sensitive information (like the ``COAL_SECRET_KEY``).
+3. `Fork <https://help.github.com/articles/fork-a-repo>`_, clone, or download the `MC COAL code repository <https://github.com/mc-coal/mc-coal>`_. Make sure any new fork or clone is a private repository as it will contain sensitive information (like the ``main_SECRET_KEY``).
 
   .. note:: The master/trunk of the `MC COAL code repository <https://github.com/mc-coal/mc-coal>`_ will always contain the latest tagged, stable release. Ongoing (potentially unstable) development will be done on branches.
 
-4. Change the application name (i.e. ``mc-coal``) in the first line of `app.yaml <app.yaml>`_ to the Project ID you created above.
-5. Change the ``COAL_SECRET_KEY`` value in `appengine_config.py <appengine_config.py>`_ to a unique random value. You can use this `random.org link <http://www.random.org/strings/?num=1&len=20&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new>`_ to generate a unique string value.
+4. Change the application name (i.e. ``mc-coal``) in the first line of your repository's `app.yaml <app.yaml>`_ to the Project ID you created above.
+5. Update your installation settings in your repository's `appengine_config.py <appengine_config.py>`_ file:
+
+  a. Change the ``main_SECRET_KEY`` value to a unique random string. You can use this `random.org link <http://www.random.org/strings/?num=1&len=20&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new>`_ to generate a unique string value.
+  b. Change the ``main_TITLE`` and ``main_DESCRIPTION`` to strings that are appropriate for your COAL installation.
+  c. You do not have to change ``oauth_SECRET_KEY`` or ``oauth_OAUTH_TOKEN_EXPIRES_IN``. The defaults will work just fine.
+
 6. Complete the sub-steps below if you intend to host worlds on Google Compute Engine:
 
   a. In ``Settings`` enable billing if you haven't already. There is no daily free Google Compute Engine quota.
