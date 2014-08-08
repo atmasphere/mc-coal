@@ -21,7 +21,7 @@ from user_auth import UserHandler, authentication_required, authenticate
 
 oauth_config = lib_config.register('oauth', {
     'SECRET_KEY': 'a_secret_string',
-    'OAUTH_TOKEN_EXPIRES_IN': 3600
+    'TOKEN_EXPIRES_IN': 3600*24*30
 })
 
 
@@ -103,7 +103,9 @@ class AuthorizationCode(ndb.Model):
     user_key = ndb.KeyProperty()
     scope = ndb.StringProperty(repeated=True)
     expires_in = ndb.IntegerProperty(default=0)
-    expires = ndb.ComputedProperty(lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in else None)  # noqa
+    expires = ndb.ComputedProperty(
+        lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in else None
+    )
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -128,7 +130,9 @@ class Token(ndb.Model):
     scope = ndb.StringProperty(repeated=True)
     token_type = ndb.StringProperty()
     expires_in = ndb.IntegerProperty(default=0)
-    expires = ndb.ComputedProperty(lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in is not None else None)  # noqa
+    expires = ndb.ComputedProperty(
+        lambda self: self.created + datetime.timedelta(seconds=self.expires_in) if self.expires_in is not None else None
+    )
     created = ndb.DateTimeProperty(auto_now_add=True)
     updated = ndb.DateTimeProperty(auto_now=True)
 
@@ -159,7 +163,7 @@ class COALAuthorizationProvider(AuthorizationProvider):
 
     @property
     def token_expires_in(self):
-        return oauth_config.OAUTH_TOKEN_EXPIRES_IN
+        return oauth_config.TOKEN_EXPIRES_IN
 
     def generate_client_id(self, client_id=None):
         """Generate a unique client_id based on the given client_id, if any.
@@ -243,7 +247,10 @@ class COALAuthorizationProvider(AuthorizationProvider):
         if key.get() is not None:
             raise Exception("duplicate_authorization_code")
         scope = scope.split() if scope else ['data']
-        auth_code = AuthorizationCode(key=key, code=code, client_id=client_id, scope=scope, user_key=user.key, expires_in=oauth_config.OAUTH_TOKEN_EXPIRES_IN)  # noqa
+        auth_code = AuthorizationCode(
+            key=key, code=code, client_id=client_id, scope=scope,
+            user_key=user.key, expires_in=oauth_config.TOKEN_EXPIRES_IN
+        )
         auth_code.put()
 
     def persist_token_information(self, client_id, scope, access_token, token_type, expires_in, refresh_token, data):
@@ -254,7 +261,10 @@ class COALAuthorizationProvider(AuthorizationProvider):
             raise Exception("duplicate_refresh_token")
         scope = scope.split() if scope else ['data']
         user_key = getattr(data, 'user_key', None) if data is not None else None
-        token = Token(key=key, access_token=access_token, refresh_token=refresh_token, client_id=client_id, user_key=user_key, scope=scope, token_type=token_type, expires_in=expires_in)  # noqa
+        token = Token(
+            key=key, access_token=access_token, refresh_token=refresh_token, client_id=client_id,
+            user_key=user_key, scope=scope, token_type=token_type, expires_in=expires_in
+        )
         token.put()
 
     def discard_authorization_code(self, client_id, code):

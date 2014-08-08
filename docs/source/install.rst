@@ -23,7 +23,7 @@ Deploy and Configure COAL
 
   a. Change the ``main_SECRET_KEY`` value to a unique random string. You can use this `random.org link <http://www.random.org/strings/?num=1&len=20&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new>`_ to generate a unique string value.
   b. Change the ``main_TITLE`` and ``main_DESCRIPTION`` to strings that are appropriate for your COAL installation.
-  c. You do not have to change ``oauth_SECRET_KEY`` or ``oauth_OAUTH_TOKEN_EXPIRES_IN``. The defaults will work just fine.
+  c. You do not have to change ``oauth_SECRET_KEY`` or ``oauth_TOKEN_EXPIRES_IN``. The defaults will work just fine.
 
 6. Complete the sub-steps below if you intend to host worlds on Google Compute Engine:
 

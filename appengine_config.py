@@ -11,4 +11,4 @@ main_DESCRIPTION = 'This is my COAL installation. There are many like it, but th
 
 oauth_SECRET_KEY = main_SECRET_KEY  # Can optionally be a different secret string
 
-oauth_OAUTH_TOKEN_EXPIRES_IN = 3600*24*30  # Thirty days
+oauth_TOKEN_EXPIRES_IN = 3600*24*30  # Thirty days

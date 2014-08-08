@@ -799,7 +799,7 @@ class TestHandlerTest(OauthTest):
         self.assertUnauthorized(response)
 
     def test_expired_token(self):
-        oauth_config.OAUTH_TOKEN_EXPIRES_IN = 0
+        oauth_config.TOKEN_EXPIRES_IN = 0
         access_token, refresh_token = self.get_tokens()
         response = self.get(self.url, bearer_token=access_token)
         oauth_config._update_configs()
