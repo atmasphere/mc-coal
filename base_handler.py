@@ -51,10 +51,9 @@ class JinjaHandler(webapp2.RequestHandler):
         self.response.write(self.jinja2.render_template(filename, **context))
 
     def handle_exception(self, exception, debug):
-        if not isinstance(exception, HTTPFound):
-            logging.exception(exception)
-            self.response.write('An error occurred.')
         if isinstance(exception, webapp2.HTTPException) or isinstance(exception, HTTPFound):
             self.response.set_status(exception.code)
         else:
+            logging.exception(exception)
+            self.response.write('An error occurred.')
             self.response.set_status(500)
