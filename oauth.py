@@ -156,6 +156,10 @@ class Token(ndb.Model):
     def get_key(cls, access_token):
         return ndb.Key(cls, access_token)
 
+    @classmethod
+    def query_expired(cls, expires):
+        return cls.query().filter(cls.expires < expires)
+
 
 class COALAuthorizationProvider(AuthorizationProvider):
     def _handle_exception(self, exc):
