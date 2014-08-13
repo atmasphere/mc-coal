@@ -452,6 +452,7 @@ class Server(ndb.Model):
         )
         changed = False
         now = datetime.datetime.utcnow()
+        address = address or self.address
         timeout = now - datetime.timedelta(minutes=5)
         previous_status = self.status
         # Set queued datetime
@@ -459,43 +460,44 @@ class Server(ndb.Model):
             self.queued = datetime.datetime.utcnow()
             self.idle = None
             changed = True
-        elif status in [SERVER_LOADING, SERVER_LOADED, SERVER_SAVING, SERVER_SAVED]:
+        elif status in [SERVER_LOADING, SERVER_LOADED, SERVER_SAVING]:
             if completed is not None:
                 self.completed = completed
                 self.queued = datetime.datetime.utcnow()
                 self.idle = None
-            if status == SERVER_SAVED:
-                status = SERVER_HAS_STOPPED
-                self.completed = None
-                self.queued = datetime.datetime.utcnow()
-            changed = True
+                changed = True
         elif status is not None and self.queued is not None:
-            # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually
+            # Don't update status if status is not desired outcome of queued status, will go UNKNOWN eventually if something goes wrong  # noqa
             if (
-                (previous_status in [SERVER_QUEUED_START, SERVER_LOADING, SERVER_LOADED] and status != SERVER_HAS_STARTED and status != SERVER_RUNNING) or  # noqa
-                (previous_status == SERVER_QUEUED_RESTART and status != SERVER_HAS_STARTED and status != SERVER_RUNNING) or  # noqa
-                (previous_status in [SERVER_QUEUED_STOP, SERVER_SAVING] and (status != SERVER_HAS_STOPPED or self.is_gce))  # noqa
+                (previous_status in [SERVER_QUEUED_START, SERVER_LOADING, SERVER_LOADED] and status not in [SERVER_HAS_STARTED, SERVER_RUNNING]) or  # noqa
+                (previous_status == SERVER_QUEUED_RESTART and status not in [SERVER_HAS_STARTED, SERVER_RUNNING]) or  # noqa
+                (previous_status in [SERVER_QUEUED_STOP, SERVER_SAVING] and status is not SERVER_SAVED)
             ):
+                if status == SERVER_HAS_STOPPED:
+                    address = None
                 status = previous_status
             else:
                 self.completed = None
                 self.queued = None
+                self.idle = None
                 changed = True
-        # No status provided, check for timeout
+        # No status provided, check for timeout on running servers
         if status is None:
             status = previous_status
-            if self.queued is None:
-                if self.last_ping is None or self.last_ping < timeout:
+            if previous_status != SERVER_STOPPED:
+                if self.queued is None:
+                    if self.last_ping is None or self.last_ping < timeout:
+                        self.idle = None
+                        status = SERVER_UNKNOWN
+                elif self.queued < timeout:
+                    self.queued = None
+                    self.completed = None
+                    self.idle = None
                     status = SERVER_UNKNOWN
-            elif self.queued < timeout:
-                self.queued = None
-                self.completed = None
-                status = SERVER_UNKNOWN
         if status != previous_status:
             changed = True
         # Update address
-        address = address or self.address
-        if status is SERVER_HAS_STOPPED and not self.mc_properties.server_port:
+        if status in [SERVER_HAS_STOPPED, SERVER_SAVED, SERVER_STOPPED]:
             address = None
         if address != self.address:
             self.address = address
@@ -512,29 +514,29 @@ class Server(ndb.Model):
                 self.last_server_time = server_time
             changed = True
         # Update server weather
-        if is_raining != self.is_raining or is_thundering != self.is_thundering:
-            if is_raining is not None:
-                self.is_raining = is_raining
-            if is_thundering is not None:
-                self.is_thundering = is_thundering
+        if is_raining is not None and is_raining != self.is_raining:
+            self.is_raining = is_raining
+            changed = True
+        if is_thundering is not None and is_thundering != self.is_thundering:
+            self.is_thundering = is_thundering
             changed = True
         # Update overloads
-        if num_overloads != self.num_overloads or ms_behind != self.ms_behind or skipped_ticks != self.skipped_ticks:
-            if num_overloads is not None:
-                self.num_overloads = num_overloads
-            if ms_behind is not None:
-                self.ms_behind = ms_behind
-            if skipped_ticks is not None:
-                self.skipped_ticks = skipped_ticks
+        if num_overloads is not None and num_overloads != self.num_overloads:
+            self.num_overloads = num_overloads
+            changed = True
+        if ms_behind is not None and ms_behind != self.ms_behind:
+            self.ms_behind = ms_behind
+            changed = True
+        if skipped_ticks is not None and skipped_ticks != self.skipped_ticks:
+            self.skipped_ticks = skipped_ticks
             changed = True
         # Record pings every minute, even if nothing changed
         if last_ping is not None:
             if self.last_ping is None or self.last_ping < last_ping - datetime.timedelta(minutes=1):
                 changed = True
-        # Close all open play sessions if newly running or stopped
-        if status == SERVER_HAS_STOPPED:
-            if status != previous_status and previous_status != SERVER_UNKNOWN:
-                PlaySession.close_all_current(self.key, now)
+        # Close all open play sessions if stopped
+        if status in [SERVER_HAS_STOPPED, SERVER_SAVED]:
+            PlaySession.close_all_current(self.key, now)
         # Put server changes
         if changed:
             logging.info(
@@ -544,7 +546,7 @@ class Server(ndb.Model):
             )
             if status == SERVER_HAS_STARTED:
                 status = SERVER_RUNNING
-            elif status == SERVER_HAS_STOPPED:
+            elif status in [SERVER_HAS_STOPPED, SERVER_SAVED]:
                 status = SERVER_STOPPED
             logging.info(
                 "Actual Changed Status (previous: {0}, new: {1}, queued: {2})".format(
@@ -561,8 +563,6 @@ class Server(ndb.Model):
                 SERVER_QUEUED_START, SERVER_QUEUED_RESTART, SERVER_QUEUED_STOP,
                 SERVER_LOADING, SERVER_LOADED, SERVER_SAVING, SERVER_SAVED
             ]:
-                send_email = False
-            if status == SERVER_UNKNOWN and previous_status == SERVER_STOPPED:
                 send_email = False
             if send_email:
                 for admin in User.query_admin():

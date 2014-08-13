@@ -554,7 +554,7 @@ def upload_zip_to_gcs(server_key, archive_file, backup=False):
                     progress = 100
                 if progress != previous_progress:
                     if progress % 10 == 0:
-                        logging.info("Server {0} archive is {1}% uploaded".format(server_key, progress))
+                        logger.info("Server {0} archive is {1}% uploaded".format(server_key, progress))
                     if not backup:
                         client.post_event(server_key, STOP_EVENT, progress)
                 previous_progress = progress
