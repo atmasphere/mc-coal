@@ -88,7 +88,7 @@ class Instance(ndb.Model):
         verify_minecraft_firewall(network_url)
         if not verify_disk(self.boot_disk_name, self.zone):
             create_disk(self.boot_disk_name, self.zone, source=BOOT_IMAGE_URL)
-        if not verify_disk(self.coal_disk_name, self.zone):
+        if not verify_disk(self.coal_disk_name, self.zone, size=self.disk_size):
             create_disk(self.coal_disk_name, self.zone, size=self.disk_size)
         disks = [
             {'source': boot_disk_url, 'type': 'PERSISTENT', 'boot': True, 'autoDelete': False},
