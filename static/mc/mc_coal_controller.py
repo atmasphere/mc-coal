@@ -337,6 +337,15 @@ def load_zip_from_gcs(server_key):
     credentials = gce.AppAssertionCredentials(scope=STORAGE_API_SCOPE)
     http = credentials.authorize(httplib2.Http())
     service = build('storage', STORAGE_API_VERSION, http=http)
+    try:
+        request = service.objects().list(bucket=app_bucket, prefix=name)
+        result = request.execute()
+        items = result.get('items', [])
+        if not items:
+            return False
+    except HttpError as e:
+        logging.error("Error ({0}) calling {1}".format(e.resp, getattr(e, 'operationType', None)))
+        raise
     archive = get_archive_file_path(server_key)
     retry = True
     while retry:
@@ -345,6 +354,7 @@ def load_zip_from_gcs(server_key):
             media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
             tries = 0
             done = False
+            progress = previous_progress = None
             while not done:
                 try:
                     status, done = media.next_chunk()
@@ -353,11 +363,20 @@ def load_zip_from_gcs(server_key):
                     if done:  # Done
                         retry = False
                         progress = 100
-                    client.post_event(server_key, START_EVENT, progress)
+                    if progress != previous_progress:
+                        if progress % 10 == 0:
+                            logger.info("Server {0} archive is {1}% downloaded".format(server_key, progress))
+                        client.post_event(server_key, START_EVENT, progress)
+                    previous_progress = progress
                 except HttpError as e:
                     if e.resp.status in [404]:  # Start download all over again
                         os.remove(archive)
                         done = True
+                        logging.error(
+                            "Error ({0}) downloading archive for server {1}. Retrying....".format(
+                                str(e), server_key
+                            )
+                        )
                     elif e.resp.status in [500, 502, 503, 504]:  # Retry with backoff
                         tries += 1
                         if tries > NUM_RETRIES:
@@ -427,11 +446,6 @@ def start_server(server_key, **kwargs):
         found = load_zip(server_key)
         if found:
             unzip_server_dir(server_key, server_dir)
-        elif operator:
-            ops = os.path.join(server_dir, 'ops.txt')
-            with open(ops, "w") as f:
-                line = "{0}\n".format(operator)
-                f.write(line)
     except Exception as e:
         logger.error("Error ({0}) loading files for server {1}".format(e, server_key))
         raise
@@ -475,6 +489,10 @@ def start_server(server_key, **kwargs):
         raise
     # Start minecraft
     start_minecraft(server_key, server_dir, run_server_script)
+    # Add operator to ops and whitelist if provided
+    if operator:
+        write_server_command(server_dir, 'op {0}'.format(operator))
+        write_server_command(server_dir, 'whitelist add {0}'.format(operator))
 
 
 def stop_minecraft(server_key, server_dir):
@@ -561,6 +579,11 @@ def upload_zip_to_gcs(server_key, archive_file, backup=False):
             except HttpError as e:
                 if e.resp.status in [404]:  # Start upload all over again
                     response = None
+                    logging.error(
+                        "Error ({0}) uploading archive for server {1}. Retrying....".format(
+                            str(e), server_key
+                        )
+                    )
                 elif e.resp.status in [500, 502, 503, 504]:  # Retry with backoff
                     tries += 1
                     if tries > NUM_RETRIES:
