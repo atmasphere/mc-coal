@@ -382,7 +382,7 @@ def load_zip_from_gcs(server_key):
                         if tries > NUM_RETRIES:
                             os.remove(archive)
                             return False
-                        sleeptime = 2**max(5, tries)
+                        sleeptime = 2**min(tries, 4)
                         logger.error(
                             "Error ({0}) downloading archive for server {1}. Sleeping {2} seconds.".format(
                                 str(e), server_key, sleeptime
@@ -588,7 +588,7 @@ def upload_zip_to_gcs(server_key, archive_file, backup=False):
                     tries += 1
                     if tries > NUM_RETRIES:
                         raise
-                    sleeptime = 2**tries
+                    sleeptime = 2**min(tries, 4)
                     logger.error(
                         "Error ({0}) uploading archive for server {1}. Sleeping {2} seconds.".format(
                             str(e), server_key, sleeptime

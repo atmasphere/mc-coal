@@ -5,6 +5,7 @@ import httplib2
 import logging
 import random
 import string
+import time
 
 from apiclient import discovery
 from apiclient.errors import HttpError
@@ -33,6 +34,7 @@ COAL_DISK_NAME = 'coal-disk'
 GCE_MAX_IDLE_SECONDS = 600  # 10 minutes
 UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
 CONTROLLER_CLIENT_ID = 'coal-controller'
+NUM_RETRIES = 10
 
 
 class Instance(ndb.Model):
@@ -271,31 +273,59 @@ def get_gce_service():
 
 
 def execute_request(request, block=False):
-    try:
-        response = request.execute()
-        if block:
-            gce_service = get_gce_service()
-            status = response['status']
-            while status != 'DONE' and response:
-                operation_id = response['name']
-                if 'zone' in response:
-                    zone_name = response['zone'].split('/')[-1]
-                    status_request = gce_service.zoneOperations().get(
-                        project=get_project_id(),
-                        operation=operation_id,
-                        zone=zone_name
-                    )
-                else:
-                    status_request = gce_service.globalOperations().get(
-                        project=get_project_id(), operation=operation_id
-                    )
-                response = status_request.execute()
-                if response:
-                    status = response['status']
-    except HttpError as e:
-        if e.resp.status != 404 and e.resp.status != 401:
-            logging.error("Error ({0}) calling {1}".format(e.resp, getattr(e, 'operationType', None)))
-        raise
+    retry = True
+    tries = 0
+    while retry:
+        try:
+            response = request.execute()
+            retry = False
+            tries = 0
+            if block:
+                gce_service = get_gce_service()
+                status = response['status']
+                while status != 'DONE' and response:
+                    try:
+                        operation_id = response['name']
+                        if 'zone' in response:
+                            zone_name = response['zone'].split('/')[-1]
+                            status_request = gce_service.zoneOperations().get(
+                                project=get_project_id(),
+                                operation=operation_id,
+                                zone=zone_name
+                            )
+                        else:
+                            status_request = gce_service.globalOperations().get(
+                                project=get_project_id(), operation=operation_id
+                            )
+                        response = status_request.execute()
+                        tries = 0
+                        if response:
+                            status = response['status']
+                        time.sleep(1)
+                    except HttpError as e:
+                        if e.resp.status in [404, 500, 502, 503, 504]:  # Retry with backoff
+                            tries += 1
+                            if tries > NUM_RETRIES:
+                                raise
+                            sleeptime = 1
+                            logging.error("Error ({0}) calling {1}. Sleeping {2} second(s).".format(
+                                e.resp, getattr(e, 'operationType', None), sleeptime)
+                            )
+                            time.sleep(sleeptime)
+                        else:
+                            raise
+        except HttpError as e:
+            if e.resp.status in [500, 502, 503, 504]:  # Retry with backoff
+                tries += 1
+                if tries > NUM_RETRIES:
+                    raise
+                sleeptime = 1
+                logging.error("Error ({0}) calling {1}. Sleeping {2} second(s).".format(
+                    e.resp, getattr(e, 'operationType', None), sleeptime)
+                )
+                time.sleep(sleeptime)
+            else:
+                raise
     return response
 
 
@@ -350,7 +380,7 @@ def create_minecraft_firewall(network):
         'network': network
     }
     execute_request(
-        get_gce_service().firewalls().insert(project=project_id, body=firewall)
+        get_gce_service().firewalls().insert(project=project_id, body=firewall), block=True
     )
 
 
@@ -389,14 +419,15 @@ def create_disk(name, zone, source=None, size=None):
     if source is not None:
         kwargs['sourceImage'] = source
     execute_request(
-        get_gce_service().disks().insert(**kwargs)
+        get_gce_service().disks().insert(**kwargs), block=True
     )
 
 
 def delete_disk(name, zone):
     try:
         execute_request(
-            get_gce_service().disks().delete(disk=name, project=get_project_id(), zone=zone)
+            get_gce_service().disks().delete(disk=name, project=get_project_id(), zone=zone),
+            block=True
         )
         return True
     except HttpError as e:
