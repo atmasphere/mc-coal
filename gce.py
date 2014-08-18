@@ -66,8 +66,6 @@ class Instance(ndb.Model):
         return self.client_key.get() if self.client_key else None
 
     def start(self):
-        if self.is_running():
-            return
         status = self.get_status()
         if status != 'UNPROVISIONED':
             logging.warning("Trying to start instance whose status is '{0}'".format(status))
