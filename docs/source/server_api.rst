@@ -261,7 +261,9 @@ Servers
       - **spawn_npcs** -- A boolean indicating whether to spawn villagers.
       - **spawn_animals** -- A boolean indicating whether to spawn animals.
       - **spawn_monsters** -- A boolean indicating whether to spawn monsters.
+      - **view_distance** -- An integer indicating the number of chunks of world data the server sends the client (Min: 3, Max: 15).
       - **player_idle_timeout** -- An integer indicating the number of minutes before an idle player is kicked (zero means never) (Min: 0, Max: 60).
+      - **max_players** -- An integer indicating the maximum number of players that can play on the server at the same time.
       - **spawn_protection** -- An integer radius of the spawn protection area (Min: 0, Max: 24).
       - **enable_command_block** -- A boolean indicating whether to enable command blocks.
       - **snooper_enabled** -- A boolean indicating whether to send snoop data regularly to snoop.minecraft.net.
@@ -307,7 +309,9 @@ Servers
       "spawn_npcs": true,
       "spawn_animals": true,
       "spawn_monsters": true,
+      "view_distance": 10,
       "player_idle_timeout": 0,
+      "max_players": 20,
       "spawn_protection": 16,
       "enable_command_block": false,
       "snooper_enabled": true,
@@ -344,7 +348,9 @@ Servers
   :formparam spawn_npcs: A boolean indicating whether to spawn villagers.
   :formparam spawn_animals: A boolean indicating whether to spawn animals.
   :formparam spawn_monsters: A boolean indicating whether to spawn monsters.
+  :formparam view_distance: An integer indicating the number of chunks of world data the server sends the client (Min: 3, Max: 15).
   :formparam player_idle_timeout: An integer indicating the number of minutes before an idle player is kicked (zero means never) (Min: 0, Max: 60).
+  :formparam max_players: An integer indicating the maximum number of players that can play on the server at the same time.
   :formparam spawn_protection: An integer radius of the spawn protection area (Min: 0, Max: 24).
   :formparam enable_command_block: A boolean indicating whether to enable command blocks.
   :formparam snooper_enabled: A boolean indicating whether to send snoop data regularly to snoop.minecraft.net.
@@ -398,7 +404,9 @@ Servers
       "spawn_npcs": true,
       "spawn_animals": true,
       "spawn_monsters": false,
+      "view_distance": 10,
       "player_idle_timeout": 0,
+      "max_players": 20,
       "spawn_protection": 16,
       "enable_command_block": false,
       "snooper_enabled": true,

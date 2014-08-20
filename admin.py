@@ -264,6 +264,11 @@ class ServerPropertiesForm(ServerForm):
     spawn_npcs = fields.BooleanField(u'Spawn villagers', default=True)
     spawn_animals = fields.BooleanField(u'Spawn animals', default=True)
     spawn_monsters = fields.BooleanField(u'Spawn monsters', default=True)
+    view_distance = fields.IntegerField(
+        u'Number of chunks of world data the server sends the client',
+        validators=[validators.NumberRange(min=3, max=15)],
+        default=10
+    )
     player_idle_timeout = fields.IntegerField(
         u'Number of minutes before an idle player is kicked (zero means never)',
         validators=[validators.NumberRange(min=0, max=60)],
