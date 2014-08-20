@@ -10,7 +10,6 @@ import os
 import random
 import shutil
 import signal
-import socket
 import stat
 import string
 import subprocess
@@ -135,12 +134,16 @@ class ControllerClient(object):
 
 def init_external_ip():
     global external_ip
-    results = json.loads(
-        subprocess.Popen(
-            ['gcutil', 'getinstance', '--format=json', socket.gethostname()], stdout=subprocess.PIPE
-        ).stdout.read()
-    )
-    external_ip = results['networkInterfaces'][0]['accessConfigs'][0]['natIP']
+    try:
+        results = json.loads(
+            subprocess.Popen(
+                ['gcloud', 'compute', 'instances', 'list', '--quiet', '--format=json', '--regex=coal-instance-singleton'],  # noqa
+                stdout=subprocess.PIPE
+            ).stdout.read()
+        )
+        external_ip = results[0]['networkInterfaces'][0]['accessConfigs'][0]['natIP']
+    except Exception as e:
+        logger.exception("Couldn't read external ip address: {0}".format(e))
 
 
 def pid_exists(pid):
@@ -185,7 +188,7 @@ def get_gcs_archive_name(server_key):
 def get_archives():
     _, _, archive_files = os.walk(SERVERS_DIR).next()
     archives = [
-        (os.path.splitext(archive_file)[0], os.path.join(ARCHIVES_DIR, archive_file)) for archive_file in archive_files if fnmatch.fnmatch(archive_file, '*.zip')
+        (os.path.splitext(archive_file)[0], os.path.join(ARCHIVES_DIR, archive_file)) for archive_file in archive_files if fnmatch.fnmatch(archive_file, '*.zip')  # noqa
     ]
     return archives
 
@@ -780,7 +783,6 @@ def main(argv):
     global logger
     init_logger()
     logger = logging.getLogger('main')
-    init_external_ip()
     if not os.path.exists(SERVERS_DIR):
         os.makedirs(SERVERS_DIR)
     if not os.path.exists(ARCHIVES_DIR):
@@ -794,6 +796,7 @@ def main(argv):
             client_id = f.read().strip()
         with open('/coal/secret', 'r') as f:
             secret = f.read().strip()
+        init_external_ip()
         client = ControllerClient('{0}.appspot.com'.format(project), client_id, secret)
         app_bucket = '{0}.appspot.com'.format(project)
         credentials = gce.AppAssertionCredentials(scope=TQ_API_SCOPE)

@@ -20,7 +20,7 @@ from gcs import verify_bucket
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
 API_VERSION = 'v1'
 GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
-BOOT_IMAGE_URL = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20140605')
+BOOT_IMAGE_URL = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20140814')
 SCOPES = [
     'https://www.googleapis.com/auth/devstorage.full_control',
     'https://www.googleapis.com/auth/compute',
