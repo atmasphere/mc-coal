@@ -366,7 +366,14 @@ def load_zip_from_gcs(server_key):
                     if progress != previous_progress:
                         if progress % 10 == 0:
                             logger.info("Server {0} archive is {1}% downloaded".format(server_key, progress))
-                        client.post_event(server_key, START_EVENT, progress)
+                        try:
+                            client.post_event(server_key, START_EVENT, progress)
+                        except Exception as e:
+                            logger.exception(
+                                "Error sending controller load event for server [{0}]: {1}".format(
+                                    server_key, e
+                                )
+                            )
                     previous_progress = progress
                 except HttpError as e:
                     if e.resp.status in [404]:  # Start download all over again
@@ -574,7 +581,14 @@ def upload_zip_to_gcs(server_key, archive_file, backup=False):
                     if progress % 10 == 0:
                         logger.info("Server {0} archive is {1}% uploaded".format(server_key, progress))
                     if not backup:
-                        client.post_event(server_key, STOP_EVENT, progress)
+                        try:
+                            client.post_event(server_key, STOP_EVENT, progress)
+                        except Exception as e:
+                            logger.exception(
+                                "Error sending controller save event for server [{0}]: {1}".format(
+                                    server_key, e
+                                )
+                            )
                 previous_progress = progress
             except HttpError as e:
                 if e.resp.status in [404]:  # Start upload all over again

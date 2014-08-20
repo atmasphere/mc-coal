@@ -473,8 +473,6 @@ class Server(ndb.Model):
                 (previous_status == SERVER_QUEUED_RESTART and status not in [SERVER_HAS_STARTED, SERVER_RUNNING]) or  # noqa
                 (previous_status in [SERVER_QUEUED_STOP, SERVER_SAVING] and status is not SERVER_SAVED)
             ):
-                if status == SERVER_HAS_STOPPED:
-                    address = None
                 status = previous_status
             else:
                 self.completed = None
