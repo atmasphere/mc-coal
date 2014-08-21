@@ -7,6 +7,11 @@ main_TITLE = 'My COAL Installation'
 main_DESCRIPTION = 'This is my COAL installation. There are many like it, but this one is mine.'
 
 
+# gce config
+
+gae_BOOT_DISK_IMAGE = 'debian-7-wheezy-v20140814'
+
+
 # oauth config
 
 oauth_SECRET_KEY = main_SECRET_KEY  # Can optionally be a different secret string

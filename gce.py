@@ -10,17 +10,22 @@ import time
 from apiclient import discovery
 from apiclient.errors import HttpError
 
-from google.appengine.api import app_identity, memcache
+from google.appengine.api import app_identity, memcache, lib_config
 from google.appengine.ext import ndb
 
 from oauth2client.appengine import AppAssertionCredentials
 
 from gcs import verify_bucket
 
+
+gce_config = lib_config.register('gce', {
+    'BOOT_DISK_IMAGE': 'debian-7-wheezy-v20140814'
+})
+
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
 API_VERSION = 'v1'
 GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
-BOOT_IMAGE_URL = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', 'debian-7-wheezy-v20140814')
+BOOT_IMAGE_URL = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', gce_config.BOOT_DISK_IMAGE)
 SCOPES = [
     'https://www.googleapis.com/auth/devstorage.full_control',
     'https://www.googleapis.com/auth/compute',
