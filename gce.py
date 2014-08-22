@@ -24,8 +24,8 @@ gce_config = lib_config.register('gce', {
 
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
 API_VERSION = 'v1'
-GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
-BOOT_IMAGE_URL = '%s%s/global/images/%s' % (GCE_URL, 'debian-cloud', gce_config.BOOT_DISK_IMAGE)
+GCE_URL = 'https://www.googleapis.com/compute/{0}/projects/'.format(API_VERSION)
+BOOT_IMAGE_URL = '{0}debian-cloud/global/images/{1}'.format(GCE_URL, gce_config.BOOT_DISK_IMAGE)
 SCOPES = [
     'https://www.googleapis.com/auth/devstorage.full_control',
     'https://www.googleapis.com/auth/compute',
@@ -93,7 +93,7 @@ class Instance(ndb.Model):
             if not address:
                 address = create_address(region)
         verify_minecraft_firewall(network_url)
-        if not verify_disk(self.boot_disk_name, self.zone):
+        if not verify_disk(self.boot_disk_name, self.zone, source=BOOT_IMAGE_URL):
             create_disk(self.boot_disk_name, self.zone, source=BOOT_IMAGE_URL)
         if not verify_disk(self.coal_disk_name, self.zone, size=self.disk_size):
             create_disk(self.coal_disk_name, self.zone, size=self.disk_size)
@@ -389,7 +389,7 @@ def create_minecraft_firewall(network):
     )
 
 
-def verify_disk(name, zone, size=None):
+def verify_disk(name, zone, source=None, size=None):
     try:
         disk = execute_request(
             get_gce_service().disks().get(
@@ -404,6 +404,14 @@ def verify_disk(name, zone, size=None):
             if existing_size != size:
                 logging.info("New disk size for '{0}' ({1} GB). Removing previous ({2} GB)...".format(
                     name, size, existing_size
+                ))
+                delete_disk(name, zone)
+                return False
+        if source is not None:
+            existing_source = disk.get('sourceImage', None)
+            if existing_source != source:
+                logging.info("New disk source for '{0}' ({1}). Removing previous ({2})...".format(
+                    name, source, existing_source
                 ))
                 delete_disk(name, zone)
                 return False
