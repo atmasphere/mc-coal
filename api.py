@@ -155,8 +155,11 @@ class PingHandler(JsonHandler):
             address=address,
             timestamp=timestamp
         )
+        commands = []
+        if is_server_running:
+            commands = Command.pop_all(server.key)
         response = {
-            'commands': Command.pop_all(server.key)
+            'commands': commands
         }
         self.json_response(response, status_code=200)
 
