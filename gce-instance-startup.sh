@@ -14,8 +14,12 @@ else
     exit
 fi
 
+sudo sh -c 'echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list'
+sudo sh -c 'echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list'
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886
 apt-get update
-apt-get -y install openjdk-7-jre
+echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | sudo /usr/bin/debconf-set-selections
+apt-get -y install oracle-java8-installer
 apt-get -y install python-pip
 apt-get -y install git
 pip install --upgrade google-api-python-client

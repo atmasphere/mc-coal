@@ -324,7 +324,7 @@ def make_run_server_script(server_dir, server_memory, fifo):
     pid_filename = os.path.join(server_dir, SERVER_PID_FILENAME)
     run_filename = os.path.join(server_dir, RUN_SERVER_FILENAME)
     run_script = '#!/bin/bash\n'
-    run_script += '/usr/bin/java -Xincgc -Xmx{0} -Dlog4j.configurationFile={1} -jar {2} nogui <> {3} &\n'.format(
+    run_script += '/usr/bin/java -Xmx{0} -Dlog4j.configurationFile={1} -jar {2} nogui <> {3} &\n'.format(
         server_memory, log4j_config, mc_jar, fifo
     )
     run_script += 'echo $! >| {0}\n'.format(pid_filename)
