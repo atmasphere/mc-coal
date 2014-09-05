@@ -395,7 +395,8 @@ SERVER_PROPERTIES_FIELDS = [
     'server_port', 'motd', 'white_list', 'gamemode', 'force_gamemode', 'level_type', 'level_seed', 'generator_settings',
     'difficulty', 'pvp', 'hardcore', 'allow_flight', 'allow_nether', 'max_build_height', 'generate_structures',
     'spawn_npcs', 'spawn_animals', 'spawn_monsters', 'view_distance', 'player_idle_timeout', 'max_players',
-    'spawn_protection', 'enable_command_block', 'snooper_enabled', 'resource_pack', 'op_permission_level'
+    'max_world_size', 'spawn_protection', 'enable_command_block', 'snooper_enabled', 'resource_pack',
+    'op_permission_level'
 ]
 SERVER_PROPERTIES_FIELD_FUNCTIONS = {
     'key': lambda o: o.key.parent().urlsafe(),
@@ -469,6 +470,7 @@ class ServerPropertiesForm(form.Form):
     view_distance = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=3, max=15)])
     player_idle_timeout = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=60)])
     max_players = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=10000)])
+    max_world_size = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=1, max=29999984)])  # noqa
     spawn_protection = fields.IntegerField(validators=[validators.Optional(), validators.NumberRange(min=0, max=64)])
     enable_command_block = RestfulBooleanField(validators=[validators.Optional()])
     snooper_enabled = RestfulBooleanField(validators=[validators.Optional()])

@@ -279,6 +279,11 @@ class ServerPropertiesForm(ServerForm):
         validators=[validators.NumberRange(min=0, max=10000)],
         default=20
     )
+    max_world_size = fields.IntegerField(
+        u'Sets the maximum possible size in blocks, expressed as a radius, that the world border can obtain',
+        validators=[validators.NumberRange(min=1, max=29999984)],
+        default=29999984
+    )
     spawn_protection = fields.IntegerField(
         u'Radius of spawn area protection',
         validators=[validators.NumberRange(min=0, max=64)],

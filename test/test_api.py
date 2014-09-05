@@ -172,7 +172,7 @@ ADMIN_EMAIL = 'admin@example.com'
 NUM_PLAYER_FIELDS = 7
 NUM_USER_FIELDS = 9
 NUM_SERVER_FIELDS = 14
-NUM_SERVER_PROPERTIES_FIELDS = 31
+NUM_SERVER_PROPERTIES_FIELDS = 32
 NUM_PLAY_SESSION_FIELDS = 12
 NUM_CHAT_FIELDS = 10
 NUM_DEATH_FIELDS = 10
@@ -400,6 +400,8 @@ class PingTest(AgentApiTest):
         self.assertGreaterEqual(server.server_time, 1400)
 
     def test_post_commands(self):
+        self.server.status = models.SERVER_RUNNING
+        self.server.put()
         commands = []
         for i in range(5):
             command = models.Command.push(self.server.key, 'gumptionthomas', '/say hello world')
@@ -407,7 +409,7 @@ class PingTest(AgentApiTest):
         params = {'line': TIME_STAMP_LOG_LINE, 'zone': TIME_ZONE}
         response = self.post(url=LogLineTest.URL, params=params)
         self.assertCreated(response)
-        params = {'server_name': 'test'}
+        params = {'server_name': 'test', 'is_server_running': True}
         response = self.post(params=params)
         self.assertOK(response)
         body = json.loads(response.body)

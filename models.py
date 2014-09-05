@@ -674,6 +674,7 @@ class MinecraftProperties(ServerModel):
     view_distance = ndb.IntegerProperty(default=10)
     player_idle_timeout = ndb.IntegerProperty(default=0)
     max_players = ndb.IntegerProperty(default=20)
+    max_world_size = ndb.IntegerProperty(default=29999984)
     spawn_protection = ndb.IntegerProperty(default=16)
     enable_command_block = ndb.BooleanProperty(default=False)
     snooper_enabled = ndb.BooleanProperty(default=True)
