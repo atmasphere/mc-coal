@@ -8,7 +8,7 @@ import random
 import string
 
 from google.appengine.ext import blobstore, ndb
-from google.appengine.api import users, mail, app_identity, taskqueue, urlfetch
+from google.appengine.api import users, mail, app_identity, taskqueue, urlfetch, memcache
 
 import webapp2_extras.appengine.auth.models as auth_models
 
@@ -1186,6 +1186,20 @@ class ScreenShot(NdbImage, ServerModel):
         instance.put()
         taskqueue.add(url='/screenshots/{0}/create_blur'.format(instance.key.urlsafe()))
         return instance
+
+    @classmethod
+    def background(cls, server_key):
+        namespace = "server-background"
+        key = server_key.urlsafe()
+        bg_key_str = memcache.get(key, namespace=namespace)
+        if bg_key_str is not None:
+            bg_key = ndb.Key(urlsafe=bg_key_str)
+            return bg_key.get()
+        else:
+            bg = cls.random(server_key)
+            if bg is not None:
+                memcache.add(key, bg.key.urlsafe(), time=60, namespace=namespace)
+            return bg
 
     @classmethod
     def random(cls, server_key):

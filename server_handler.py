@@ -13,7 +13,7 @@ class ServerHandlerBase(UserHandler):
         template_context = super(ServerHandlerBase, self).get_template_context(context=context)
         server = template_context['server'] = template_context.get('server', None) or getattr(self.request, 'server', None)  # noqa
         if server is not None:
-            bg_img = ScreenShot.random(server.key)
+            bg_img = ScreenShot.background(server.key)
             if bg_img is not None:
                 template_context['bg_img'] = bg_img.blurred_image_serving_url
         return template_context

@@ -11,12 +11,15 @@
         <h2 class="box"><a href="{{ uri_for('screenshot_upload', server_key=server.key.urlsafe()) }}">Upload Screenshot</a></h2>
 
         {% for screenshot in screenshots %}
+            {% set screenshot_user = screenshot.user %}
+            {% set screenshot_url = screenshot.get_serving_url() %}
             <div class="box">
                 <div class="pad">
-                    <img class="screenshot" src="{{ screenshot.get_serving_url() }}" width="25%", height="25%">
-                    <img class="screenshot" src="{{ screenshot.blurred_image_serving_url or '/img/cap/blurring.png' }}" width="25%", height="25%">
+                    <a href="{{ screenshot_url }}">
+                        <img class="screenshot" src="{{ screenshot_url }}" width="25%", height="25%">
+                    </a>
                     <div class="wrap">
-                        <div class="screenshot_uploader">Uploaded by {{ screenshot.user.name }}</div>
+                        <div class="screenshot_uploader">Uploaded by {{ screenshot_user.name }}</div>
                         <form id="remove_screenshot_form" action="{{ uri_for('screenshot_remove', server_key=server.key.urlsafe(), key=screenshot.key.urlsafe()) }}" method="POST">
                             <input type="submit" name="submit" value="Remove">
                         </form>

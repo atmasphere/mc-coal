@@ -115,7 +115,7 @@ class NdbImage(ndb.Model):
             return blobstore.BlobReader(self.blob_key).read()
         return None
 
-    def get_serving_url(self, size=None, crop=False, secure_url=None):
+    def get_serving_url(self, size=0, crop=False, secure_url=None):
         """
         Returns the serving URL for the image. It works just like the `Image.get_serving_url`_ function,
         but adds caching. The cache timeout is controlled by the :py:attr:`.SERVING_URL_TIMEOUT` setting.
@@ -131,7 +131,7 @@ class NdbImage(ndb.Model):
         serving_url = None
         if self.blob_key is not None:
             namespace = "image-serving-url"
-            key = "%s-%s-%s" % (self.key, size, crop)
+            key = "%s-%s-%s" % (self.key.urlsafe(), size, crop)
             serving_url = memcache.get(key, namespace=namespace)
             if serving_url is None:
                 tries = 0
