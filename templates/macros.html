@@ -83,6 +83,7 @@
             {% endif %}
        {% endif %}
     {% endif %}
+    {% set idle_shutdown_in = server.idle_shutdown_in %}
     <div class="title box wrap">
         <div class="left">
             <h1><a href="{{ uri_for('home', server_key=server.url_key) }}">{{ server.name }}</a></h1>
@@ -103,10 +104,10 @@
                 <h4>Admin Tools: &nbsp;
                 {% if server.is_gce %}
                     <a href="{{ uri_for('server_gce', key=server.key.urlsafe()) }}">Edit</a>
-                     | 
+                     |
                     <a href="{{ uri_for('server_backup_download', key=server.key.urlsafe()) }}">Download</a>
                     {% if server.is_stopped or server.is_unknown %}
-                        | 
+                        |
                         <a href="{{ uri_for('server_restore', key=server.key.urlsafe()) }}">Restore</a>
                     {% endif %}
                 {% else %}
@@ -123,23 +124,36 @@
                 {% endif %}
                 </h4>
             {% endif %}
-            {% if open_sessions %}
-                <div class="player_list left">
+            {% if open_sessions != None and server.is_running %}
+                <br/>
+                <div class="player_list left wrap">
                     <h3 class="box">Currently Playing</h3>
-                    {% for open_session in open_sessions %}
-                        <div class="player wrap">
-                            <div class="avatar" style="background-image: url(https://minotar.net/helm/{{open_session.username}}/40)"></div>
-                            <div class="name">{{ open_session.username }}</div>
-                            <div class="online">
-                                {% if open_session.duration %}
-                                    {{ time_elapse(open_session.duration.days, open_session.duration.seconds) }}
-                                {% endif %}
-                            </div>
-                        </div>
-                    {% endfor %}
+                    <div class="box">
+                        {% if open_sessions %}
+                            {% for open_session in open_sessions %}
+                                <div class="player wrap">
+                                    <div class="avatar" style="background-image: url(https://minotar.net/helm/{{open_session.username}}/40)"></div>
+                                    <div class="name">{{ open_session.username }}</div>
+                                    <div class="online">
+                                        {% if open_session.duration %}
+                                            {{ time_elapse(open_session.duration.days, open_session.duration.seconds) }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <h3>Idle
+                            {% if idle_shutdown_in %}
+                                [Pausing world in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]
+                            {% elif idle_shutdown == 0 %}
+                                [World pausing now due to idleness!]
+                            {% endif %}
+                            </h3>
+                        {% endif %}
+                    </div>
                 </div>
             {% endif %}
-       </div>
+        </div>
         <div class="status wrap {{ status }}">
             <i class="sprite"></i>
             <div class="right">
@@ -148,6 +162,11 @@
                 <strong>
                     {{ status_text }}{% if completed != None %} {{ completed }}%{% endif %} (v{{ server.running_version }})
                 </strong>
+                {% if idle_shutdown_in %}
+                    <strong>[Pausing in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]</strong>
+                {% elif idle_shutdown == 0 %}
+                    <strong>[Pausing now!]</strong>
+                {% endif %}
                 {% if server.is_gce %}
                     {% if server.is_stopped or server.is_unknown %}
                         {% if server.mc_properties.eula_agree %}

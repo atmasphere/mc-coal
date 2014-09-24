@@ -35,7 +35,6 @@ import search
 UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
 AGENT_CLIENT_ID = 'mc-coal-agent'
 TICKS_PER_PLAY_SECOND = 20
-SERVER_MAX_IDLE_SECONDS = 300  # 5 minutes
 SERVER_UNKNOWN = 'UNKNOWN'
 SERVER_QUEUED_START = 'QUEUED_START'
 SERVER_QUEUED_RESTART = 'QUEUED_RESTART'
@@ -388,6 +387,24 @@ class Server(ndb.Model):
             return self.short_name
         return self.key.urlsafe()
 
+    @property
+    def idle_shutdown(self):
+        shutdown = None
+        if self.is_gce and self.is_running and self.idle and self.idle_timeout:
+            shutdown = self.idle + datetime.timedelta(seconds=self.idle_timeout*60)
+        return shutdown
+
+    @property
+    def idle_shutdown_in(self):
+        shutdown_in = None
+        shutdown = self.idle_shutdown
+        if shutdown:
+            shutdown_in = 0
+            now = datetime.datetime.utcnow()
+            if now < shutdown:
+                shutdown_in = shutdown - now
+        return shutdown_in
+
     def set_short_name(self, short_name):
         try:
             ndb.Key(urlsafe=short_name)
@@ -431,9 +448,9 @@ class Server(ndb.Model):
             self.update_status(status=SERVER_QUEUED_STOP)
 
     def stop_if_idle(self):
-        if self.is_gce and self.is_running and self.idle and self.idle_timeout:
-            if datetime.datetime.utcnow() > self.idle + datetime.timedelta(seconds=self.idle_timeout*60):
-                self.stop()
+        shutdown = self.idle_shutdown
+        if shutdown and datetime.datetime.utcnow() > shutdown:
+            self.stop()
 
     def update_version(self, server_version):
         if server_version is not None:
