@@ -144,10 +144,10 @@
                         {% else %}
                             <h3>Idle
                             {% if idle_shutdown_in %}
-                                {% if idle_shutdown_in.total_seconds() > 0 %}
-                                    [Pausing world in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]
+                                {% if idle_shutdown_in.total_seconds() > 60 %}
+                                    [Pausing world in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]
                                 {% else %}
-                                    [World pausing soon!]
+                                    [World pause imminent!]
                                 {% endif %}
                             {% endif %}
                             </h3>
@@ -165,10 +165,10 @@
                     {{ status_text }}{% if completed != None %} {{ completed }}%{% endif %} (v{{ server.running_version }})
                 </strong>
                 {% if idle_shutdown_in %}
-                    {% if idle_shutdown_in.total_seconds() > 0 %}
-                        <strong>[Pausing in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]</strong>
+                    {% if idle_shutdown_in.total_seconds() > 60 %}
+                        <strong>[Pausing in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]</strong>
                     {% else %}
-                        <strong>[Pausing soon!]</strong>
+                        <strong>[Pause imminent!]</strong>
                     {% endif %}
                 {% endif %}
                 {% if server.is_gce %}
