@@ -142,12 +142,12 @@
                                 </div>
                             {% endfor %}
                         {% else %}
-                            <h3>Idle
+                            <h3>Idle</h3>
                             {% if idle_shutdown_in %}
                                 {% if idle_shutdown_in.total_seconds() > 60 %}
-                                    [Pausing world in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]
+                                    <h3>Pausing world in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}</h3>
                                 {% else %}
-                                    [World pause imminent!]
+                                    <h3>World pause imminent!</h3>
                                 {% endif %}
                             {% endif %}
                             </h3>
@@ -163,13 +163,14 @@
                 {% if server.is_running and server.num_overloads %}<h4>5 Minute Lag Count:&nbsp;{{ server.num_overloads }}&nbsp;({{ server.ms_behind }}ms,&nbsp;{{ server.skipped_ticks }}&nbsp;ticks)</h4>{% endif %}
                 <strong>
                     {{ status_text }}{% if completed != None %} {{ completed }}%{% endif %} (v{{ server.running_version }})
-                </strong>
                 {% if idle_shutdown_in %}
+                    <br/>
                     {% if idle_shutdown_in.total_seconds() > 60 %}
-                        <strong>[Pausing in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]</strong>
+                        Pausing in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}
                     {% else %}
-                        <strong>[Pause imminent!]</strong>
+                        Pause imminent!
                     {% endif %}
+                </strong>
                 {% endif %}
                 {% if server.is_gce %}
                     {% if server.is_stopped or server.is_unknown %}
