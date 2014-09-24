@@ -145,9 +145,9 @@
                             <h3>Idle</h3>
                             {% if idle_shutdown_in %}
                                 {% if idle_shutdown_in.total_seconds() > 60 %}
-                                    <h3>Pausing world in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}</h3>
+                                    <h3>Pausing in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}</h3>
                                 {% else %}
-                                    <h3>World pause imminent!</h3>
+                                    <h3>Pause imminent!</h3>
                                 {% endif %}
                             {% endif %}
                             </h3>
