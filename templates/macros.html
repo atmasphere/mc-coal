@@ -145,7 +145,7 @@
                             <h3>Idle
                             {% if idle_shutdown_in %}
                                 [Pausing world in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]
-                            {% elif idle_shutdown == 0 %}
+                            {% elif idle_shutdown_in.total_seconds() == 0 %}
                                 [World pausing now due to idleness!]
                             {% endif %}
                             </h3>
@@ -164,7 +164,7 @@
                 </strong>
                 {% if idle_shutdown_in %}
                     <strong>[Pausing in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]</strong>
-                {% elif idle_shutdown == 0 %}
+                {% elif idle_shutdown_in.total_seconds() == 0 %}
                     <strong>[Pausing now!]</strong>
                 {% endif %}
                 {% if server.is_gce %}
