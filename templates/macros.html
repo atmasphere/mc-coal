@@ -144,9 +144,11 @@
                         {% else %}
                             <h3>Idle
                             {% if idle_shutdown_in %}
-                                [Pausing world in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]
-                            {% elif idle_shutdown_in.total_seconds() == 0 %}
-                                [World pausing now due to idleness!]
+                                {% if idle_shutdown_in.total_seconds() > 0 %}
+                                    [Pausing world in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]
+                                {% else %}
+                                    [World pausing soon!]
+                                {% endif %}
                             {% endif %}
                             </h3>
                         {% endif %}
@@ -163,9 +165,11 @@
                     {{ status_text }}{% if completed != None %} {{ completed }}%{% endif %} (v{{ server.running_version }})
                 </strong>
                 {% if idle_shutdown_in %}
-                    <strong>[Pausing in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]</strong>
-                {% elif idle_shutdown_in.total_seconds() == 0 %}
-                    <strong>[Pausing now!]</strong>
+                    {% if idle_shutdown_in.total_seconds() > 0 %}
+                        <strong>[Pausing in {{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}]</strong>
+                    {% else %}
+                        <strong>[Pausing soon!]</strong>
+                    {% endif %}
                 {% endif %}
                 {% if server.is_gce %}
                     {% if server.is_stopped or server.is_unknown %}
