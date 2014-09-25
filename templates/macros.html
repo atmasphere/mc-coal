@@ -132,6 +132,7 @@
                         {% if open_sessions %}
                             {% for open_session in open_sessions %}
                                 <div class="player wrap">
+                                    <div class="activity on"></div>
                                     <div class="avatar" style="background-image: url(https://minotar.net/helm/{{open_session.username}}/40)"></div>
                                     <div class="name">{{ open_session.username }}</div>
                                     <div class="online">
