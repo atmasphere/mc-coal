@@ -19,7 +19,7 @@ from gcs import verify_bucket
 
 
 gce_config = lib_config.register('gce', {
-    'BOOT_DISK_IMAGE': 'debian-7-wheezy-v20140814'
+    'BOOT_DISK_IMAGE': 'debian-7-wheezy-v20140924'
 })
 
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
