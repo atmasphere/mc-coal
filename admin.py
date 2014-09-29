@@ -165,7 +165,7 @@ def set_form_short_name(server, form):
     if server.set_short_name(short_name):
         return True
     else:
-        form.short_name.errors.append("Short name '{0}' is already assigned to another server".format(short_name))
+        form.short_name.errors.append("Short name '{0}' is already assigned to another world".format(short_name))
         return False
 
 
@@ -183,7 +183,7 @@ class ServerCreateHandler(UserHandler):
             if form.validate():
                 server = Server.create(name=form.name.data, is_gce=False)
                 if not set_form_short_name(server, form):
-                    message = "Short name '{0}' is already assigned to another server".format(form.short_name.data)
+                    message = "Short name '{0}' is already assigned to another world".format(form.short_name.data)
                     self.session.add_flash(message, level='warn')
                 self.redirect(webapp2.uri_for('home', server_key=server.url_key))
         except Exception, e:
@@ -382,7 +382,7 @@ class ServerCreateGceHandler(UserHandler):
                             setattr(mc_properties, prop.name, prop.data)
                 mc_properties.put()
                 if not set_form_short_name(server, form):
-                    message = "Short name '{0}' is already assigned to another server".format(form.short_name.data)
+                    message = "Short name '{0}' is already assigned to another world".format(form.short_name.data)
                     self.session.add_flash(message, level='warn')
                 self.redirect(webapp2.uri_for('home', server_key=server.url_key))
         except Exception, e:
@@ -475,14 +475,14 @@ class ServerDeactivateHandler(UserHandler):
             if server is None:
                 self.abort(404)
             context = {}
-            context['question'] = u'Deactivate server "{0}"?'.format(server.name)
+            context['question'] = u'Deactivate world "{0}"?'.format(server.name)
             context['confirmed_url'] = webapp2.uri_for('server_deactivate', key=server.key.urlsafe())
             context['cancelled_url'] = webapp2.uri_for('server', key=server.key.urlsafe())
             self.render_template('confirm.html', context=context)
         except webapp2.HTTPException:
             pass
         except Exception as e:
-            message = u'Server "{0}" could not be deactivated (Reason: {1}).'.format(server.name, e)
+            message = u'World "{0}" could not be deactivated (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
             self.redirect(webapp2.uri_for('admin'))
@@ -495,14 +495,14 @@ class ServerDeactivateHandler(UserHandler):
             if server is None:
                 self.abort(404)
             server.deactivate()
-            message = u'Server "{0}" deactivated.'.format(server.name)
+            message = u'World "{0}" deactivated.'.format(server.name)
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
         except webapp2.HTTPException:
             pass
         except Exception as e:
-            message = u'Error deactivating server "{0}": {1}'.format(server.name, e)
+            message = u'Error deactivating world "{0}": {1}'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
         self.redirect(webapp2.uri_for('admin'))
@@ -517,7 +517,7 @@ class ServerStartHandler(AdminHandlerBase):
             return
         try:
             server.start()
-            message = u'Server "{0}" started.'.format(server.name)
+            message = u'World "{0}" starting...'.format(server.name)
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
@@ -687,14 +687,14 @@ class ServerRestartHandler(AdminHandlerBase):
                 self.redirect_to_server('home')
                 return
             context = {}
-            context['question'] = u'Restart server "{0}"?'.format(server.name)
+            context['question'] = u'Restart world "{0}"?'.format(server.name)
             context['confirmed_url'] = webapp2.uri_for('server_restart', key=server.key.urlsafe())
             context['cancelled_url'] = webapp2.uri_for('home', server_key=server.url_key)
             self.render_template('confirm.html', context=context)
         except webapp2.HTTPException:
             pass
         except Exception as e:
-            message = u'Server "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
+            message = u'World "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
             self.redirect(webapp2.uri_for('home', server_key=server.url_key))
@@ -707,14 +707,14 @@ class ServerRestartHandler(AdminHandlerBase):
             return
         try:
             server.restart()
-            message = u'Server "{0}" restarted.'.format(server.name)
+            message = u'World "{0}" restarting...'.format(server.name)
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
         except webapp2.HTTPException:
             pass
         except Exception, e:
-            message = u'Server "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
+            message = u'World "{0}" could not be restarted (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
         self.redirect(webapp2.uri_for('home', server_key=server.url_key))
@@ -730,14 +730,14 @@ class ServerStopHandler(AdminHandlerBase):
                 self.redirect_to_server('home')
                 return
             context = {}
-            context['question'] = u'Pause server "{0}"?'.format(server.name)
+            context['question'] = u'Pause world "{0}"?'.format(server.name)
             context['confirmed_url'] = webapp2.uri_for('server_stop', key=server.key.urlsafe())
             context['cancelled_url'] = webapp2.uri_for('home', server_key=server.url_key)
             self.render_template('confirm.html', context=context)
         except webapp2.HTTPException:
             pass
         except Exception as e:
-            message = u'Server "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
+            message = u'World "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
             self.redirect(webapp2.uri_for('home', server_key=server.url_key))
@@ -750,14 +750,14 @@ class ServerStopHandler(AdminHandlerBase):
             return
         try:
             server.stop()
-            message = u'Server "{0}" paused.'.format(server.name)
+            message = u'World "{0}" pausing...'.format(server.name)
             logging.info(message)
             self.session.add_flash(message, level='info')
             time.sleep(1)
         except webapp2.HTTPException:
             pass
         except Exception, e:
-            message = u'Server "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
+            message = u'World "{0}" could not be paused (Reason: {1}).'.format(server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
         self.redirect(webapp2.uri_for('home', server_key=server.url_key))
@@ -786,12 +786,12 @@ class ServerCommandHandler(AdminHandlerBase):
                         command = u"/say <{0}> {1}".format(username, command[5:])
                 if command:
                     Command.push(server.key, username, command)
-                    message = u'Command "{0}" sent to server "{1}".'.format(command, server.name)
+                    message = u'Command "{0}" sent to world "{1}".'.format(command, server.name)
                     logging.info(message)
                     self.session.add_flash(message, level='info')
                     time.sleep(1)
         except Exception, e:
-            message = u'Command "{0}" could not be send to server "{1}" (Reason: {2}).'.format(command, server.name, e)
+            message = u'Command "{0}" could not be send to world "{1}" (Reason: {2}).'.format(command, server.name, e)
             logging.error(message)
             self.session.add_flash(message, level='error')
         self.redirect(webapp2.uri_for('home', server_key=server.url_key))
@@ -863,17 +863,17 @@ class ServerUploadedHandler(blobstore_handlers.BlobstoreUploadHandler, UserHandl
                     object_name.index(prefix)
                     gcs_object_name = object_name[len(prefix):]
                     gcs.copy_archive(server.key.urlsafe(), gcs_object_name)
-                    message = u'Minecraft server successfully uploaded'
+                    message = u'Minecraft world successfully uploaded'
                     self.session.add_flash(message, level='info')
                 else:
-                    message = u'Invalid minecraft server archive'
+                    message = u'Invalid minecraft world archive'
                     logging.error(message)
                     self.session.add_flash(message, level='error')
             else:
                 message = u'No file chosen'
                 self.session.add_flash(message, level='error')
         except Exception as e:
-            message = u'Minecraft server archive could not be uploaded (Reason: {0})'.format(e)
+            message = u'Minecraft world archive could not be uploaded (Reason: {0})'.format(e)
             logging.error(message)
             self.session.add_flash(message, level='error')
         try:
