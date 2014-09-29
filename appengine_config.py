@@ -9,7 +9,7 @@ main_DESCRIPTION = 'This is my COAL installation. There are many like it, but th
 
 # gce config
 
-gce_BOOT_DISK_IMAGE = 'debian-7-wheezy-v20140924'
+gce_BOOT_DISK_IMAGE = 'debian-7-wheezy-v20140926'
 
 
 # oauth config
