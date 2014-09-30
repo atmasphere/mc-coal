@@ -22,20 +22,13 @@
     {% endif %}
 {%- endmacro %}
 
-{% macro time_elapse(days, secs) -%}
-    {% if days %}
-        {{ days }}d
-    {% endif %}
-
-    {% set hours = secs // 3600 %}
-    {% set mins = secs % 3600 // 60 %}
-
-    {% if hours !=0 %}
-        {{hours}}h
-    {% endif %}
-
+{%- macro time_elapse(days, secs) -%}
+    {%- set hours = secs // 3600 -%}
+    {%- set mins = secs % 3600 // 60 -%}
+    {%- if days -%}{{ days }}d{%- endif -%}
+    {%- if hours !=0 -%}{{hours}}h{%- endif -%}
     {{mins}}m
-{%- endmacro %}
+{%- endmacro -%}
 
 {% macro with_errors(field) %}
   <div class="form_field {% if field.errors %}error{% endif %}">
@@ -164,15 +157,15 @@
                 {% if server.is_running and server.num_overloads %}<h4>5 Minute Lag Count:&nbsp;{{ server.num_overloads }}&nbsp;({{ server.ms_behind }}ms,&nbsp;{{ server.skipped_ticks }}&nbsp;ticks)</h4>{% endif %}
                 <strong>
                     {{ status_text }}{% if completed != None %} {{ completed }}%{% endif %} (v{{ server.running_version }})
-                {% if idle_shutdown_in %}
-                    <br/>
-                    {% if idle_shutdown_in.total_seconds() > 60 %}
-                        Pausing in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}
-                    {% else %}
-                        Pause imminent!
+                    {% if idle_shutdown_in %}
+                        <br/>
+                        {% if idle_shutdown_in.total_seconds() > 60 %}
+                            Pausing in ~{{ time_elapse(idle_shutdown_in.days, idle_shutdown_in.seconds) }}.
+                        {% else %}
+                            Pause imminent!
+                        {% endif %}
                     {% endif %}
                 </strong>
-                {% endif %}
                 {% if server.is_gce %}
                     {% if server.is_stopped or server.is_unknown %}
                         {% if server.mc_properties.eula_agree %}
