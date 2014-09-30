@@ -177,6 +177,20 @@ def get_server_dir(port):
     return os.path.join(SERVERS_DIR, str(port))
 
 
+def get_server_pid(server_dir):
+    pid = None
+    try:
+        with open(os.path.join(server_dir, SERVER_PID_FILENAME), 'r') as f:
+            pid = f.read()
+    except:
+        pass
+    return int(pid) if pid else None
+
+
+def remove_server_pid(server_dir):
+    os.remove(os.path.join(server_dir, SERVER_PID_FILENAME))
+
+
 def get_archive_file_path(server_key):
     return os.path.join(ARCHIVES_DIR, '{0}.zip'.format(server_key))
 
@@ -508,10 +522,11 @@ def start_server(server_key, **kwargs):
 def stop_minecraft(server_key, server_dir):
     try:
         write_server_command(server_dir, 'stop')
-        with open(os.path.join(server_dir, SERVER_PID_FILENAME), 'r') as f:
-            pid = f.read()
-        while pid_exists(int(pid)):
-            time.sleep(0.5)
+        pid = get_server_pid(server_dir)
+        if pid:
+            while pid_exists(pid):
+                time.sleep(0.5)
+            remove_server_pid(server_dir)
     except Exception as e:
         logger.error("Error ({0}) stopping MC process for server {1}".format(e, server_key))
 
@@ -811,6 +826,17 @@ def main(argv):
                 finally:
                     delete_tasks(service, completed_tasks)
             else:
+                # Restart crashed servers
+                servers = get_servers()
+                if servers:
+                    for server_key, server in servers.iteritems():
+                        server_dir = get_server_dir(server['port'])
+                        pid = get_server_pid(server_dir)
+                        if pid and not pid_exists(pid):
+                            logger.error("Server '{0}' has crashed. Restarting minecraft.".format(server_key))
+                            run_server_script = os.path.join(server_dir, RUN_SERVER_FILENAME)
+                            start_minecraft(server_key, server_dir, run_server_script)
+                # Save non-uploaded archives
                 archives = get_archives()
                 if archives:
                     server_key, archive_file = archives[0]
