@@ -35,7 +35,8 @@ REGEX_TAGS = [
     ),
     (
         [
-            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) left the game"
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) left the game",
+            ur"(?P<date>[\w-]+) (?P<time>[\w:]+) \[(?P<log_level>\w+)\] (?P<username>\w+) lost connection:.+"
         ],
         LOGOUT_TAGS
     ),
