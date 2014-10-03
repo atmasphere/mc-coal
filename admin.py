@@ -828,7 +828,7 @@ def validate_server_archive(gcs_file):
         zf = zipfile.ZipFile(gcs_file, 'r')
         zip_infos = zf.infolist()
         filenames = [zi.filename for zi in zip_infos]
-        required_filenames = ['server.properties', 'world/']
+        required_filenames = ['world/']
         valid = True
         for r in required_filenames:
             if r not in filenames:
