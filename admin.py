@@ -296,7 +296,7 @@ class ServerPropertiesForm(ServerForm):
     resource_pack = fields.StringField(
         u'Prompt clients to download resource pack from this URL', default=''
     )
-    op_permission_level = fields.SelectField(u'Ops permission level', default='3')
+    op_permission_level = fields.SelectField(u'Ops permission level', default='4')
     eula_agree = fields.BooleanField(
         u"Agree to Mojang's EULA (https://account.mojang.com/documents/minecraft_eula)", default=False
     )
@@ -338,7 +338,8 @@ class ServerPropertiesForm(ServerForm):
         self.op_permission_level.choices = [
             ('1', 'Can bypass spawn protection'),
             ('2', 'Can use /clear, /difficulty, /effect, /gamemode, /gamerule, /give, and /tp, and can edit command blocks'),  # noqa
-            ('3', 'Can use /ban, /deop, /kick, and /op')
+            ('3', 'Can use /ban, /deop, /kick, and /op'),
+            ('4', 'Can use /stop')
         ]
 
     def validate_eula_agree(form, field):
