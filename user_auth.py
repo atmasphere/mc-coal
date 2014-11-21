@@ -294,7 +294,6 @@ class MojangUserHandler(AuthHandler):
                     return
             except MojangException as me:
                 message = u'Mojang authentication failed (Reason: {0}).'.format(me)
-                logging.error(message)
                 self.session.add_flash(message, level='error')
         gae_login_uri = get_gae_login_uri(self, next_url)
         context = {
