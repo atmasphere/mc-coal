@@ -31,8 +31,8 @@ CHAT_LOG_LINE = '2012-10-09 20:46:06 [INFO] <vesicular> yo yo'
 CHAT_LOG_LINE_2 = '2013-04-03 10:27:55 [INFO] [Server] hello'
 CHAT_LOG_LINE_3 = '2012-10-09 20:46:05 [INFO] [Server] <vesicular> yo yo'
 CHAT_LOG_LINE_4 = '2012-10-09 20:46:05 [INFO] [Server] <t@gmail.com> yo yo'
-DISCONNECT_LOG_LINE = '2012-10-09 20:50:08 [INFO] gumptionthomas left the game'
-DISCONNECT_LOG_LINE_2 = '2013-03-13 23:03:39 [INFO] gumptionthomas left the game'
+DISCONNECT_LOG_LINE = '2012-10-09 20:50:08 [INFO] gumptionthomas lost connection: blah'
+DISCONNECT_LOG_LINE_2 = '2013-03-13 23:03:39 [INFO] gumptionthomas lost connection: blah'
 CONNECT_LOG_LINE = '2012-10-09 19:52:55 [INFO] gumptionthomas[/192.168.11.198:59659] logged in with entity id 14698 at (221.41534292614716, 68.0, 239.43154415221068)'  # noqa
 CONNECT_LOG_LINE_2 = '2013-03-08 21:06:34 [INFO] gumptionthomas[/192.168.11.205:50167] logged in with entity id 3583968 at (1168.5659371692745, 63.0, -779.6390153758603)'  # noqa
 ALL_LOG_LINES = [
@@ -166,6 +166,9 @@ DEATH_LOG_LINES = [
 ]
 
 ACHIEVEMENT_LOG_LINES = [ACHIEVEMENT_LOG_LINE]
+
+COLOR_CODE_CHAT_LOG_LINE = u'2012-10-09 20:46:06 [INFO] <\xa7bvesicular\xa7r> yo yo'
+COLOR_CODE_PVP_LOG_LINE = u'2013-04-03 10:27:55 [INFO] \xa7agumptionthomas\xa7r got finished off by \xa7bvesicular\xa7r using Bow'
 
 ADMIN_EMAIL = 'admin@example.com'
 
@@ -813,6 +816,64 @@ class AchievementLogLineTest(AgentApiTest):
         self.assertEqual(1, models.Player.query().count())
         player = models.Player.lookup(self.server.key, log_line.username)
         self.assertIsNotNone(player)
+
+
+class ColorCodeLineTest(AgentApiTest):
+    URL = '/api/v1/agents/logline'
+    ALLOWED = ['POST']
+
+    def test_post_chat_log_line(self):
+        line = COLOR_CODE_CHAT_LOG_LINE.encode('utf8')
+        params = {u'line': line, u'zone': TIME_ZONE}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        body = json.loads(response.body)
+        self.assertLength(0, body)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(COLOR_CODE_CHAT_LOG_LINE, log_line.line)
+        self.assertEqual(TIME_ZONE, log_line.zone)
+        self.assertEqual(datetime.datetime(2012, 10, 10, 1, 46, 6), log_line.timestamp)
+        self.assertEqual('INFO', log_line.log_level)
+        self.assertEqual('vesicular', log_line.username)
+        self.assertEqual('yo yo', log_line.chat)
+        self.assertEqual(patterns.CHAT_TAGS, log_line.tags)
+        self.assertEqual(1, models.Player.query().count())
+        player = models.Player.lookup(self.server.key, log_line.username)
+        self.assertIsNotNone(player)
+
+    def test_post_pvp_log_line(self):
+        line = COLOR_CODE_PVP_LOG_LINE.encode('utf8')
+        params = {'line': line, 'zone': TIME_ZONE}
+        response = self.post(params=params)
+        self.assertCreated(response)
+        self.assertEqual(1, models.LogLine.query().count())
+        log_line = models.LogLine.query().get()
+        self.assertEqual(COLOR_CODE_PVP_LOG_LINE, log_line.line)
+        self.assertEqual(TIME_ZONE, log_line.zone)
+        self.assertEqual(datetime.datetime(2013, 4, 3, 15, 27, 55), log_line.timestamp)
+        self.assertEqual('INFO', log_line.log_level)
+        self.assertEqual(
+            'gumptionthomas',
+            log_line.username,
+            msg=u"Incorrect death username: '{0}' [{1}]".format(log_line.username, log_line.line)
+        )
+        self.assertEqual(
+            u'got finished off by vesicular using Bow',
+            log_line.death_message,
+            msg=u"Incorrect death message: '{0}' [{1}]".format(log_line.death_message, log_line.line)
+        )
+        self.assertEqual(
+            'vesicular',
+            log_line.username_mob,
+            msg=u"Incorrect username/mob: '{0}' [{1}]".format(log_line.username_mob, log_line.line)
+        )
+        self.assertEqual('Bow', log_line.weapon)
+        self.assertEqual(patterns.DEATH_TAGS, log_line.tags)
+        self.assertEqual(1, models.Player.query().count())
+        player = models.Player.lookup(self.server.key, log_line.username)
+        self.assertIsNotNone(player)
+        log_line.key.delete()
 
 
 class LastLineTest(AgentApiTest):

@@ -17,7 +17,7 @@ class WebTest(unittest.TestCase):
     Example::
 
         import my_app
-        
+
         class TestMyApp(BaseTest, WebTest):
 
             APPLICATION = my_app.application
@@ -33,7 +33,7 @@ class WebTest(unittest.TestCase):
             self._web_test_app = webtest.TestApp(self.APPLICATION)
 
         return self._web_test_app
-            
+
     def get(self, url, params=None, headers=None):
         return self.app.get(url, params=params, headers=headers, status="*", expect_errors=True)
 
@@ -65,7 +65,7 @@ class WebTest(unittest.TestCase):
         :param to: an absolute or relative URL that the redirect must match.
         """
         self.assertEqual(code, response.status_int)
-        
+
         if to:
             if not to.startswith("http"):
                 to = 'http://localhost%s' % to
@@ -99,4 +99,4 @@ class WebTest(unittest.TestCase):
         Assert that ``response`` was 400 Bad Request.
         """
         self.assertEqual(400, response.status_int)
-        
+

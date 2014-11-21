@@ -2,7 +2,7 @@
 <Configuration status="debug">
     <Appenders>
         <File name="legacy_server_log" fileName="server.log">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n" charset="ISO-8859-2"/>
         </File>
     </Appenders>
     <Loggers>

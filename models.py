@@ -33,6 +33,7 @@ import search
 
 
 UNICODE_ASCII_DIGITS = string.digits.decode('ascii')
+SECTION_SIGN = u'\xa7'
 AGENT_CLIENT_ID = 'mc-coal-agent'
 TICKS_PER_PLAY_SECOND = 20
 SERVER_UNKNOWN = 'UNKNOWN'
@@ -79,6 +80,15 @@ def name_to_timezone(name):
     except:
         timezone = pytz.utc
     return timezone
+
+
+def strip_control_codes(s):
+    ns = s
+    i = ns.find(SECTION_SIGN)
+    while i > -1:
+        ns = ns[0:i] + ns[i+2:]
+        i = ns.find(SECTION_SIGN)
+    return ns
 
 
 @ae_ndb_serializer
@@ -857,6 +867,7 @@ class LogLine(UsernameModel):
 
     @classmethod
     def create(cls, server, line, zone, **kwargs):
+        stripped_line = strip_control_codes(line)
         tz = name_to_timezone(zone)
         zone = tz.zone
         kwargs['tags'] = [UNKNOWN_TAG]
@@ -880,16 +891,24 @@ class LogLine(UsernameModel):
                             y=safe_float_from_string(location_y),
                             z=safe_float_from_string(location_z)
                         )
+                    username = gd.pop('username', None)
+                    if username:
+                        username = strip_control_codes(username)
+                        kwargs['username'] = username
+                    username_mob = gd.pop('username_mob', None)
+                    if username_mob:
+                        username_mob = strip_control_codes(username_mob)
+                        kwargs['username_mob'] = username_mob
                     kwargs.update(gd)
                     kwargs['tags'] = tags
                     if DEATH_TAG in tags:
                         username = kwargs['username']
-                        i = line.find(username) + len(username) + 1
-                        kwargs['death_message'] = line[i:]
+                        i = stripped_line.find(username) + len(username) + 1
+                        kwargs['death_message'] = stripped_line[i:]
                     if ACHIEVEMENT_TAG in tags:
                         username = kwargs['username']
-                        i = line.find(username) + len(username) + 1
-                        kwargs['achievement_message'] = line[i:]
+                        i = stripped_line.find(username) + len(username) + 1
+                        kwargs['achievement_message'] = stripped_line[i:]
                     break
             if match:
                 break
