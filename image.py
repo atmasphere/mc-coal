@@ -255,11 +255,11 @@ class NdbImage(ndb.Model):
             raise images.BadImageError(message)
         filename = filename or "{0}{1}".format(image.key_as_string, mimetypes.guess_extension(mime_type))
         gae_image = images.Image(data)
-        format = gae_image.format
+        current_format = gae_image.format
         new_format = None
-        if mime_type == 'image/jpeg' and format != images.JPEG:
+        if mime_type == 'image/jpeg' and current_format != images.JPEG:
             new_format = images.JPEG
-        if mime_type == 'image/png' and format != images.PNG:
+        if mime_type == 'image/png' and current_format != images.PNG:
             new_format = images.PNG
         if new_format is not None:
             data = images.crop(data, 0.0, 0.0, 1.0, 1.0, output_encoding=new_format, quality=100)
