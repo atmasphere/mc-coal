@@ -1,10 +1,10 @@
 # main config
 
-main_SECRET_KEY = 'a_secret_string'
+main_SECRET_KEY = 'yq92UiIxHDlBFaWdWyft'
 
-main_TITLE = 'My COAL Installation'
+main_TITLE = 'Minecraft'
 
-main_DESCRIPTION = 'This is my COAL installation. There are many like it, but this one is mine.'
+main_DESCRIPTION = 'You know, for kids.'
 
 
 # gce config
