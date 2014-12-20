@@ -17,4 +17,3 @@ gce_BOOT_DISK_IMAGE = 'debian-7-wheezy-v20140926'
 oauth_SECRET_KEY = main_SECRET_KEY  # Can optionally be a different secret string
 
 oauth_TOKEN_EXPIRES_IN = 3600*24*30  # Thirty days
-
